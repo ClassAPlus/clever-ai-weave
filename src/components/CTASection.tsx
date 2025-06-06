@@ -56,7 +56,7 @@ export const CTASection = () => {
         </div>
         
         <footer className="mt-20 text-center text-gray-400">
-          <p>&copy; 2024 AI Integration Hub. Empowering the future with artificial intelligence.</p>
+          <p>&copy; 2024 LocalEdgeAI. Empowering the future with artificial intelligence.</p>
         </footer>
       </div>
     </section>

@@ -8,7 +8,7 @@ export const Header = () => {
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Bot className="h-8 w-8 text-purple-400" />
-          <span className="text-2xl font-bold text-white">AI Integration Hub</span>
+          <span className="text-2xl font-bold text-white">LocalEdgeAI</span>
         </div>
         
         <nav className="hidden md:flex items-center space-x-8">

@@ -6,80 +6,80 @@ import { useLanguage } from "@/contexts/LanguageContext";
 const services = [
   {
     icon: MessageSquare,
-    title: { en: "Customer Service AI", he: "שירות לקוחות AI" },
+    title: { en: "Smart Customer Service", he: "שירות לקוחות חכם" },
     description: { 
-      en: "Smart chatbots and virtual assistants that understand local dialects and business needs to serve your customers 24/7.",
-      he: "צ'אטבוטים חכמים ועוזרים וירטואליים המבינים ניבים מקומיים וצרכי עסק כדי לשרת את הלקוחות שלכם 24/7."
+      en: "AI chatbot that handles customer questions 24/7, understands your business, and never takes a day off.",
+      he: "צ'אטבוט AI שמטפל בשאלות לקוחות 24/7, מבין את העסק שלך ואף פעם לא לוקח יום חופש."
     },
     gradient: "from-blue-500 to-cyan-500",
     features: {
-      en: ["Custom Knowledge Base", "Local Dialect Understanding", "After-Hours Support"],
-      he: ["בסיס ידע מותאם", "הבנת ניב מקומי", "תמיכה מחוץ לשעות העבודה"]
+      en: ["24/7 Availability", "Instant Responses", "Learns Your Business"],
+      he: ["זמינות 24/7", "מענה מיידי", "לומד את העסק שלך"]
     }
   },
   {
     icon: Image,
-    title: { en: "Visual Merchandising", he: "סחורה חזותית" },
+    title: { en: "Visual Recognition", he: "זיהוי חזותי" },
     description: { 
-      en: "AI-powered image recognition to organize products, optimize displays, and create personalized recommendations for in-store customers.",
-      he: "זיהוי תמונה מבוסס בינה מלאכותית לארגון מוצרים, אופטימיזציה של תצוגות ויצירת המלצות מותאמות אישית ללקוחות בחנות."
+      en: "Automatically organize products, track inventory, and identify what customers are looking for.",
+      he: "ארגון אוטומטי של מוצרים, מעקב מלאי, וזיהוי מה שהלקוחות מחפשים."
     },
     gradient: "from-purple-500 to-pink-500",
     features: {
-      en: ["Shelf Optimization", "Product Recognition", "Customer Preference Analysis"],
-      he: ["אופטימיזציה של המדפים", "זיהוי מוצרים", "ניתוח העדפות לקוחות"]
+      en: ["Auto Inventory", "Product Search", "Smart Displays"],
+      he: ["מלאי אוטומטי", "חיפוש מוצרים", "תצוגות חכמות"]
     }
   },
   {
     icon: Bot,
-    title: { en: "Small Business Assistant", he: "עוזר עסק קטן" },
+    title: { en: "Business Assistant", he: "עוזר עסק" },
     description: { 
-      en: "Virtual business assistant that helps manage appointments, answer inquiries, and follow up with customers based on your business rules.",
-      he: "עוזר עסק וירטואלי המסייע בניהול פגישות, מענה לפניות ומעקב אחר לקוחות על בסיס כללי העסק שלכם."
+      en: "Virtual assistant that schedules appointments, follows up with customers, and manages daily tasks.",
+      he: "עוזר וירטואלי שמתאם פגישות, עוקב אחרי לקוחות ומנהל משימות יומיות."
     },
     gradient: "from-green-500 to-teal-500",
     features: {
-      en: ["Appointment Scheduling", "Custom Business Rules", "Client Follow-ups"],
-      he: ["תזמון פגישות", "כללי עסק מותאמים", "מעקב אחר לקוחות"]
+      en: ["Smart Scheduling", "Customer Follow-ups", "Task Management"],
+      he: ["תיאום חכם", "מעקב לקוחות", "ניהול משימות"]
     }
   },
   {
     icon: Database,
-    title: { en: "Local Market Intelligence", he: "מודיעין שוק מקומי" },
+    title: { en: "Market Insights", he: "תובנות שוק" },
     description: { 
-      en: "Analyze local trends, customer preferences, and competition to make data-driven decisions for your business.",
-      he: "ניתוח מגמות מקומיות, העדפות לקוחות ותחרות כדי לקבל החלטות מבוססות נתונים לעסק שלכם."
+      en: "Understand your local market trends, customer behavior, and what drives sales in your area.",
+      he: "הבנה של מגמות השוק המקומי, התנהגות לקוחות ומה מניע מכירות באזור שלך."
     },
     gradient: "from-orange-500 to-red-500",
     features: {
-      en: ["Local Trend Analysis", "Competitive Insights", "Neighborhood Demographics"],
-      he: ["ניתוח מגמות מקומיות", "תובנות תחרותיות", "דמוגרפיה של השכונה"]
+      en: ["Local Trends", "Customer Analytics", "Sales Insights"],
+      he: ["מגמות מקומיות", "אנליטיקה של לקוחות", "תובנות מכירות"]
     }
   },
   {
     icon: Video,
-    title: { en: "In-Store Analytics", he: "ניתוחי חנות" },
+    title: { en: "Store Analytics", he: "אנליטיקה של החנות" },
     description: { 
-      en: "Monitor customer flow, engagement, and behavior in your physical location to optimize layouts and staffing.",
-      he: "מעקב אחר זרימת לקוחות, מעורבות והתנהגות במיקום הפיזי שלכם כדי לייעל פריסות וכוח אדם."
+      en: "Track foot traffic, understand customer flow, and optimize your store layout for better sales.",
+      he: "מעקב תנועת לקוחות, הבנת זרימה בחנות ואופטימיזציה של פריסה למכירות טובות יותר."
     },
     gradient: "from-indigo-500 to-purple-500",
     features: {
-      en: ["Foot Traffic Analysis", "Dwell Time Tracking", "Staff Optimization"],
-      he: ["ניתוח תנועת רגל", "מעקב זמן שהייה", "אופטימיזציה של הצוות"]
+      en: ["Traffic Monitoring", "Flow Analysis", "Layout Optimization"],
+      he: ["ניטור תנועה", "ניתוח זרימה", "אופטימיזציה של פריסה"]
     }
   },
   {
     icon: Music,
-    title: { en: "Voice Systems", he: "מערכות קול" },
+    title: { en: "Voice Control", he: "שליטה קולית" },
     description: { 
-      en: "Voice-activated solutions for both customers and staff to improve accessibility and efficiency in your local business.",
-      he: "פתרונות מופעלי קול עבור לקוחות וצוות כדי לשפר נגישות ויעילות בעסק המקומי שלכם."
+      en: "Voice-activated ordering, hands-free operations, and accessibility features for all customers.",
+      he: "הזמנות קוליות, פעולות ללא ידיים ותכונות נגישות לכל הלקוחות."
     },
     gradient: "from-pink-500 to-rose-500",
     features: {
-      en: ["Voice Ordering", "Hands-free Operations", "Accessibility Features"],
-      he: ["הזמנה קולית", "פעולות ללא ידיים", "תכונות נגישות"]
+      en: ["Voice Orders", "Hands-free Mode", "Easy Access"],
+      he: ["הזמנות קוליות", "מצב ללא ידיים", "גישה קלה"]
     }
   }
 ];
@@ -94,24 +94,24 @@ export const ServicesSection = () => {
           <h2 className="text-5xl font-bold text-white mb-6">
             {isHebrew ? (
               <>
-                שירותי AI עבור
+                פתרונות AI
                 <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  עסקים מקומיים
+                  לעסק שלך
                 </span>
               </>
             ) : (
               <>
-                AI Services for
+                AI Solutions
                 <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  Local Businesses
+                  For Your Business
                 </span>
               </>
             )}
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             {isHebrew 
-              ? "פתרונות בינה מלאכותית זולים ומעשיים המיועדים במיוחד לעסקים קטנים ומקומיים. אין צורך בתקציבי ארגון."
-              : "Affordable, practical AI solutions designed specifically for small and local businesses. No enterprise budgets required."
+              ? "כלים חכמים שחוסכים לך זמן, כסף ומשפרים את החוויה ללקוחות."
+              : "Smart tools that save you time, money, and improve customer experience."
             }
           </p>
         </div>

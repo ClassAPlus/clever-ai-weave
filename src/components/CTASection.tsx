@@ -14,24 +14,24 @@ export const CTASection = () => {
           <h2 className="text-5xl font-bold text-white mb-6">
             {isHebrew ? (
               <>
-                התחילו את המסע של
+                הפוך את העסק שלך לחכם יותר
                 <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  העסק המקומי שלכם עם AI היום
+                  תוך 15 דקות
                 </span>
               </>
             ) : (
               <>
-                Start Your Local Business
+                Make Your Business Smarter
                 <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  AI Journey Today
+                  in 15 Minutes
                 </span>
               </>
             )}
           </h2>
           <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto">
             {isHebrew 
-              ? "קבלו פתרונות בינה מלאכותית המיועדים במיוחד לצרכי העסק המקומי שלכם, במחירים שמתאימים לתקציב שלכם."
-              : "Get AI solutions specifically designed for your local business needs, at prices that make sense for your budget."
+              ? "קבל הערכה חינמית ומותאמת אישית לעסק שלך. ללא התחייבות, ללא תשלום."
+              : "Get a free, personalized assessment for your business. No commitment, no payment required."
             }
           </p>
           
@@ -39,7 +39,7 @@ export const CTASection = () => {
             <div className="relative flex-1">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input 
-                placeholder={isHebrew ? "הכניסו את המייל שלכם" : "Enter your email"} 
+                placeholder={isHebrew ? "האימייל שלך" : "Your email address"} 
                 className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400"
               />
             </div>
@@ -47,41 +47,41 @@ export const CTASection = () => {
               size="lg" 
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white group"
             >
-              {isHebrew ? "הערכת AI מקומית חינם" : "Free Local AI Assessment"}
+              {isHebrew ? "התחל חינם" : "Start Free"}
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
           
           <p className="text-sm text-gray-400 mb-8">
             {isHebrew 
-              ? "ההערכה החינמית כוללת המלצות בינה מלאכותית מותאמות אישית לסוג העסק הספציפי שלכם"
-              : "Free assessment includes personalized AI recommendations for your specific business type"
+              ? "נקבל קשר תוך שעה עם המלצות מותאמות אישית לסוג העסק שלך"
+              : "We'll contact you within an hour with personalized recommendations for your business type"
             }
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
             <div className="text-center">
               <div className="text-2xl font-bold text-white mb-2">
-                {isHebrew ? "תמחור מקומי" : "Local Pricing"}
+                {isHebrew ? "התחלה חינמית" : "Free Start"}
               </div>
               <div className="text-gray-300">
-                {isHebrew ? "תוכניות חודשיות בהישג יד" : "Affordable monthly plans"}
+                {isHebrew ? "ללא עלות התחלתית" : "No upfront costs"}
               </div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-white mb-2">
-                {isHebrew ? "הקמה מהירה" : "Quick Setup"}
+                {isHebrew ? "התקנה מהירה" : "Quick Setup"}
               </div>
               <div className="text-gray-300">
-                {isHebrew ? "שילוב של 15 דקות" : "15-minute integration"}
+                {isHebrew ? "תוך 15 דקות" : "Within 15 minutes"}
               </div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-white mb-2">
-                {isHebrew ? "תמיכה מקומית" : "Local Support"}
+                {isHebrew ? "תמיכה מלאה" : "Full Support"}
               </div>
               <div className="text-gray-300">
-                {isHebrew ? "מאנשים שמבינים את האזור שלכם" : "From people who understand your area"}
+                {isHebrew ? "צוות ישראלי זמין" : "Always available team"}
               </div>
             </div>
           </div>
@@ -90,8 +90,8 @@ export const CTASection = () => {
         <footer className="mt-20 text-center text-gray-400">
           <p>
             {isHebrew 
-              ? "© 2024 LocalEdgeAI. מביאים פתרונות בינה מלאכותית מתקדמים לעסקים מקומיים בכל מקום."
-              : "© 2024 LocalEdgeAI. Bringing advanced AI solutions to local businesses everywhere."
+              ? "© 2024 LocalEdgeAI. הופכים עסקים קטנים לחכמים יותר עם בינה מלאכותית."
+              : "© 2024 LocalEdgeAI. Making small businesses smarter with artificial intelligence."
             }
           </p>
         </footer>

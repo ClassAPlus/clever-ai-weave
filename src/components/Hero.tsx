@@ -20,23 +20,23 @@ export const Hero = () => {
           <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 mb-8 border border-white/20">
             <Zap className="h-4 w-4 text-yellow-400" />
             <span className="text-sm text-gray-300">
-              {isHebrew ? "פתרונות בינה מלאכותית לעסקים מקומיים" : "AI Solutions for Local Businesses"}
+              {isHebrew ? "בינה מלאכותית לעסק שלך" : "AI for Your Business"}
             </span>
           </div>
           
           <h1 className="text-6xl md:text-8xl font-bold text-white mb-6 leading-tight">
             {isHebrew ? (
               <>
-                שנה את
+                הפוך את העסק שלך
                 <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                  העסק המקומי שלך עם AI
+                  לחכם יותר עם AI
                 </span>
               </>
             ) : (
               <>
-                Transform Your
+                Make Your Business
                 <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                  Local Business with AI
+                  Smarter with AI
                 </span>
               </>
             )}
@@ -44,8 +44,8 @@ export const Hero = () => {
           
           <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
             {isHebrew 
-              ? "הביאו פתרונות בינה מלאכותית ברמת הארגון לעסק המקומי שלכם. משירות לקוחות לניהול מלאי, אנחנו הופכים בינה מלאכותית מתקדמת לנגישה, זולה ומותאמת לצרכים המקומיים הספציפיים שלכם."
-              : "Bring enterprise-level AI solutions to your local business. From customer service to inventory management, we make advanced AI accessible, affordable, and tailored to your specific local needs."
+              ? "פתרונות AI פשוטים ומשתלמים לעסקים קטנים. שירות לקוחות 24/7, ניהול חכם, והמלצות מותאמות - הכל בלחיצת כפתור."
+              : "Simple, affordable AI solutions for small businesses. 24/7 customer service, smart management, and personalized recommendations - all at the click of a button."
             }
           </p>
           
@@ -54,7 +54,7 @@ export const Hero = () => {
               size="lg" 
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 text-lg group"
             >
-              {isHebrew ? "פתח את העסק המקומי שלך" : "Grow Your Local Business"}
+              {isHebrew ? "התחל עכשיו" : "Get Started Now"}
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button 
@@ -62,7 +62,7 @@ export const Hero = () => {
               variant="outline" 
               className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg"
             >
-              {isHebrew ? "ראה סיפורי הצלחה מקומיים" : "See Local Success Stories"}
+              {isHebrew ? "צפה בדמו" : "Watch Demo"}
             </Button>
           </div>
         </div>
@@ -72,30 +72,30 @@ export const Hero = () => {
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105">
             <Brain className="h-12 w-12 text-purple-400 mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              {isHebrew ? "בינה מלאכותית לעסקים קטנים" : "Small Business AI"}
+              {isHebrew ? "חכם ופשוט" : "Smart & Simple"}
             </h3>
             <p className="text-gray-300">
-              {isHebrew ? "פתרונות בינה מלאכותית המותאמים באופן מושלם לצרכים ותקציבים של עסקים מקומיים" : "AI solutions scaled perfectly for local business needs and budgets"}
+              {isHebrew ? "AI שמבין את העסק שלך ופועל בלי להסבך" : "AI that understands your business and works without complication"}
             </p>
           </div>
           
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105" style={{ animationDelay: '0.2s' }}>
             <Code className="h-12 w-12 text-blue-400 mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              {isHebrew ? "אינטגרציה מקומית קלה" : "Easy Local Integration"}
+              {isHebrew ? "התקנה במינותים" : "Setup in Minutes"}
             </h3>
             <p className="text-gray-300">
-              {isHebrew ? "התקנה פשוטה עם המערכות הקיימות שלכם, ללא צורך בידע טכני" : "Simple setup with your existing systems, no tech expertise required"}
+              {isHebrew ? "ללא צורך במומחה טכני או השקעה גדולה" : "No tech expert or major investment required"}
             </p>
           </div>
           
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105" style={{ animationDelay: '0.4s' }}>
             <Zap className="h-12 w-12 text-yellow-400 mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              {isHebrew ? "מיקוד קהילתי" : "Community Focus"}
+              {isHebrew ? "תמיכה מקומית" : "Local Support"}
             </h3>
             <p className="text-gray-300">
-              {isHebrew ? "כלי בינה מלאכותית המבינים את השוק המקומי וצרכי הקהילה שלכם" : "AI tools that understand your local market and community needs"}
+              {isHebrew ? "צוות ישראלי שזמין בכל שעה לעזור לך" : "Always available to help when you need it"}
             </p>
           </div>
         </div>

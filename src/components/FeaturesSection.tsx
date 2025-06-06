@@ -5,50 +5,50 @@ import { useLanguage } from "@/contexts/LanguageContext";
 const features = [
   {
     icon: Shield,
-    title: { en: "Local Data Security", he: "אבטחת נתונים מקומית" },
+    title: { en: "Secure & Private", he: "מאובטח ופרטי" },
     description: { 
-      en: "Keep your customer data secure with enterprise-level encryption tailored for small business needs.",
-      he: "שמרו על נתוני הלקוחות שלכם מאובטחים עם הצפנה ברמת ארגון המותאמת לצרכי עסקים קטנים."
+      en: "Your data stays safe with enterprise-level security that's simple to manage.",
+      he: "הנתונים שלך נשארים מאובטחים עם אבטחה ברמה ארגונית שקל לנהל."
     }
   },
   {
     icon: Zap,
-    title: { en: "Quick Implementation", he: "יישום מהיר" },
+    title: { en: "Quick Start", he: "התחלה מהירה" },
     description: { 
-      en: "Get your AI solutions up and running within days, not months, perfect for busy local businesses.",
-      he: "הפעילו את פתרונות הבינה המלאכותית שלכם תוך ימים, לא חודשים, מושלם לעסקים מקומיים עמוסים."
+      en: "Get up and running in 15 minutes, not months. No technical expertise required.",
+      he: "תפעלו תוך 15 דקות, לא חודשים. ללא צורך בידע טכני."
     }
   },
   {
     icon: Globe,
-    title: { en: "Community Focused", he: "מיקוד קהילתי" },
+    title: { en: "Knows Your Market", he: "מכיר את השוק שלך" },
     description: { 
-      en: "Our AI solutions understand local markets, dialects, and neighborhood preferences.",
-      he: "פתרונות הבינה המלאכותית שלנו מבינים שווקים מקומיים, ניבים והעדפות שכונתיות."
+      en: "AI that understands local preferences, trends, and what your customers really want.",
+      he: "AI שמבין העדפות מקומיות, מגמות ומה שהלקוחות שלך באמת רוצים."
     }
   },
   {
     icon: Users,
-    title: { en: "Local Support", he: "תמיכה מקומית" },
+    title: { en: "Real Human Support", he: "תמיכה אנושית אמיתי" },
     description: { 
-      en: "Get help from real people who understand your local business landscape and challenges.",
-      he: "קבלו עזרה מאנשים אמיתיים המבינים את הנוף העסקי המקומי והאתגרים שלכם."
+      en: "Talk to real people who understand your business and are here to help you succeed.",
+      he: "דבר עם אנשים אמיתיים שמבינים את העסק שלך וכאן כדי לעזור לך להצליח."
     }
   },
   {
     icon: Clock,
-    title: { en: "Time-Saving Tools", he: "כלים חוסכי זמן" },
+    title: { en: "Save Hours Daily", he: "חוסך שעות ביום" },
     description: { 
-      en: "Automate routine tasks so you can focus on what matters—serving your customers.",
-      he: "הפוך משימות שגרתיות לאוטומטיות כדי שתוכלו להתמקד במה שחשוב - שירות הלקוחות שלכם."
+      en: "Automate routine tasks so you can focus on growing your business, not managing it.",
+      he: "אוטומציה של משימות שגרתיות כדי שתוכל להתמקד בצמיחת העסק, לא בניהולו."
     }
   },
   {
     icon: Award,
-    title: { en: "Small Business Specialists", he: "מומחי עסקים קטנים" },
+    title: { en: "Built for Small Business", he: "נבנה לעסק קטן" },
     description: { 
-      en: "AI solutions designed specifically for the unique needs of local and small businesses.",
-      he: "פתרונות בינה מלאכותית המיועדים במיוחד לצרכים הייחודיים של עסקים מקומיים וקטנים."
+      en: "Designed specifically for small businesses, not oversized corporate solutions.",
+      he: "מעוצב במיוחד לעסקים קטנים, לא פתרונות ארגוניים מוגדלים."
     }
   }
 ];
@@ -63,24 +63,24 @@ export const FeaturesSection = () => {
           <h2 className="text-5xl font-bold text-white mb-6">
             {isHebrew ? (
               <>
-                למה עסקים מקומיים
+                למה לבחור
                 <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  בוחרים LocalEdgeAI
+                  ב-LocalEdgeAI
                 </span>
               </>
             ) : (
               <>
-                Why Local Businesses
+                Why Choose
                 <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Choose LocalEdgeAI
+                  LocalEdgeAI
                 </span>
               </>
             )}
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             {isHebrew 
-              ? "נבנה במיוחד עבור עסקים קטנים ומקומיים, לא רק פתרונות ארגוניים מוקטנים."
-              : "Built specifically for small and local businesses, not just scaled-down enterprise solutions."
+              ? "נבנה במיוחד לעסקים כמו שלך - פשוט, אמין ומשתלם."
+              : "Built specifically for businesses like yours - simple, reliable, and affordable."
             }
           </p>
         </div>
@@ -109,41 +109,39 @@ export const FeaturesSection = () => {
           <div className="text-center">
             <h3 className="text-4xl font-bold text-white mb-6">
               {isHebrew 
-                ? "מוכנים להביא AI לעסק המקומי שלכם?"
-                : "Ready to Bring AI to Your Local Business?"
+                ? "מוכן להפוך את העסק לחכם יותר?"
+                : "Ready to Make Your Business Smarter?"
               }
             </h3>
             <p className="text-xl text-gray-300 mb-8">
               {isHebrew 
-                ? "הצטרפו למאות עסקים מקומיים שכבר משתמשים בפתרונות הבינה המלאכותית שלנו כדי לצמוח ולשגשג."
-                : "Join hundreds of local businesses already using our AI solutions to grow and thrive."
+                ? "הצטרף למאות עסקים שכבר חוסכים זמן וכסף עם הפתרונות שלנו."
+                : "Join hundreds of businesses already saving time and money with our solutions."
               }
             </p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mt-12">
               <div className="text-center">
-                <div className="text-4xl font-bold text-purple-400 mb-2">200+</div>
+                <div className="text-4xl font-bold text-purple-400 mb-2">500+</div>
                 <div className="text-gray-300">
-                  {isHebrew ? "עסקים מקומיים" : "Local Businesses"}
+                  {isHebrew ? "עסקים מרוצים" : "Happy Businesses"}
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-4xl font-bold text-blue-400 mb-2">15min</div>
                 <div className="text-gray-300">
-                  {isHebrew ? "זמן התקנה ממוצע" : "Average Setup Time"}
+                  {isHebrew ? "להתחיל" : "To Get Started"}
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-green-400 mb-2">30%</div>
+                <div className="text-4xl font-bold text-green-400 mb-2">40%</div>
                 <div className="text-gray-300">
-                  {isHebrew ? "זמן נחסך" : "Time Saved"}
+                  {isHebrew ? "חיסכון בזמן" : "Time Saved"}
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-pink-400 mb-2">
-                  {isHebrew ? "מקומי" : "Local"}
-                </div>
+                <div className="text-4xl font-bold text-pink-400 mb-2">24/7</div>
                 <div className="text-gray-300">
-                  {isHebrew ? "צוות תמיכה" : "Support Team"}
+                  {isHebrew ? "תמיכה" : "Support"}
                 </div>
               </div>
             </div>

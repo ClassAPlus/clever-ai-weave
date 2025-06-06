@@ -4,33 +4,33 @@ import { Shield, Zap, Globe, Users, Clock, Award } from "lucide-react";
 const features = [
   {
     icon: Shield,
-    title: "Enterprise Security",
-    description: "Bank-level encryption and security protocols to protect your sensitive data."
+    title: "Local Data Security",
+    description: "Keep your customer data secure with enterprise-level encryption tailored for small business needs."
   },
   {
     icon: Zap,
-    title: "Lightning Fast",
-    description: "Sub-second response times with our optimized AI infrastructure."
+    title: "Quick Implementation",
+    description: "Get your AI solutions up and running within days, not months, perfect for busy local businesses."
   },
   {
     icon: Globe,
-    title: "Global Scale",
-    description: "Worldwide deployment with 99.9% uptime guarantee."
+    title: "Community Focused",
+    description: "Our AI solutions understand local markets, dialects, and neighborhood preferences."
   },
   {
     icon: Users,
-    title: "Expert Support",
-    description: "24/7 technical support from our team of AI specialists."
+    title: "Local Support",
+    description: "Get help from real people who understand your local business landscape and challenges."
   },
   {
     icon: Clock,
-    title: "Quick Integration",
-    description: "Get up and running in minutes with our simple APIs."
+    title: "Time-Saving Tools",
+    description: "Automate routine tasks so you can focus on what matters—serving your customers."
   },
   {
     icon: Award,
-    title: "Industry Leading",
-    description: "Award-winning AI solutions trusted by Fortune 500 companies."
+    title: "Small Business Specialists",
+    description: "AI solutions designed specifically for the unique needs of local and small businesses."
   }
 ];
 
@@ -40,13 +40,13 @@ export const FeaturesSection = () => {
       <div className="container mx-auto max-w-7xl">
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold text-white mb-6">
-            Why Choose Our
+            Why Local Businesses
             <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              AI Platform
+              Choose LocalEdgeAI
             </span>
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Built for developers, designed for businesses, and trusted by enterprises worldwide.
+            Built specifically for small and local businesses, not just scaled-down enterprise solutions.
           </p>
         </div>
         
@@ -68,26 +68,26 @@ export const FeaturesSection = () => {
         
         <div className="mt-20 bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-3xl p-12 border border-white/20 backdrop-blur-sm">
           <div className="text-center">
-            <h3 className="text-4xl font-bold text-white mb-6">Ready to Get Started?</h3>
+            <h3 className="text-4xl font-bold text-white mb-6">Ready to Bring AI to Your Local Business?</h3>
             <p className="text-xl text-gray-300 mb-8">
-              Join thousands of developers already building with our AI platform.
+              Join hundreds of local businesses already using our AI solutions to grow and thrive.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mt-12">
               <div className="text-center">
-                <div className="text-4xl font-bold text-purple-400 mb-2">10M+</div>
-                <div className="text-gray-300">API Calls Daily</div>
+                <div className="text-4xl font-bold text-purple-400 mb-2">200+</div>
+                <div className="text-gray-300">Local Businesses</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-blue-400 mb-2">50ms</div>
-                <div className="text-gray-300">Average Response</div>
+                <div className="text-4xl font-bold text-blue-400 mb-2">15min</div>
+                <div className="text-gray-300">Average Setup Time</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-green-400 mb-2">99.9%</div>
-                <div className="text-gray-300">Uptime Guarantee</div>
+                <div className="text-4xl font-bold text-green-400 mb-2">30%</div>
+                <div className="text-gray-300">Time Saved</div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-pink-400 mb-2">24/7</div>
-                <div className="text-gray-300">Expert Support</div>
+                <div className="text-4xl font-bold text-pink-400 mb-2">Local</div>
+                <div className="text-gray-300">Support Team</div>
               </div>
             </div>
           </div>

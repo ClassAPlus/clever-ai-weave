@@ -16,19 +16,19 @@ export const Hero = () => {
         <div className="text-center mb-16">
           <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 mb-8 border border-white/20">
             <Zap className="h-4 w-4 text-yellow-400" />
-            <span className="text-sm text-gray-300">Powered by Advanced AI</span>
+            <span className="text-sm text-gray-300">AI Solutions for Local Businesses</span>
           </div>
           
           <h1 className="text-6xl md:text-8xl font-bold text-white mb-6 leading-tight">
             Transform Your
             <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-              Business with AI
+              Local Business with AI
             </span>
           </h1>
           
           <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Seamlessly integrate cutting-edge AI solutions into your workflow. From natural language processing 
-            to computer vision, we make AI accessible and powerful for your business.
+            Bring enterprise-level AI solutions to your local business. From customer service to inventory management, 
+            we make advanced AI accessible, affordable, and tailored to your specific local needs.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -36,7 +36,7 @@ export const Hero = () => {
               size="lg" 
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 text-lg group"
             >
-              Start Your AI Journey
+              Grow Your Local Business
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button 
@@ -44,7 +44,7 @@ export const Hero = () => {
               variant="outline" 
               className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg"
             >
-              View Demo
+              See Local Success Stories
             </Button>
           </div>
         </div>
@@ -53,20 +53,20 @@ export const Hero = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20">
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105">
             <Brain className="h-12 w-12 text-purple-400 mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Machine Learning</h3>
-            <p className="text-gray-300">Advanced ML algorithms that learn and adapt to your data</p>
+            <h3 className="text-xl font-semibold text-white mb-2">Small Business AI</h3>
+            <p className="text-gray-300">AI solutions scaled perfectly for local business needs and budgets</p>
           </div>
           
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105" style={{ animationDelay: '0.2s' }}>
             <Code className="h-12 w-12 text-blue-400 mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">API Integration</h3>
-            <p className="text-gray-300">Easy-to-use APIs for seamless AI integration</p>
+            <h3 className="text-xl font-semibold text-white mb-2">Easy Local Integration</h3>
+            <p className="text-gray-300">Simple setup with your existing systems, no tech expertise required</p>
           </div>
           
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105" style={{ animationDelay: '0.4s' }}>
             <Zap className="h-12 w-12 text-yellow-400 mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Real-time Processing</h3>
-            <p className="text-gray-300">Lightning-fast AI responses for instant results</p>
+            <h3 className="text-xl font-semibold text-white mb-2">Community Focus</h3>
+            <p className="text-gray-300">AI tools that understand your local market and community needs</p>
           </div>
         </div>
       </div>

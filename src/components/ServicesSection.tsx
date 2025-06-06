@@ -5,45 +5,45 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 const services = [
   {
     icon: MessageSquare,
-    title: "Natural Language Processing",
-    description: "Advanced text analysis, sentiment detection, and language understanding for chatbots and content analysis.",
+    title: "Customer Service AI",
+    description: "Smart chatbots and virtual assistants that understand local dialects and business needs to serve your customers 24/7.",
     gradient: "from-blue-500 to-cyan-500",
-    features: ["Sentiment Analysis", "Text Summarization", "Language Translation"]
+    features: ["Custom Knowledge Base", "Local Dialect Understanding", "After-Hours Support"]
   },
   {
     icon: Image,
-    title: "Computer Vision",
-    description: "Image recognition, object detection, and visual analysis to automate visual tasks and insights.",
+    title: "Visual Merchandising",
+    description: "AI-powered image recognition to organize products, optimize displays, and create personalized recommendations for in-store customers.",
     gradient: "from-purple-500 to-pink-500",
-    features: ["Object Detection", "Facial Recognition", "Image Classification"]
+    features: ["Shelf Optimization", "Product Recognition", "Customer Preference Analysis"]
   },
   {
     icon: Bot,
-    title: "Conversational AI",
-    description: "Intelligent chatbots and virtual assistants that understand context and provide human-like interactions.",
+    title: "Small Business Assistant",
+    description: "Virtual business assistant that helps manage appointments, answer inquiries, and follow up with customers based on your business rules.",
     gradient: "from-green-500 to-teal-500",
-    features: ["Smart Chatbots", "Voice Assistants", "Context Awareness"]
+    features: ["Appointment Scheduling", "Custom Business Rules", "Client Follow-ups"]
   },
   {
     icon: Database,
-    title: "Predictive Analytics",
-    description: "Machine learning models that predict trends, behaviors, and outcomes from your data.",
+    title: "Local Market Intelligence",
+    description: "Analyze local trends, customer preferences, and competition to make data-driven decisions for your business.",
     gradient: "from-orange-500 to-red-500",
-    features: ["Trend Prediction", "Risk Assessment", "Data Forecasting"]
+    features: ["Local Trend Analysis", "Competitive Insights", "Neighborhood Demographics"]
   },
   {
     icon: Video,
-    title: "Video Intelligence",
-    description: "Analyze video content for objects, actions, and scenes to extract meaningful insights.",
+    title: "In-Store Analytics",
+    description: "Monitor customer flow, engagement, and behavior in your physical location to optimize layouts and staffing.",
     gradient: "from-indigo-500 to-purple-500",
-    features: ["Content Analysis", "Action Recognition", "Scene Understanding"]
+    features: ["Foot Traffic Analysis", "Dwell Time Tracking", "Staff Optimization"]
   },
   {
     icon: Music,
-    title: "Audio Processing",
-    description: "Speech recognition, audio classification, and sound analysis for multimedia applications.",
+    title: "Voice Systems",
+    description: "Voice-activated solutions for both customers and staff to improve accessibility and efficiency in your local business.",
     gradient: "from-pink-500 to-rose-500",
-    features: ["Speech-to-Text", "Audio Classification", "Sound Analysis"]
+    features: ["Voice Ordering", "Hands-free Operations", "Accessibility Features"]
   }
 ];
 
@@ -53,13 +53,13 @@ export const ServicesSection = () => {
       <div className="container mx-auto max-w-7xl">
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold text-white mb-6">
-            AI Services That
+            AI Services for
             <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Power Innovation
+              Local Businesses
             </span>
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Choose from our comprehensive suite of AI services designed to transform how you work and serve your customers.
+            Affordable, practical AI solutions designed specifically for small and local businesses. No enterprise budgets required.
           </p>
         </div>
         

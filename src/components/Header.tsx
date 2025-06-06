@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Menu } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Link } from "react-router-dom";
 
 export const Header = () => {
   const { isHebrew, toggleLanguage } = useLanguage();
@@ -10,33 +11,51 @@ export const Header = () => {
   return (
     <header className="fixed top-0 w-full z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          {/* Custom AI Logo */}
+        <Link to="/" className="flex items-center space-x-3">
+          {/* Sleek Modern AI Logo */}
           <div className="relative">
             <svg width="32" height="32" viewBox="0 0 32 32" className="text-purple-400">
-              {/* Neural network nodes */}
-              <circle cx="8" cy="8" r="2" fill="currentColor" className="animate-pulse" />
-              <circle cx="24" cy="8" r="2" fill="currentColor" className="animate-pulse" style={{ animationDelay: '0.5s' }} />
-              <circle cx="8" cy="24" r="2" fill="currentColor" className="animate-pulse" style={{ animationDelay: '1s' }} />
-              <circle cx="24" cy="24" r="2" fill="currentColor" className="animate-pulse" style={{ animationDelay: '1.5s' }} />
-              <circle cx="16" cy="16" r="3" fill="currentColor" className="animate-pulse" style={{ animationDelay: '0.75s' }} />
+              {/* Central hexagon representing AI core */}
+              <path 
+                d="M16 4 L24 8 L24 16 L16 20 L8 16 L8 8 Z" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="1.5" 
+                className="animate-pulse"
+              />
               
-              {/* Connecting lines */}
-              <line x1="8" y1="8" x2="16" y2="16" stroke="currentColor" strokeWidth="1" opacity="0.6" />
-              <line x1="24" y1="8" x2="16" y2="16" stroke="currentColor" strokeWidth="1" opacity="0.6" />
-              <line x1="8" y1="24" x2="16" y2="16" stroke="currentColor" strokeWidth="1" opacity="0.6" />
-              <line x1="24" y1="24" x2="16" y2="16" stroke="currentColor" strokeWidth="1" opacity="0.6" />
+              {/* Inner geometric pattern */}
+              <circle cx="16" cy="12" r="2" fill="currentColor" className="animate-pulse" style={{ animationDelay: '0.5s' }} />
+              <path 
+                d="M12 10 L20 10 M12 14 L20 14" 
+                stroke="currentColor" 
+                strokeWidth="1" 
+                className="animate-pulse" 
+                style={{ animationDelay: '1s' }}
+              />
               
-              {/* Outer ring for "local" concept */}
-              <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3" strokeDasharray="2,2" className="animate-spin" style={{ animationDuration: '8s' }} />
+              {/* Outer connecting nodes for "local/edge" concept */}
+              <circle cx="6" cy="6" r="1.5" fill="currentColor" className="animate-pulse" style={{ animationDelay: '0.2s' }} />
+              <circle cx="26" cy="6" r="1.5" fill="currentColor" className="animate-pulse" style={{ animationDelay: '0.7s' }} />
+              <circle cx="6" cy="20" r="1.5" fill="currentColor" className="animate-pulse" style={{ animationDelay: '1.2s' }} />
+              <circle cx="26" cy="20" r="1.5" fill="currentColor" className="animate-pulse" style={{ animationDelay: '0.9s' }} />
+              
+              {/* Connection lines */}
+              <line x1="8" y1="8" x2="12" y2="10" stroke="currentColor" strokeWidth="0.5" opacity="0.6" />
+              <line x1="24" y1="8" x2="20" y2="10" stroke="currentColor" strokeWidth="0.5" opacity="0.6" />
+              <line x1="8" y1="16" x2="12" y2="14" stroke="currentColor" strokeWidth="0.5" opacity="0.6" />
+              <line x1="24" y1="16" x2="20" y2="14" stroke="currentColor" strokeWidth="0.5" opacity="0.6" />
             </svg>
           </div>
           <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             LocalEdgeAI
           </span>
-        </div>
+        </Link>
         
         <nav className="hidden md:flex items-center space-x-8">
+          <Link to="/use-cases" className="text-gray-300 hover:text-white transition-colors">
+            {isHebrew ? "דוגמאות שימוש" : "Use Cases"}
+          </Link>
           <a href="#services" className="text-gray-300 hover:text-white transition-colors">
             {isHebrew ? "שירותים" : "Services"}
           </a>

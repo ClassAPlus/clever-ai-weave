@@ -30,7 +30,7 @@ export const Footer = () => {
             <div className="space-y-3">
               <div className={`flex items-center ${isHebrew ? 'flex-row-reverse' : ''}`}>
                 <Mail className={`h-4 w-4 text-purple-400 ${isHebrew ? 'ml-2' : 'mr-2'}`} />
-                <span className="text-gray-300">info@localedgeai.com</span>
+                <span className="text-gray-300">info@localedgeai.tech</span>
               </div>
               <div className={`flex items-center ${isHebrew ? 'flex-row-reverse' : ''}`}>
                 <Phone className={`h-4 w-4 text-purple-400 ${isHebrew ? 'ml-2' : 'mr-2'}`} />
@@ -39,7 +39,7 @@ export const Footer = () => {
               <div className={`flex items-center ${isHebrew ? 'flex-row-reverse' : ''}`}>
                 <MapPin className={`h-4 w-4 text-purple-400 ${isHebrew ? 'ml-2' : 'mr-2'}`} />
                 <span className="text-gray-300">
-                  {isHebrew ? "תל אביב, ישראל" : "Tel Aviv, Israel"}
+                  {isHebrew ? "בית שמש, ישראל" : "Beit Shemesh, Israel"}
                 </span>
               </div>
             </div>

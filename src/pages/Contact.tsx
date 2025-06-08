@@ -7,14 +7,76 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Contact = () => {
   const { isHebrew } = useLanguage();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    company: "",
+    message: "",
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log("Form submitted");
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('contact_submissions')
+        .insert([
+          {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            company: formData.company || null,
+            message: formData.message,
+          }
+        ]);
+
+      if (error) throw error;
+
+      toast({
+        title: isHebrew ? "ההודעה נשלחה בהצלחה!" : "Message sent successfully!",
+        description: isHebrew 
+          ? "תודה על פנייתך. נחזור אליך בהקדם האפשרי." 
+          : "Thank you for contacting us. We'll get back to you soon.",
+      });
+
+      // Reset form
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        company: "",
+        message: "",
+      });
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      toast({
+        title: isHebrew ? "שגיאה בשליחת ההודעה" : "Error sending message",
+        description: isHebrew 
+          ? "אירעה שגיאה בשליחת ההודעה. אנא נסה שוב." 
+          : "There was an error sending your message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -51,6 +113,10 @@ const Contact = () => {
                     </Label>
                     <Input 
                       id="firstName"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      required
                       className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400"
                       placeholder={isHebrew ? "השם הפרטי שלך" : "Your first name"}
                     />
@@ -61,6 +127,10 @@ const Contact = () => {
                     </Label>
                     <Input 
                       id="lastName"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      required
                       className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400"
                       placeholder={isHebrew ? "שם המשפחה שלך" : "Your last name"}
                     />
@@ -73,7 +143,11 @@ const Contact = () => {
                   </Label>
                   <Input 
                     id="email"
+                    name="email"
                     type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
                     className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400"
                     placeholder={isHebrew ? "האימייל שלך" : "Your email address"}
                   />
@@ -85,6 +159,9 @@ const Contact = () => {
                   </Label>
                   <Input 
                     id="company"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleChange}
                     className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400"
                     placeholder={isHebrew ? "שם החברה שלך" : "Your company name"}
                   />
@@ -96,7 +173,11 @@ const Contact = () => {
                   </Label>
                   <Textarea 
                     id="message"
+                    name="message"
                     rows={5}
+                    value={formData.message}
+                    onChange={handleChange}
+                    required
                     className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400"
                     placeholder={isHebrew ? "ספר לנו על העסק שלך ואיך נוכל לעזור" : "Tell us about your business and how we can help"}
                   />
@@ -104,11 +185,15 @@ const Contact = () => {
                 
                 <Button 
                   type="submit"
+                  disabled={isSubmitting}
                   size="lg" 
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                 >
                   <Send className="mr-2 h-5 w-5" />
-                  {isHebrew ? "שלח הודעה" : "Send Message"}
+                  {isSubmitting 
+                    ? (isHebrew ? "שולח..." : "Sending...") 
+                    : (isHebrew ? "שלח הודעה" : "Send Message")
+                  }
                 </Button>
               </form>
             </div>

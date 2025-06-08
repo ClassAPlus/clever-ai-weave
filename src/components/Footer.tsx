@@ -30,7 +30,12 @@ export const Footer = () => {
             <div className="space-y-3">
               <div className={`flex items-center ${isHebrew ? 'flex-row-reverse' : ''}`}>
                 <Mail className={`h-4 w-4 text-purple-400 ${isHebrew ? 'ml-2' : 'mr-2'}`} />
-                <span className="text-gray-300">info@localedgeai.tech</span>
+                <a 
+                  href="mailto:contact@classaplus.org"
+                  className="text-gray-300 hover:text-purple-400 transition-colors"
+                >
+                  contact@classaplus.org
+                </a>
               </div>
               <div className={`flex items-center ${isHebrew ? 'flex-row-reverse' : ''}`}>
                 <Phone className={`h-4 w-4 text-purple-400 ${isHebrew ? 'ml-2' : 'mr-2'}`} />

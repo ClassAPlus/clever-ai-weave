@@ -15,8 +15,8 @@ const features = [
     icon: Zap,
     title: { en: "Quick Start", he: "התחלה מהירה" },
     description: { 
-      en: "Get up and running in 15 minutes, not months. No technical expertise required.",
-      he: "תפעלו תוך 15 דקות, לא חודשים. ללא צורך בידע טכני."
+      en: "Get up and running in minutes, not months. No technical expertise required.",
+      he: "תפעלו תוך דקות, לא חודשים. ללא צורך בידע טכני."
     }
   },
   {
@@ -115,21 +115,21 @@ export const FeaturesSection = () => {
             </h3>
             <p className="text-xl text-gray-300 mb-8">
               {isHebrew 
-                ? "הצטרף למאות עסקים שכבר חוסכים זמן וכסף עם הפתרונות שלנו."
-                : "Join hundreds of businesses already saving time and money with our solutions."
+                ? "הצטרף לעסקים שכבר חוסכים זמן וכסף עם הפתרונות שלנו."
+                : "Join businesses already saving time and money with our solutions."
               }
             </p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mt-12">
               <div className="text-center">
-                <div className="text-4xl font-bold text-purple-400 mb-2">500+</div>
+                <div className="text-4xl font-bold text-purple-400 mb-2">$2K+</div>
                 <div className="text-gray-300">
-                  {isHebrew ? "עסקים מרוצים" : "Happy Businesses"}
+                  {isHebrew ? "נחסך בחודש" : "Saved Monthly"}
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-blue-400 mb-2">15min</div>
+                <div className="text-4xl font-bold text-blue-400 mb-2">Easy</div>
                 <div className="text-gray-300">
-                  {isHebrew ? "להתחיל" : "To Get Started"}
+                  {isHebrew ? "התקנה" : "Setup"}
                 </div>
               </div>
               <div className="text-center">
@@ -139,7 +139,7 @@ export const FeaturesSection = () => {
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-pink-400 mb-2">24/7</div>
+                <div className="text-4xl font-bold text-pink-400 mb-2">Local</div>
                 <div className="text-gray-300">
                   {isHebrew ? "תמיכה" : "Support"}
                 </div>

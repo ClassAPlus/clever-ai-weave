@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Mail } from "lucide-react";
@@ -63,7 +64,7 @@ export const CTASection = () => {
               <div className="text-2xl font-bold text-white mb-2">
                 {isHebrew ? "פתרונות מותאמים" : "Custom Solutions"}
               </div>
-              <div className={`text-gray-300 ${isHebrew ? 'text-center' : 'text-center'}`}>
+              <div className="text-gray-300 text-center">
                 {isHebrew ? "מותאמים לעסק שלך" : "Tailored to your business"}
               </div>
             </div>
@@ -71,7 +72,7 @@ export const CTASection = () => {
               <div className="text-2xl font-bold text-white mb-2">
                 {isHebrew ? "התקנה מהירה" : "Quick Setup"}
               </div>
-              <div className={`text-gray-300 ${isHebrew ? 'text-center' : 'text-center'}`}>
+              <div className="text-gray-300 text-center">
                 {isHebrew ? "תוך 15 דקות" : "Within 15 minutes"}
               </div>
             </div>
@@ -79,21 +80,12 @@ export const CTASection = () => {
               <div className="text-2xl font-bold text-white mb-2">
                 {isHebrew ? "תמיכה מקומית" : "Local Support"}
               </div>
-              <div className={`text-gray-300 ${isHebrew ? 'text-center' : 'text-center'}`}>
+              <div className="text-gray-300 text-center">
                 {isHebrew ? "צוות ישראלי מנוסה" : "Experienced team"}
               </div>
             </div>
           </div>
         </div>
-        
-        <footer className="mt-20 text-center text-gray-400">
-          <p>
-            {isHebrew 
-              ? "© 2024 LocalEdgeAI. הופכים עסקים קטנים לחכמים יותר עם בינה מלאכותית."
-              : "© 2024 LocalEdgeAI. Making small businesses smarter with artificial intelligence."
-            }
-          </p>
-        </footer>
       </div>
     </section>
   );

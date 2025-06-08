@@ -17,7 +17,7 @@ export const HeroContent = () => {
           {isHebrew ? "בינה מלאכותית מקומית ומתקדמת" : "Advanced Local AI Solutions"}
         </div>
         
-        <h1 className={`text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent ${isHebrew ? 'text-center' : 'text-center'}`}>
+        <h1 className={`text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent text-center`}>
           {isHebrew ? (
             <>
               הכוח של <br />
@@ -35,7 +35,7 @@ export const HeroContent = () => {
           )}
         </h1>
         
-        <p className={`text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed ${isHebrew ? 'text-center' : 'text-center'}`}>
+        <p className={`text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed text-center`}>
           {isHebrew 
             ? "פתרונות בינה מלאכותית מתקדמים לעסקים, עם עיבוד מקומי מהיר, פרטיות מלאה ויכולות מותאמות אישית לכל ארגון"
             : "Advanced AI solutions for businesses with lightning-fast local processing, complete privacy, and custom capabilities tailored to your organization"

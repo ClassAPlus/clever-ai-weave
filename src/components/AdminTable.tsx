@@ -53,52 +53,60 @@ export const AdminTable = ({ onSubmissionCountChange }: AdminTableProps) => {
       console.log('=== Starting delete operation ===');
       console.log('Attempting to delete submission with ID:', id);
       
-      // First check if the row exists
-      const { data: existingData, error: checkError } = await supabase
-        .from('contact_submissions')
-        .select('id')
-        .eq('id', id);
+      // Check RLS policies first
+      console.log('Checking RLS policies...');
+      const { data: rlsCheck } = await supabase.rpc('version');
+      console.log('Database connection test:', rlsCheck);
       
-      console.log('Existing data before delete:', existingData);
-      if (checkError) {
-        console.error('Error checking existing data:', checkError);
-      }
-      
-      // Perform the delete
+      // Try direct delete without additional queries first
+      console.log('Performing direct delete...');
       const { data, error, count } = await supabase
         .from('contact_submissions')
         .delete()
-        .eq('id', id)
-        .select();
+        .eq('id', id);
       
       console.log('Delete operation result:');
       console.log('- Data returned:', data);
       console.log('- Error:', error);
       console.log('- Count:', count);
+      console.log('- Error details:', error?.details);
+      console.log('- Error hint:', error?.hint);
+      console.log('- Error code:', error?.code);
       
       if (error) {
-        console.error('Delete error details:', error);
+        console.error('Delete error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
       }
       
-      // Verify the row is actually deleted
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('contact_submissions')
-        .select('id')
-        .eq('id', id);
+      // If no error but also no data returned, check if anything was actually deleted
+      if (!data || data.length === 0) {
+        console.warn('No data returned from delete operation - checking if row exists...');
+        const { data: checkData, error: checkError } = await supabase
+          .from('contact_submissions')
+          .select('id')
+          .eq('id', id);
+        
+        console.log('Row existence check:', { checkData, checkError });
+        
+        if (checkData && checkData.length > 0) {
+          throw new Error('Row still exists after delete operation - possible RLS policy issue');
+        }
+      }
       
-      console.log('Verification after delete:');
-      console.log('- Remaining data with same ID:', verifyData);
-      console.log('- Verify error:', verifyError);
-      
-      console.log('=== Delete operation completed ===');
+      console.log('=== Delete operation completed successfully ===');
       return id;
     },
     onSuccess: (deletedId) => {
       console.log('Delete mutation succeeded for ID:', deletedId);
       
-      // Invalidate and refetch to get fresh data from database
+      // Force a hard refetch from the database
       queryClient.invalidateQueries({ queryKey: ['contact-submissions'] });
+      queryClient.refetchQueries({ queryKey: ['contact-submissions'] });
       
       toast.success(isHebrew ? "הפנייה נמחקה בהצלחה" : "Submission deleted successfully");
       
@@ -107,9 +115,18 @@ export const AdminTable = ({ onSubmissionCountChange }: AdminTableProps) => {
         setSelectedSubmission(null);
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Delete mutation failed:', error);
-      toast.error(isHebrew ? "שגיאה במחיקת הפנייה" : "Error deleting submission");
+      console.error('Error type:', typeof error);
+      console.error('Error message:', error?.message);
+      
+      let errorMessage = isHebrew ? "שגיאה במחיקת הפנייה" : "Error deleting submission";
+      
+      if (error?.message?.includes('RLS') || error?.message?.includes('policy')) {
+        errorMessage += isHebrew ? " - בעיית הרשאות" : " - Permission issue";
+      }
+      
+      toast.error(errorMessage);
     },
   });
 

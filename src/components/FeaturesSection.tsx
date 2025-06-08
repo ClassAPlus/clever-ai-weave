@@ -1,3 +1,4 @@
+
 import { Shield, Zap, Globe, Users, Clock, Award } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -74,14 +75,14 @@ export const FeaturesSection = () => {
             {isHebrew ? (
               <>
                 למה לבחור
-                <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent" dir="rtl">
+                <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent leading-tight pb-2" dir="rtl">
                   ב-LocalEdgeAI
                 </span>
               </>
             ) : (
               <>
                 Why Choose
-                <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent leading-tight pb-2">
                   LocalEdgeAI
                 </span>
               </>

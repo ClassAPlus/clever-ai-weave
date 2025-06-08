@@ -29,7 +29,7 @@ export const Hero = () => {
               <>
                 הפוך את העסק שלך
                 <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                  לחכם יותר עם AI
+                  שדרג את העסק שלך עם AI
                 </span>
               </>
             ) : (

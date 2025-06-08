@@ -1,9 +1,9 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Store, Users, MessageSquare, TrendingUp, Clock, DollarSign } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { Header } from "@/components/Header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { ArrowRight, Store, UtensilsCrossed, Heart, FileText, Mail } from "lucide-react";
 
 const UseCases = () => {
   const { isHebrew } = useLanguage();
@@ -11,42 +11,68 @@ const UseCases = () => {
   const useCases = [
     {
       icon: Store,
-      title: isHebrew ? "חנות בגדים" : "Clothing Store",
+      title: isHebrew ? "חנות בגדים חכמה" : "Smart Clothing Store",
       description: isHebrew 
-        ? "הפוך את החנות שלך לחכמה עם המלצות אישיות ללקוחות"
-        : "Transform your store with AI-powered personal shopping recommendations",
+        ? "מערכת ניהול מלאי ומכירות אוטומטית עם בינה מלאכותית מקומית"
+        : "AI-powered inventory management and sales automation system",
       benefits: isHebrew 
-        ? ["עלייה של 40% במכירות", "לקוחות מרוצים יותר", "ניהול מלאי חכם"]
-        : ["40% increase in sales", "Happier customers", "Smart inventory management"],
-      example: isHebrew
-        ? "לקוח נכנס לחנות → AI מזהה העדפות → ממליץ על פריטים מותאמים"
-        : "Customer enters store → AI identifies preferences → Recommends tailored items"
+        ? ["מעקב מלאי אוטומטי", "המלצות אישיות ללקוחות", "ניתוח מגמות אופנה", "ניהול הזמנות חכם"]
+        : ["Automated inventory tracking", "Personalized customer recommendations", "Fashion trend analysis", "Smart order management"],
+      howItWorks: isHebrew
+        ? "המערכת סורקת מוצרים, מנתחת התנהגות קונים ומספקת תובנות עסקיות בזמן אמת"
+        : "System scans products, analyzes buying behavior, and provides real-time business insights"
     },
     {
-      icon: Users,
-      title: isHebrew ? "מסעדה משפחתית" : "Family Restaurant",
-      description: isHebrew
-        ? "שפר את השירות עם AI שמבין את הלקוחות שלך"
-        : "Enhance service with AI that understands your customers",
-      benefits: isHebrew
-        ? ["זמן המתנה קצר יותר", "שירות מותאם אישית", "ניהול הזמנות חכם"]
-        : ["Shorter wait times", "Personalized service", "Smart order management"],
-      example: isHebrew
-        ? "לקוח מזמין → AI זוכר העדפות → מציע מנות והשלמות"
-        : "Customer orders → AI remembers preferences → Suggests dishes and add-ons"
+      icon: UtensilsCrossed,
+      title: isHebrew ? "מסעדה דיגיטלית" : "Digital Restaurant",
+      description: isHebrew 
+        ? "מערכת הזמנות וניהול מטבח חכמה עם בינה מלאכותית"
+        : "Smart ordering and kitchen management system with AI",
+      benefits: isHebrew 
+        ? ["הזמנות אוטומטיות", "אופטימיזציה של תפריט", "חיזוי ביקוש", "ניהול מלאי מזון"]
+        : ["Automated ordering", "Menu optimization", "Demand forecasting", "Food inventory management"],
+      howItWorks: isHebrew
+        ? "הבינה המלאכותית מנתחת העדפות לקוחות, מייעלת את המטבח ומנהלת הזמנות"
+        : "AI analyzes customer preferences, optimizes kitchen operations, and manages orders"
     },
     {
-      icon: MessageSquare,
-      title: isHebrew ? "קליניקה רפואית" : "Medical Clinic",
-      description: isHebrew
-        ? "שפר את חוויית המטופלים עם תיאום חכם"
-        : "Improve patient experience with smart scheduling",
-      benefits: isHebrew
-        ? ["תיאום פגישות אוטומטי", "תזכורות חכמות", "שירות 24/7"]
-        : ["Automatic appointment scheduling", "Smart reminders", "24/7 service"],
-      example: isHebrew
-        ? "מטופל מבקש פגישה → AI מוצא זמן מתאים → שולח תזכורות"
-        : "Patient requests appointment → AI finds suitable time → Sends reminders"
+      icon: Heart,
+      title: isHebrew ? "מרפאה פרטית" : "Private Medical Clinic",
+      description: isHebrew 
+        ? "מערכת ניהול מטופלים ואבחון מסייע בבינה מלאכותית"
+        : "Patient management and AI-assisted diagnostic system",
+      benefits: isHebrew 
+        ? ["ניהול תורים חכם", "סיוע באבחון", "מעקב מטופלים", "ניתוח נתונים רפואיים"]
+        : ["Smart appointment scheduling", "Diagnostic assistance", "Patient monitoring", "Medical data analysis"],
+      howItWorks: isHebrew
+        ? "המערכת מנתחת נתונים רפואיים, מסייעת באבחון ומנהלת מידע מטופלים בצורה מאובטחת"
+        : "System analyzes medical data, assists in diagnosis, and securely manages patient information"
+    },
+    {
+      icon: FileText,
+      title: isHebrew ? "סורק מסמכים משפטי" : "Legal Document Scanner",
+      description: isHebrew 
+        ? "מערכת סריקה וניתוח מסמכים משפטיים עם בינה מלאכותית מתקדמת"
+        : "Advanced AI-powered legal document scanning and analysis system",
+      benefits: isHebrew 
+        ? ["סריקה אוטומטית של חוזים", "זיהוי סעיפים חשובים", "ניתוח סיכונים משפטיים", "חיפוש מהיר במסמכים"]
+        : ["Automated contract scanning", "Key clause identification", "Legal risk analysis", "Fast document search"],
+      howItWorks: isHebrew
+        ? "הבינה המלאכותית סורקת מסמכים משפטיים, מזהה סעיפים קריטיים ומספקת ניתוח משפטי מעמיק"
+        : "AI scans legal documents, identifies critical clauses, and provides comprehensive legal analysis"
+    },
+    {
+      icon: Mail,
+      title: isHebrew ? "עוזר חיוב לעורכי דין" : "Legal Billing Assistant",
+      description: isHebrew 
+        ? "מערכת ניתוח אימיילים וחקירות חיוב אוטומטית לעורכי דין"
+        : "Automated email analysis and billing investigation system for attorneys",
+      benefits: isHebrew 
+        ? ["סריקת אימיילים אוטומטית", "זיהוי שעות חיוב", "מעקב תקשורת לקוחות", "דוחות חקירה מפורטים"]
+        : ["Automated email scanning", "Billable hours identification", "Client communication tracking", "Detailed investigation reports"],
+      howItWorks: isHebrew
+        ? "המערכת סורקת חשבונות אימייל, מזהה פעילויות ניתנות לחיוב ויוצרת דוחות חקירה מפורטים"
+        : "System scans email accounts, identifies billable activities, and generates comprehensive investigation reports"
     }
   ];
 
@@ -54,74 +80,56 @@ const UseCases = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <Header />
       
-      <div className="pt-32 pb-20 px-6">
-        <div className="container mx-auto max-w-6xl">
-          {/* Hero Section */}
+      <main className="pt-24 pb-16">
+        <div className="container mx-auto px-6">
+          {/* Header Section */}
           <div className="text-center mb-16">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
-              {isHebrew ? (
-                <>
-                  ראה איך עסקים
-                  <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    משנים הכל עם AI
-                  </span>
-                </>
-              ) : (
-                <>
-                  See How Businesses
-                  <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    Transform with AI
-                  </span>
-                </>
-              )}
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              {isHebrew ? "דוגמאות שימוש" : "Use Cases"}
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              {isHebrew
-                ? "גלה איך עסקים דומים לשלך משתמשים ב-AI כדי לגדול, לשפר שירות וליעל תהליכים"
-                : "Discover how businesses like yours use AI to grow, improve service, and streamline operations"
+              {isHebrew 
+                ? "גלה כיצד LocalEdgeAI משנה עסקים ומקצועות שונים עם פתרונות בינה מלאכותית מותאמים אישית"
+                : "Discover how LocalEdgeAI transforms various businesses and professions with tailored AI solutions"
               }
             </p>
           </div>
 
           {/* Use Cases Grid */}
-          <div className="grid gap-8 mb-16">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
             {useCases.map((useCase, index) => (
-              <Card key={index} className="bg-white/10 backdrop-blur-sm border-white/20 text-white">
+              <Card key={index} className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
                 <CardHeader>
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
-                      <useCase.icon className="h-8 w-8 text-white" />
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="p-3 rounded-lg bg-purple-500/20">
+                      <useCase.icon className="h-8 w-8 text-purple-400" />
                     </div>
-                    <div>
-                      <CardTitle className="text-2xl">{useCase.title}</CardTitle>
-                      <CardDescription className="text-gray-300 text-lg">
-                        {useCase.description}
-                      </CardDescription>
-                    </div>
+                    <CardTitle className="text-white text-xl">{useCase.title}</CardTitle>
                   </div>
+                  <CardDescription className="text-gray-300 text-base">
+                    {useCase.description}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
                     <div>
-                      <h4 className="text-lg font-semibold mb-4 text-purple-300">
-                        {isHebrew ? "התוצאות:" : "Results:"}
+                      <h4 className="text-purple-300 font-semibold mb-2">
+                        {isHebrew ? "יתרונות:" : "Benefits:"}
                       </h4>
-                      <ul className="space-y-2">
+                      <ul className="space-y-1">
                         {useCase.benefits.map((benefit, idx) => (
-                          <li key={idx} className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-green-400" />
-                            <span>{benefit}</span>
+                          <li key={idx} className="text-gray-300 text-sm flex items-center">
+                            <ArrowRight className="h-3 w-3 text-purple-400 mr-2 flex-shrink-0" />
+                            {benefit}
                           </li>
                         ))}
                       </ul>
                     </div>
                     <div>
-                      <h4 className="text-lg font-semibold mb-4 text-purple-300">
+                      <h4 className="text-purple-300 font-semibold mb-2">
                         {isHebrew ? "איך זה עובד:" : "How it works:"}
                       </h4>
-                      <p className="text-gray-300 bg-white/5 p-4 rounded-lg border border-white/10">
-                        {useCase.example}
-                      </p>
+                      <p className="text-gray-300 text-sm">{useCase.howItWorks}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -129,52 +137,24 @@ const UseCases = () => {
             ))}
           </div>
 
-          {/* Stats Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            <div className="text-center bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-              <Clock className="h-12 w-12 text-purple-400 mx-auto mb-4" />
-              <div className="text-3xl font-bold text-white mb-2">15 דק׳</div>
-              <div className="text-gray-300">
-                {isHebrew ? "זמן התקנה ממוצע" : "Average setup time"}
-              </div>
-            </div>
-            <div className="text-center bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-              <TrendingUp className="h-12 w-12 text-green-400 mx-auto mb-4" />
-              <div className="text-3xl font-bold text-white mb-2">+35%</div>
-              <div className="text-gray-300">
-                {isHebrew ? "עלייה ממוצעת במכירות" : "Average sales increase"}
-              </div>
-            </div>
-            <div className="text-center bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-              <DollarSign className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
-              <div className="text-3xl font-bold text-white mb-2">₪0</div>
-              <div className="text-gray-300">
-                {isHebrew ? "עלות התחלתית" : "Upfront cost"}
-              </div>
-            </div>
-          </div>
-
           {/* CTA Section */}
-          <div className="text-center bg-gradient-to-r from-purple-600/30 to-pink-600/30 rounded-3xl p-12 border border-white/20 backdrop-blur-sm">
-            <h2 className="text-4xl font-bold text-white mb-6">
-              {isHebrew ? "מוכן להתחיל?" : "Ready to Get Started?"}
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-white mb-4">
+              {isHebrew ? "מוכנים להתחיל?" : "Ready to Get Started?"}
             </h2>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              {isHebrew
-                ? "בוא נראה איך AI יכול לשנות את העסק שלך. התייעצות חינמית ללא התחייבות."
-                : "Let's see how AI can transform your business. Free consultation with no commitment."
+            <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
+              {isHebrew 
+                ? "פתחו את הפוטנציאל העסקי שלכם עם פתרונות בינה מלאכותית מותאמים אישית"
+                : "Unlock your business potential with custom AI solutions tailored to your needs"
               }
             </p>
-            <Button 
-              size="lg" 
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white group"
-            >
-              {isHebrew ? "קבל הערכה חינמית" : "Get Free Assessment"}
-              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            <Button size="lg" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0">
+              {isHebrew ? "צרו קשר עכשיו" : "Contact Us Now"}
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

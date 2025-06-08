@@ -44,8 +44,8 @@ export const Hero = () => {
           
           <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
             {isHebrew 
-              ? "פתרונות AI פשוטים ומשתלמים לעסקים קטנים. שירות לקוחות 24/7, ניהול חכם, והמלצות מותאמות - הכל בלחיצת כפתור."
-              : "Simple, affordable AI solutions for small businesses. 24/7 customer service, smart management, and personalized recommendations - all at the click of a button."
+              ? "פתרונות AI פשוטים ומשתלמים לעסקים קטנים. שירות לקוחות חכם, ניהול אוטומטי, והמלצות מותאמות - הכל בלחיצת כפתור."
+              : "Simple, affordable AI solutions for small businesses. Smart customer service, automated management, and personalized recommendations - all at the click of a button."
             }
           </p>
           

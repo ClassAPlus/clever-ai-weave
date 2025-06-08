@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowRight, Camera, Building, FileText, Mail } from "lucide-react";
+import { ArrowRight, Camera, Building, FileText, Mail, MapPin } from "lucide-react";
 
 const UseCases = () => {
   const { isHebrew } = useLanguage();
@@ -22,6 +22,19 @@ const UseCases = () => {
       howItWorks: isHebrew
         ? "הטכנאי מצלם את החלק הפגום, הבינה המלאכותית מזהה אותו ומספקת הצעת מחיר והזמנה מיידית"
         : "Technician takes a photo of the damaged part, AI identifies it and provides instant quote and ordering"
+    },
+    {
+      icon: MapPin,
+      title: isHebrew ? "משרד תיווך נדל\"ן" : "Real Estate Agency",
+      description: isHebrew 
+        ? "מערכת ניהול נכסים מתקדמת לקליטת נתונים על נכסים למכירה וקניה לפי אזורים"
+        : "Advanced property management system for collecting data on properties for sale and purchase by regions",
+      benefits: isHebrew 
+        ? ["ניהול נכסים לפי אזורים", "מעקב דרישות קונים", "ניתוח מגמות שוק", "התאמה אוטומטית נכס-לקוח"]
+        : ["Property management by regions", "Buyer requirements tracking", "Market trend analysis", "Automatic property-client matching"],
+      howItWorks: isHebrew
+        ? "המערכת אוספת ומנתחת נתונים על נכסים באזורים שונים, מתאימה בין מוכרים לקונים ומספקת תובנות שוק"
+        : "System collects and analyzes property data across different regions, matches sellers with buyers and provides market insights"
     },
     {
       icon: Building,

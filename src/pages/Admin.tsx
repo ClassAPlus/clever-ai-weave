@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -31,7 +30,7 @@ const Admin = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // Simple password protection - in production, use proper authentication
-    if (password === "admin123") {
+    if (password === "Rla102232@50") {
       setIsAuthenticated(true);
       setError("");
       localStorage.setItem('adminPassword', password);
@@ -96,7 +95,7 @@ const Admin = () => {
   // Check if user was previously logged in
   useEffect(() => {
     const savedPassword = localStorage.getItem('adminPassword');
-    if (savedPassword === "admin123") {
+    if (savedPassword === "Rla102232@50") {
       setIsAuthenticated(true);
     }
   }, []);
@@ -179,7 +178,7 @@ const Admin = () => {
           </div>
           
           <p className="text-xs text-gray-400 text-center mt-4">
-            {isHebrew ? "סיסמה: admin123" : "Password: admin123"}
+            {isHebrew ? "סיסמה: Rla102232@50" : "Password: Rla102232@50"}
           </p>
         </div>
       </div>

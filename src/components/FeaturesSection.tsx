@@ -98,7 +98,7 @@ export const FeaturesSection = () => {
               <h3 className="text-2xl font-semibold text-white mb-4">
                 {isHebrew ? feature.title.he : feature.title.en}
               </h3>
-              <p className="text-gray-300 text-lg leading-relaxed text-center">
+              <p className={`text-gray-300 text-lg leading-relaxed ${isHebrew ? 'text-right' : 'text-center'}`}>
                 {isHebrew ? feature.description.he : feature.description.en}
               </p>
             </div>
@@ -109,7 +109,7 @@ export const FeaturesSection = () => {
           <div className="text-center">
             <h3 className="text-4xl font-bold text-white mb-6">
               {isHebrew 
-                ? "?מוכן להפוך את העסק לחכם יותר"
+                ? "מוכן להפוך את העסק לחכם יותר?"
                 : "Ready to Make Your Business Smarter?"
               }
             </h3>

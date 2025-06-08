@@ -33,7 +33,8 @@ export const ContactForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    console.log('Contact form submission started:', formData);
+    console.log('=== CONTACT FORM SUBMISSION START ===');
+    console.log('Form data:', formData);
 
     try {
       const submissionData = {
@@ -44,22 +45,27 @@ export const ContactForm = () => {
         message: formData.message,
       };
 
-      console.log('Submitting data to Supabase:', submissionData);
+      console.log('Submitting to Supabase:', submissionData);
 
       const { data, error } = await supabase
         .from('contact_submissions')
         .insert([submissionData])
         .select();
 
-      console.log('Supabase response - data:', data);
-      console.log('Supabase response - error:', error);
+      console.log('Supabase response data:', data);
+      console.log('Supabase response error:', error);
 
       if (error) {
-        console.error('Supabase insert error:', error);
+        console.error('=== SUPABASE ERROR ===');
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        console.error('Error code:', error.code);
         throw error;
       }
 
-      console.log('Contact form submitted successfully:', data);
+      console.log('=== SUBMISSION SUCCESS ===');
+      console.log('Inserted data:', data);
 
       toast({
         title: isHebrew ? "ההודעה נשלחה בהצלחה!" : "Message sent successfully!",
@@ -77,7 +83,8 @@ export const ContactForm = () => {
         message: "",
       });
     } catch (error) {
-      console.error('Error submitting contact form:', error);
+      console.error('=== CATCH BLOCK ERROR ===');
+      console.error('Full error object:', error);
       toast({
         title: isHebrew ? "שגיאה בשליחת ההודעה" : "Error sending message",
         description: isHebrew 

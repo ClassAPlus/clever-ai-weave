@@ -39,7 +39,7 @@ export const AdminTable = () => {
 
   const fetchSubmissions = async () => {
     setLoading(true);
-    console.log('Fetching submissions from Supabase...');
+    console.log('Admin: Fetching submissions...');
     
     try {
       const { data, error } = await supabase
@@ -47,15 +47,12 @@ export const AdminTable = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      console.log('Supabase fetch response - data:', data);
-      console.log('Supabase fetch response - error:', error);
-
       if (error) {
-        console.error('Supabase fetch error:', error);
+        console.error('Admin fetch error:', error);
         throw error;
       }
       
-      console.log('Successfully fetched submissions:', data?.length || 0, 'items');
+      console.log('Admin: Fetched', data?.length || 0, 'submissions');
       setSubmissions(data || []);
       setFilteredSubmissions(data || []);
     } catch (error) {
@@ -71,20 +68,13 @@ export const AdminTable = () => {
   };
 
   const deleteSubmission = async (id: string) => {
-    console.log('Deleting submission with id:', id);
-    
     try {
       const { error } = await supabase
         .from('contact_submissions')
         .delete()
         .eq('id', id);
 
-      if (error) {
-        console.error('Delete error:', error);
-        throw error;
-      }
-
-      console.log('Successfully deleted submission:', id);
+      if (error) throw error;
 
       toast({
         title: isHebrew ? "נמחק בהצלחה" : "Deleted successfully",
@@ -103,7 +93,6 @@ export const AdminTable = () => {
   };
 
   useEffect(() => {
-    console.log('AdminTable component mounted, fetching submissions...');
     fetchSubmissions();
   }, []);
 
@@ -129,8 +118,6 @@ export const AdminTable = () => {
       </div>
     );
   }
-
-  console.log('Rendering AdminTable with submissions:', submissions.length);
 
   return (
     <div className="space-y-6">
@@ -160,13 +147,6 @@ export const AdminTable = () => {
             {isHebrew ? "רענן" : "Refresh"}
           </Button>
         </div>
-      </div>
-
-      {/* Debug Info */}
-      <div className="bg-gray-800/50 p-4 rounded-lg text-sm text-gray-300">
-        <p>Debug Info: Total submissions loaded: {submissions.length}</p>
-        <p>Filtered submissions: {filteredSubmissions.length}</p>
-        <p>Loading state: {loading ? 'true' : 'false'}</p>
       </div>
 
       {/* Table */}

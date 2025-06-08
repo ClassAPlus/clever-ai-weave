@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,30 +50,26 @@ export const AdminTable = ({ onSubmissionCountChange }: AdminTableProps) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      console.log('Deleting submission with ID:', id);
-      const { error } = await supabase
+      console.log('Attempting to delete submission with ID:', id);
+      
+      const { data, error } = await supabase
         .from('contact_submissions')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select(); // Add select() to get the deleted row back for confirmation
       
       if (error) {
         console.error('Delete error:', error);
         throw error;
       }
       
-      console.log('Successfully deleted submission:', id);
+      console.log('Successfully deleted submission. Deleted data:', data);
       return id;
     },
     onSuccess: (deletedId) => {
       console.log('Delete mutation succeeded for ID:', deletedId);
       
-      // Update the cache optimistically by removing the deleted item
-      queryClient.setQueryData(['contact-submissions'], (oldData: ContactSubmission[] | undefined) => {
-        if (!oldData) return [];
-        return oldData.filter(submission => submission.id !== deletedId);
-      });
-      
-      // Also invalidate and refetch to ensure consistency
+      // Invalidate and refetch to get fresh data from database
       queryClient.invalidateQueries({ queryKey: ['contact-submissions'] });
       
       toast.success(isHebrew ? "הפנייה נמחקה בהצלחה" : "Submission deleted successfully");

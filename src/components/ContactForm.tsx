@@ -33,20 +33,33 @@ export const ContactForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    try {
-      const { error } = await supabase
-        .from('contact_submissions')
-        .insert([
-          {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            email: formData.email,
-            company: formData.company || null,
-            message: formData.message,
-          }
-        ]);
+    console.log('Contact form submission started:', formData);
 
-      if (error) throw error;
+    try {
+      const submissionData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        company: formData.company || null,
+        message: formData.message,
+      };
+
+      console.log('Submitting data to Supabase:', submissionData);
+
+      const { data, error } = await supabase
+        .from('contact_submissions')
+        .insert([submissionData])
+        .select();
+
+      console.log('Supabase response - data:', data);
+      console.log('Supabase response - error:', error);
+
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
+
+      console.log('Contact form submitted successfully:', data);
 
       toast({
         title: isHebrew ? "ההודעה נשלחה בהצלחה!" : "Message sent successfully!",

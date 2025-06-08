@@ -1,0 +1,30 @@
+
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Central hexagon representing AI core -->
+  <path 
+    d="M16 4 L24 8 L24 16 L16 20 L8 16 L8 8 Z" 
+    fill="none" 
+    stroke="#a855f7" 
+    stroke-width="1.5"
+  />
+  
+  <!-- Inner geometric pattern -->
+  <circle cx="16" cy="12" r="2" fill="#a855f7" />
+  <path 
+    d="M12 10 L20 10 M12 14 L20 14" 
+    stroke="#a855f7" 
+    stroke-width="1"
+  />
+  
+  <!-- Outer connecting nodes for "local/edge" concept -->
+  <circle cx="6" cy="6" r="1.5" fill="#a855f7" />
+  <circle cx="26" cy="6" r="1.5" fill="#a855f7" />
+  <circle cx="6" cy="20" r="1.5" fill="#a855f7" />
+  <circle cx="26" cy="20" r="1.5" fill="#a855f7" />
+  
+  <!-- Connection lines -->
+  <line x1="8" y1="8" x2="12" y2="10" stroke="#a855f7" stroke-width="0.5" opacity="0.6" />
+  <line x1="24" y1="8" x2="20" y2="10" stroke="#a855f7" stroke-width="0.5" opacity="0.6" />
+  <line x1="8" y1="16" x2="12" y2="14" stroke="#a855f7" stroke-width="0.5" opacity="0.6" />
+  <line x1="24" y1="16" x2="20" y2="14" stroke="#a855f7" stroke-width="0.5" opacity="0.6" />
+</svg>

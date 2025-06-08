@@ -1,4 +1,3 @@
-
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,14 +64,14 @@ const UseCases = () => {
       icon: Mail,
       title: isHebrew ? "עוזר חיוב לעורכי דין" : "Legal Billing Assistant",
       description: isHebrew 
-        ? "מערכת ניתוח אימיילים וחקירות חיוב אוטומטית לעורכי דין"
-        : "Automated email analysis and billing investigation system for attorneys",
+        ? "מערכת ניתוח אימיילים וחיוב אוטומטית לעורכי דין"
+        : "Automated email analysis and billing system for attorneys",
       benefits: isHebrew 
-        ? ["סריקת אימיילים אוטומטית", "זיהוי שעות חיוב", "מעקב תקשורת לקוחות", "דוחות חקירה מפורטים"]
-        : ["Automated email scanning", "Billable hours identification", "Client communication tracking", "Detailed investigation reports"],
+        ? ["סריקת אימיילים אוטומטית", "זיהוי שעות חיוב", "מעקב תקשורת לקוחות", "דוחות חיוב מפורטים"]
+        : ["Automated email scanning", "Billable hours identification", "Client communication tracking", "Detailed billing reports"],
       howItWorks: isHebrew
-        ? "המערכת סורקת חשבונות אימייל, מזהה פעילויות ניתנות לחיוב ויוצרת דוחות חקירה מפורטים"
-        : "System scans email accounts, identifies billable activities, and generates comprehensive investigation reports"
+        ? "המערכת סורקת חשבונות אימייל, מזהה פעילויות ניתנות לחיוב ויוצרת דוחות חיוב מפורטים"
+        : "System scans email accounts, identifies billable activities, and generates comprehensive billing reports"
     }
   ];
 

@@ -34,7 +34,7 @@ export const Footer = () => {
                   href="mailto:contact@classaplus.org"
                   className="text-gray-300 hover:text-purple-400 transition-colors"
                 >
-                  contact@classaplus.org
+                  info@localedgeai.tech
                 </a>
               </div>
               <div className={`flex items-center ${isHebrew ? 'flex-row-reverse' : ''}`}>

@@ -11,6 +11,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +47,7 @@ export const AdminTable = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubmission, setSelectedSubmission] = useState<ContactSubmission | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchSubmissions = async () => {
     setLoading(true);
@@ -68,20 +80,31 @@ export const AdminTable = () => {
   };
 
   const deleteSubmission = async (id: string) => {
+    setDeletingId(id);
+    
     try {
+      console.log('Deleting submission:', id);
+      
       const { error } = await supabase
         .from('contact_submissions')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
+
+      console.log('Successfully deleted submission:', id);
 
       toast({
         title: isHebrew ? "נמחק בהצלחה" : "Deleted successfully",
         description: isHebrew ? "הפנייה נמחקה" : "Submission has been deleted",
       });
 
-      fetchSubmissions();
+      // Remove the deleted item from state instead of refetching
+      setSubmissions(prev => prev.filter(sub => sub.id !== id));
+      setFilteredSubmissions(prev => prev.filter(sub => sub.id !== id));
     } catch (error) {
       console.error('Error deleting submission:', error);
       toast({
@@ -89,6 +112,8 @@ export const AdminTable = () => {
         description: isHebrew ? "לא ניתן למחוק את הפנייה" : "Could not delete submission",
         variant: "destructive",
       });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -209,14 +234,43 @@ export const AdminTable = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => deleteSubmission(submission.id)}
-                        className="border-red-400/20 text-red-300 hover:bg-red-400/10"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={deletingId === submission.id}
+                            className="border-red-400/20 text-red-300 hover:bg-red-400/10"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-slate-900 border-white/10 text-white">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white">
+                              {isHebrew ? "מחק פנייה" : "Delete Submission"}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-gray-300">
+                              {isHebrew 
+                                ? "האם אתה בטוח שברצונך למחוק את הפנייה הזו? פעולה זו לא ניתנת לביטול."
+                                : "Are you sure you want to delete this submission? This action cannot be undone."
+                              }
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+                              {isHebrew ? "ביטול" : "Cancel"}
+                            </AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => deleteSubmission(submission.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                            >
+                              {isHebrew ? "מחק" : "Delete"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>

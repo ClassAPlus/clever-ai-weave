@@ -1,19 +1,14 @@
 
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody } from "@/components/ui/table";
 import { AdminSearchBar } from "@/components/AdminSearchBar";
 import { AdminTableHeader } from "@/components/AdminTableHeader";
 import { AdminTableRow } from "@/components/AdminTableRow";
 import { SubmissionDetails } from "@/components/SubmissionDetails";
-import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 interface ContactSubmission {
   id: string;
@@ -25,162 +20,142 @@ interface ContactSubmission {
   created_at: string;
 }
 
-export const AdminTable = () => {
+interface AdminTableProps {
+  onSubmissionCountChange: (count: number) => void;
+}
+
+export const AdminTable = ({ onSubmissionCountChange }: AdminTableProps) => {
   const { isHebrew } = useLanguage();
-  const { toast } = useToast();
-  const [submissions, setSubmissions] = useState<ContactSubmission[]>([]);
-  const [filteredSubmissions, setFilteredSubmissions] = useState<ContactSubmission[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubmission, setSelectedSubmission] = useState<ContactSubmission | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchSubmissions = async () => {
-    setLoading(true);
-    console.log('Admin: Fetching submissions...');
-    
-    try {
+  const { data: submissions = [], isLoading, refetch } = useQuery({
+    queryKey: ['contact-submissions'],
+    queryFn: async () => {
+      console.log('Fetching submissions...');
       const { data, error } = await supabase
         .from('contact_submissions')
         .select('*')
         .order('created_at', { ascending: false });
-
+      
       if (error) {
-        console.error('Admin fetch error:', error);
+        console.error('Error fetching submissions:', error);
         throw error;
       }
       
-      console.log('Admin: Fetched', data?.length || 0, 'submissions');
-      setSubmissions(data || []);
-      setFilteredSubmissions(data || []);
-    } catch (error) {
-      console.error('Error fetching submissions:', error);
-      toast({
-        title: isHebrew ? "שגיאה בטעינת הנתונים" : "Error loading data",
-        description: isHebrew ? "לא ניתן לטעון את הפניות" : "Could not load submissions",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      console.log('Fetched submissions:', data);
+      return data || [];
+    },
+  });
 
-  const deleteSubmission = async (id: string) => {
-    setDeletingId(id);
-    
-    try {
-      console.log('Admin: Attempting to delete submission:', id);
-      
-      // Check if the record exists first
-      const { data: existingRecord, error: fetchError } = await supabase
-        .from('contact_submissions')
-        .select('id')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) {
-        console.error('Admin: Error checking record existence:', fetchError);
-        throw new Error('Record not found or access denied');
-      }
-
-      console.log('Admin: Record exists, proceeding with delete:', existingRecord);
-
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log('Deleting submission with ID:', id);
       const { error } = await supabase
         .from('contact_submissions')
         .delete()
         .eq('id', id);
-
+      
       if (error) {
-        console.error('Admin: Delete error:', error);
+        console.error('Delete error:', error);
         throw error;
       }
+      
+      console.log('Successfully deleted submission:', id);
+      return id;
+    },
+    onSuccess: (deletedId) => {
+      console.log('Delete mutation succeeded for ID:', deletedId);
+      // Invalidate and refetch the submissions query
+      queryClient.invalidateQueries({ queryKey: ['contact-submissions'] });
+      
+      toast.success(isHebrew ? "הפנייה נמחקה בהצלחה" : "Submission deleted successfully");
+      
+      // Close the details dialog if the deleted submission was selected
+      if (selectedSubmission?.id === deletedId) {
+        setSelectedSubmission(null);
+      }
+    },
+    onError: (error) => {
+      console.error('Delete mutation failed:', error);
+      toast.error(isHebrew ? "שגיאה במחיקת הפנייה" : "Error deleting submission");
+    },
+  });
 
-      console.log('Admin: Successfully deleted submission from database:', id);
+  const filteredSubmissions = submissions.filter(submission =>
+    submission.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    submission.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    submission.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (submission.company && submission.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    submission.message.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-      toast({
-        title: isHebrew ? "נמחק בהצלחה" : "Deleted successfully",
-        description: isHebrew ? "הפנייה נמחקה מהמסד נתונים" : "Submission has been deleted from database",
-      });
+  useEffect(() => {
+    onSubmissionCountChange(filteredSubmissions.length);
+  }, [filteredSubmissions.length, onSubmissionCountChange]);
 
-      // Refresh the data instead of just updating state to ensure consistency
-      await fetchSubmissions();
-    } catch (error) {
-      console.error('Admin: Error deleting submission:', error);
-      toast({
-        title: isHebrew ? "שגיאה במחיקה" : "Delete error",
-        description: isHebrew ? 
-          `לא ניתן למחוק את הפנייה: ${error instanceof Error ? error.message : 'שגיאה לא ידועה'}` : 
-          `Could not delete submission: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "destructive",
-      });
-    } finally {
-      setDeletingId(null);
-    }
+  const handleDelete = (id: string) => {
+    console.log('Handle delete called for ID:', id);
+    deleteMutation.mutate(id);
   };
 
-  useEffect(() => {
-    fetchSubmissions();
-  }, []);
+  const handleRefresh = () => {
+    console.log('Refreshing submissions...');
+    refetch();
+  };
 
-  useEffect(() => {
-    const filtered = submissions.filter(submission =>
-      submission.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (submission.company && submission.company.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-    setFilteredSubmissions(filtered);
-  }, [searchTerm, submissions]);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin text-purple-400" />
+      <div className="text-center py-8">
+        <div className="text-gray-400">
+          {isHebrew ? "טוען פניות..." : "Loading submissions..."}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <AdminSearchBar
+      <AdminSearchBar 
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         submissionCount={filteredSubmissions.length}
-        onRefresh={fetchSubmissions}
+        onRefresh={handleRefresh}
       />
 
-      {/* Table */}
-      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
+      <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg overflow-hidden">
         <Table>
           <AdminTableHeader />
           <TableBody>
-            {filteredSubmissions.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-gray-400 py-12">
-                  {isHebrew ? "לא נמצאו פניות" : "No submissions found"}
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredSubmissions.map((submission) => (
-                <AdminTableRow
-                  key={submission.id}
-                  submission={submission}
-                  onView={setSelectedSubmission}
-                  onDelete={deleteSubmission}
-                  isDeleting={deletingId === submission.id}
-                />
-              ))
-            )}
+            {filteredSubmissions.map((submission) => (
+              <AdminTableRow
+                key={submission.id}
+                submission={submission}
+                onView={setSelectedSubmission}
+                onDelete={handleDelete}
+                isDeleting={deleteMutation.isPending}
+              />
+            ))}
           </TableBody>
         </Table>
+
+        {filteredSubmissions.length === 0 && (
+          <div className="text-center py-8 text-gray-400">
+            {searchTerm ? (
+              isHebrew ? "לא נמצאו פניות התואמות לחיפוש" : "No submissions found matching your search"
+            ) : (
+              isHebrew ? "אין פניות עדיין" : "No submissions yet"
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Submission Details Modal */}
       {selectedSubmission && (
         <SubmissionDetails
           submission={selectedSubmission}
-          onClose={() => setSelectedSubmission(null)}
+          open={!!selectedSubmission}
+          onOpenChange={(open) => !open && setSelectedSubmission(null)}
         />
       )}
     </div>

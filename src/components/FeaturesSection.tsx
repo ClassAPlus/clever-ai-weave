@@ -10,7 +10,7 @@ const features = [{
   },
   description: {
     en: "Your data stays safe with enterprise-level security that's simple to manage.",
-    he: "הנתונים שלך נשארים מאובטחים"
+    he: "הנתונים שלך נשארים מאובטחים."
   }
 }, {
   icon: Zap,
@@ -20,7 +20,7 @@ const features = [{
   },
   description: {
     en: "Get up and running in minutes, not months. No technical expertise required.",
-    he: "תפעלו תוך דקות, לא חודשים. ללא צורך בידע טכני"
+    he: "תפעלו תוך דקות, לא חודשים. ללא צורך בידע טכני."
   }
 }, {
   icon: Globe,
@@ -30,7 +30,7 @@ const features = [{
   },
   description: {
     en: "AI that understands local preferences, trends, and what your customers really want.",
-    he: "בינה מלאכותית שמבינה העדפות מקומיות, מגמות ומה שהלקוחות שלך באמת רוצים"
+    he: "בינה מלאכותית שמבינה העדפות מקומיות, מגמות ומה שהלקוחות שלך באמת רוצים."
   }
 }, {
   icon: Users,
@@ -40,7 +40,7 @@ const features = [{
   },
   description: {
     en: "Talk to real people who understand your business and are here to help you succeed.",
-    he: "דבר עם אנשים אמיתיים שמבינים את העסק שלך וכאן כדי לעזור לך להצליח"
+    he: "דבר עם אנשים אמיתיים שמבינים את העסק שלך וכאן כדי לעזור לך להצליח."
   }
 }, {
   icon: Clock,
@@ -50,7 +50,7 @@ const features = [{
   },
   description: {
     en: "Automate routine tasks so you can focus on growing your business, not managing it.",
-    he: "אוטומציה של משימות שגרתיות כדי שתוכל להתמקד בצמיחת העסק, לא בניהולו"
+    he: "אוטומציה של משימות שגרתיות כדי שתוכל להתמקד בצמיחת העסק, לא בניהולו."
   }
 }, {
   icon: Award,
@@ -60,7 +60,7 @@ const features = [{
   },
   description: {
     en: "Designed specifically for small businesses, not oversized corporate solutions.",
-    he: "מעוצב במיוחד לעסקים קטנים, לא פתרונות ארגוניים מוגדלים"
+    he: "מעוצב במיוחד לעסקים קטנים, לא פתרונות ארגוניים מוגדלים."
   }
 }];
 

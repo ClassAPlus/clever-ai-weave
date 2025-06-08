@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Brain, Code } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -29,7 +28,7 @@ export const Hero = () => {
               <>
                 הפוך לעסק חכם
                 <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                  בעזרת אינטגרציית AI
+                  בעזרת אינטגרציית{" "}AI
                 </span>
               </>
             ) : (
@@ -64,7 +63,6 @@ export const Hero = () => {
           </div>
         </div>
         
-        {/* Floating AI elements */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20">
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105">
             <Brain className="h-12 w-12 text-purple-400 mb-4" />

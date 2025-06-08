@@ -12,7 +12,7 @@ const features = [
   },
   {
     icon: Zap,
-    title: { en: "Quick Start", he: "התחלה מהירה" },
+    title: { en: "Quick Start", he: "אינטגרציה מהירה" },
     description: { 
       en: "Get up and running in minutes, not months. No technical expertise required.",
       he: "תפעלו תוך דקות, לא חודשים. ללא צורך בידע טכני"

@@ -12,7 +12,7 @@ const UseCases = () => {
   const useCases = [
     {
       icon: Camera,
-      title: isHebrew ? "חנות חלקי חילוף לטכנאים" : "Replacement Parts Store for Technicians",
+      title: isHebrew ? "חנות חלקי חילוף לטכנאים" : "Replacement Parts Store",
       description: isHebrew 
         ? "מערכת זיהוי חלקים וקבלת הצעות מחיר באמצעות צילום עם בינה מלאכותית"
         : "AI-powered part identification and quote system through photo capture",

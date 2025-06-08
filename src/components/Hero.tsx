@@ -20,14 +20,14 @@ export const Hero = () => {
 
   useEffect(() => {
     // Initialize floating nodes
-    const initialNodes: FloatingNode[] = Array.from({ length: 12 }, (_, i) => ({
+    const initialNodes: FloatingNode[] = Array.from({ length: 15 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      size: Math.random() * 3 + 2,
-      opacity: Math.random() * 0.4 + 0.3,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2,
+      size: Math.random() * 4 + 3,
+      opacity: Math.random() * 0.5 + 0.5,
     }));
     setNodes(initialNodes);
 
@@ -58,7 +58,7 @@ export const Hero = () => {
           };
         })
       );
-    }, 50);
+    }, 60);
 
     return () => clearInterval(interval);
   }, []);
@@ -71,16 +71,16 @@ export const Hero = () => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         <div className="absolute top-3/4 left-1/2 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
         
-        {/* Floating Network Animation */}
+        {/* Enhanced Floating Network Animation */}
         <div className="absolute inset-0 pointer-events-none">
           <svg width="100%" height="100%" className="absolute inset-0">
-            {/* Draw connections between nearby nodes */}
+            {/* Enhanced connections between nearby nodes */}
             {nodes.map((node, i) =>
               nodes.slice(i + 1).map((otherNode, j) => {
                 const distance = Math.sqrt(
                   Math.pow(node.x - otherNode.x, 2) + Math.pow(node.y - otherNode.y, 2)
                 );
-                if (distance < 20) {
+                if (distance < 25) {
                   return (
                     <line
                       key={`${i}-${j}`}
@@ -88,9 +88,14 @@ export const Hero = () => {
                       y1={`${node.y}%`}
                       x2={`${otherNode.x}%`}
                       y2={`${otherNode.y}%`}
-                      stroke="rgba(147, 51, 234, 0.2)"
-                      strokeWidth="1"
+                      stroke="rgba(147, 51, 234, 0.6)"
+                      strokeWidth="2"
                       className="animate-pulse"
+                      style={{
+                        filter: 'drop-shadow(0 0 4px rgba(147, 51, 234, 0.8))',
+                        animationDuration: '3s',
+                        animationDelay: `${(i + j) * 0.3}s`
+                      }}
                     />
                   );
                 }
@@ -98,20 +103,49 @@ export const Hero = () => {
               })
             )}
             
-            {/* Draw nodes */}
+            {/* Enhanced glowing nodes */}
             {nodes.map((node) => (
-              <circle
-                key={node.id}
-                cx={`${node.x}%`}
-                cy={`${node.y}%`}
-                r={node.size}
-                fill="rgba(147, 51, 234, 0.6)"
-                className="animate-pulse"
-                style={{
-                  opacity: node.opacity,
-                  animationDelay: `${node.id * 0.2}s`,
-                }}
-              />
+              <g key={node.id}>
+                {/* Outer glow */}
+                <circle
+                  cx={`${node.x}%`}
+                  cy={`${node.y}%`}
+                  r={node.size * 2}
+                  fill="rgba(147, 51, 234, 0.2)"
+                  className="animate-pulse"
+                  style={{
+                    filter: 'blur(4px)',
+                    opacity: node.opacity * 0.7,
+                    animationDelay: `${node.id * 0.15}s`,
+                    animationDuration: '2s'
+                  }}
+                />
+                {/* Main node */}
+                <circle
+                  cx={`${node.x}%`}
+                  cy={`${node.y}%`}
+                  r={node.size}
+                  fill="rgba(147, 51, 234, 0.9)"
+                  className="animate-pulse"
+                  style={{
+                    opacity: node.opacity,
+                    animationDelay: `${node.id * 0.2}s`,
+                    filter: 'drop-shadow(0 0 6px rgba(147, 51, 234, 1))',
+                  }}
+                />
+                {/* Inner bright core */}
+                <circle
+                  cx={`${node.x}%`}
+                  cy={`${node.y}%`}
+                  r={node.size * 0.4}
+                  fill="rgba(255, 255, 255, 0.8)"
+                  className="animate-pulse"
+                  style={{
+                    animationDelay: `${node.id * 0.25}s`,
+                    animationDuration: '1.5s'
+                  }}
+                />
+              </g>
             ))}
           </svg>
         </div>

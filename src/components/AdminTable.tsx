@@ -67,7 +67,14 @@ export const AdminTable = ({ onSubmissionCountChange }: AdminTableProps) => {
     },
     onSuccess: (deletedId) => {
       console.log('Delete mutation succeeded for ID:', deletedId);
-      // Invalidate and refetch the submissions query
+      
+      // Update the cache optimistically by removing the deleted item
+      queryClient.setQueryData(['contact-submissions'], (oldData: ContactSubmission[] | undefined) => {
+        if (!oldData) return [];
+        return oldData.filter(submission => submission.id !== deletedId);
+      });
+      
+      // Also invalidate and refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['contact-submissions'] });
       
       toast.success(isHebrew ? "הפנייה נמחקה בהצלחה" : "Submission deleted successfully");

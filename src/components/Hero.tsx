@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Brain, Code } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -27,8 +28,8 @@ export const Hero = () => {
             {isHebrew ? (
               <>
                 הפוך לעסק חכם
-                <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                  בעזרת אינטגרציית{" "}AI
+                <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent" dir="rtl">
+                  בעזרת אינטגרציית AI
                 </span>
               </>
             ) : (

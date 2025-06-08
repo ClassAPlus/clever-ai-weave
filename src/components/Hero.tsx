@@ -82,7 +82,7 @@ export const Hero = () => {
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105" style={{ animationDelay: '0.2s' }}>
             <Code className="h-12 w-12 text-blue-400 mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              {isHebrew ? "התקנה במינותים" : "Setup in Minutes"}
+              {isHebrew ? "התקנה מהירה" : "Fast Setup"}
             </h3>
             <p className="text-gray-300">
               {isHebrew ? "ללא צורך במומחה טכני או השקעה גדולה" : "No tech expert or major investment required"}

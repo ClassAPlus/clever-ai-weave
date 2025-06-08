@@ -47,7 +47,7 @@ export const CTASection = () => {
               size="lg" 
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white group"
             >
-              {isHebrew ? "התחל חינם" : "Start Free"}
+              {isHebrew ? "התחל עכשיו" : "Get Started"}
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
@@ -62,10 +62,10 @@ export const CTASection = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
             <div className="text-center">
               <div className="text-2xl font-bold text-white mb-2">
-                {isHebrew ? "התחלה חינמית" : "Free Start"}
+                {isHebrew ? "פתרונות מותאמים" : "Custom Solutions"}
               </div>
               <div className={`text-gray-300 ${isHebrew ? 'text-right' : 'text-left'}`}>
-                {isHebrew ? "ללא עלות התחלתית" : "No upfront costs"}
+                {isHebrew ? "מותאמים לעסק שלך" : "Tailored to your business"}
               </div>
             </div>
             <div className="text-center">
@@ -78,10 +78,10 @@ export const CTASection = () => {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-white mb-2">
-                {isHebrew ? "תמיכה מלאה" : "Full Support"}
+                {isHebrew ? "תמיכה מקומית" : "Local Support"}
               </div>
               <div className={`text-gray-300 ${isHebrew ? 'text-right' : 'text-left'}`}>
-                {isHebrew ? "צוות ישראלי זמין" : "Always available team"}
+                {isHebrew ? "צוות ישראלי מנוסה" : "Experienced team"}
               </div>
             </div>
           </div>

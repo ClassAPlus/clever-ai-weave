@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Menu } from "lucide-react";
@@ -29,13 +30,6 @@ export const Header = () => {
         element.scrollIntoView({ behavior: 'smooth' });
       }
     }
-  };
-
-  // Create URL for Hebrew version
-  const getHebrewUrl = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('lang', 'he');
-    return url.toString();
   };
 
   return (
@@ -105,14 +99,6 @@ export const Header = () => {
             <Link to="/contact" className="text-gray-300 hover:text-white transition-colors">
               {isHebrew ? "צור קשר" : "Contact"}
             </Link>
-            {!isHebrew && (
-              <a 
-                href={getHebrewUrl()} 
-                className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
-              >
-                עברית
-              </a>
-            )}
           </nav>
           
           <div className="flex items-center space-x-4">

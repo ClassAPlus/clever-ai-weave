@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Brain, Code } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -43,10 +42,7 @@ export const Hero = () => {
           </h1>
           
           <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
-            {isHebrew 
-              ? "פתרונות AI פשוטים ומשתלמים לעסקים קטנים. שירות לקוחות חכם, ניהול אוטומטי, והמלצות מותאמות - הכל בלחיצת כפתור."
-              : "Simple, affordable AI solutions for small businesses. Smart customer service, automated management, and personalized recommendations - all at the click of a button."
-            }
+            Empower your business with cost-effective AI integrations. From chatbots to data analytics, we make AI simple, fast, and affordable.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -62,7 +58,7 @@ export const Hero = () => {
               variant="outline" 
               className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg"
             >
-              {isHebrew ? "צפה בדמו" : "Watch Demo"}
+              {isHebrew ? "צפה ב-demo" : "Watch Demo"}
             </Button>
           </div>
         </div>

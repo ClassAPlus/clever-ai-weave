@@ -83,33 +83,48 @@ export const AdminTable = () => {
     setDeletingId(id);
     
     try {
-      console.log('Deleting submission:', id);
+      console.log('Admin: Attempting to delete submission:', id);
       
+      // Check if the record exists first
+      const { data: existingRecord, error: fetchError } = await supabase
+        .from('contact_submissions')
+        .select('id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Admin: Error checking record existence:', fetchError);
+        throw new Error('Record not found or access denied');
+      }
+
+      console.log('Admin: Record exists, proceeding with delete:', existingRecord);
+
       const { error } = await supabase
         .from('contact_submissions')
         .delete()
         .eq('id', id);
 
       if (error) {
-        console.error('Delete error:', error);
+        console.error('Admin: Delete error:', error);
         throw error;
       }
 
-      console.log('Successfully deleted submission:', id);
+      console.log('Admin: Successfully deleted submission from database:', id);
 
       toast({
         title: isHebrew ? "נמחק בהצלחה" : "Deleted successfully",
-        description: isHebrew ? "הפנייה נמחקה" : "Submission has been deleted",
+        description: isHebrew ? "הפנייה נמחקה מהמסד נתונים" : "Submission has been deleted from database",
       });
 
-      // Remove the deleted item from state instead of refetching
-      setSubmissions(prev => prev.filter(sub => sub.id !== id));
-      setFilteredSubmissions(prev => prev.filter(sub => sub.id !== id));
+      // Refresh the data instead of just updating state to ensure consistency
+      await fetchSubmissions();
     } catch (error) {
-      console.error('Error deleting submission:', error);
+      console.error('Admin: Error deleting submission:', error);
       toast({
         title: isHebrew ? "שגיאה במחיקה" : "Delete error",
-        description: isHebrew ? "לא ניתן למחוק את הפנייה" : "Could not delete submission",
+        description: isHebrew ? 
+          `לא ניתן למחוק את הפנייה: ${error instanceof Error ? error.message : 'שגיאה לא ידועה'}` : 
+          `Could not delete submission: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {
@@ -243,7 +258,11 @@ export const AdminTable = () => {
                             disabled={deletingId === submission.id}
                             className="border-red-400/20 text-red-300 hover:bg-red-400/10"
                           >
-                            <Trash className="h-4 w-4" />
+                            {deletingId === submission.id ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash className="h-4 w-4" />
+                            )}
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent className="bg-slate-900 border-white/10 text-white">
@@ -265,7 +284,11 @@ export const AdminTable = () => {
                             <AlertDialogAction 
                               onClick={() => deleteSubmission(submission.id)}
                               className="bg-red-600 hover:bg-red-700 text-white"
+                              disabled={deletingId === submission.id}
                             >
+                              {deletingId === submission.id ? (
+                                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                              ) : null}
                               {isHebrew ? "מחק" : "Delete"}
                             </AlertDialogAction>
                           </AlertDialogFooter>

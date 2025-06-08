@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Zap, Mail } from "lucide-react";
@@ -83,7 +82,7 @@ export const HeroContent = ({ onContactClick }: HeroContentProps) => {
           <>
             הפוך לעסק חכם
             <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent" dir="rtl">
-              AI בעזרת אינטגרציית
+              בעזרת אינטגרציית AI
             </span>
           </>
         ) : (

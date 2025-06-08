@@ -1,9 +1,8 @@
-
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowRight, Camera, Heart, FileText, Mail } from "lucide-react";
+import { ArrowRight, Camera, Building, FileText, Mail } from "lucide-react";
 
 const UseCases = () => {
   const { isHebrew } = useLanguage();
@@ -23,17 +22,17 @@ const UseCases = () => {
         : "Technician takes a photo of the damaged part, AI identifies it and provides instant quote and ordering"
     },
     {
-      icon: Heart,
-      title: isHebrew ? "מרפאה פרטית" : "Private Medical Clinic",
+      icon: Building,
+      title: isHebrew ? "מרפאה" : "Clinic",
       description: isHebrew 
-        ? "מערכת ניהול מטופלים ואבחון מסייע בבינה מלאכותית"
-        : "Patient management and AI-assisted diagnostic system",
+        ? "מערכת ניהול מטופלים ותורים עם אוטומציה חכמה"
+        : "Patient and appointment management system with smart automation",
       benefits: isHebrew 
-        ? ["ניהול תורים חכם", "סיוע באבחון", "מעקב מטופלים", "ניתוח נתונים רפואיים"]
-        : ["Smart appointment scheduling", "Diagnostic assistance", "Patient monitoring", "Medical data analysis"],
+        ? ["ניהול תורים חכם", "מעקב מטופלים", "ניהול רשומות רפואיות", "תזכורות אוטומטיות"]
+        : ["Smart appointment scheduling", "Patient tracking", "Medical records management", "Automated reminders"],
       howItWorks: isHebrew
-        ? "המערכת מנתחת נתונים רפואיים, מסייעת באבחון ומנהלת מידע מטופלים בצורה מאובטחת"
-        : "System analyzes medical data, assists in diagnosis, and securely manages patient information"
+        ? "המערכת מנהלת תורים, מעקב מטופלים ורשומות רפואיות בצורה מאובטחת ויעילה"
+        : "System manages appointments, patient tracking, and medical records securely and efficiently"
     },
     {
       icon: FileText,

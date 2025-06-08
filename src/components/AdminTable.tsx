@@ -53,25 +53,17 @@ export const AdminTable = ({ onSubmissionCountChange }: AdminTableProps) => {
       console.log('=== Starting delete operation ===');
       console.log('Attempting to delete submission with ID:', id);
       
-      // Check RLS policies first
-      console.log('Checking RLS policies...');
-      const { data: rlsCheck } = await supabase.rpc('version');
-      console.log('Database connection test:', rlsCheck);
-      
-      // Try direct delete without additional queries first
-      console.log('Performing direct delete...');
-      const { data, error, count } = await supabase
+      // Perform the delete operation
+      console.log('Performing delete...');
+      const { data, error } = await supabase
         .from('contact_submissions')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
       
       console.log('Delete operation result:');
       console.log('- Data returned:', data);
       console.log('- Error:', error);
-      console.log('- Count:', count);
-      console.log('- Error details:', error?.details);
-      console.log('- Error hint:', error?.hint);
-      console.log('- Error code:', error?.code);
       
       if (error) {
         console.error('Delete error details:', {
@@ -83,9 +75,11 @@ export const AdminTable = ({ onSubmissionCountChange }: AdminTableProps) => {
         throw error;
       }
       
-      // If no error but also no data returned, check if anything was actually deleted
+      // Check if any rows were actually deleted
       if (!data || data.length === 0) {
-        console.warn('No data returned from delete operation - checking if row exists...');
+        console.warn('No rows were deleted - this might indicate an RLS policy issue');
+        
+        // Check if the row still exists
         const { data: checkData, error: checkError } = await supabase
           .from('contact_submissions')
           .select('id')

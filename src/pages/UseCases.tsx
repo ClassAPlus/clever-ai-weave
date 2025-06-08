@@ -1,38 +1,26 @@
+
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowRight, Store, UtensilsCrossed, Heart, FileText, Mail } from "lucide-react";
+import { ArrowRight, Camera, Heart, FileText, Mail } from "lucide-react";
 
 const UseCases = () => {
   const { isHebrew } = useLanguage();
 
   const useCases = [
     {
-      icon: Store,
-      title: isHebrew ? "חנות בגדים חכמה" : "Smart Clothing Store",
+      icon: Camera,
+      title: isHebrew ? "חנות חלקי חילוף לטכנאים" : "Replacement Parts Store for Technicians",
       description: isHebrew 
-        ? "מערכת ניהול מלאי ומכירות אוטומטית עם בינה מלאכותית מקומית"
-        : "AI-powered inventory management and sales automation system",
+        ? "מערכת זיהוי חלקים וקבלת הצעות מחיר באמצעות צילום עם בינה מלאכותית"
+        : "AI-powered part identification and quote system through photo capture",
       benefits: isHebrew 
-        ? ["מעקב מלאי אוטומטי", "המלצות אישיות ללקוחות", "ניתוח מגמות אופנה", "ניהול הזמנות חכם"]
-        : ["Automated inventory tracking", "Personalized customer recommendations", "Fashion trend analysis", "Smart order management"],
+        ? ["זיהוי חלקים אוטומטי", "הצעות מחיר מיידיות", "מעקב הזמנות", "מאגר חלקים חכם"]
+        : ["Automatic part identification", "Instant price quotes", "Order tracking", "Smart parts database"],
       howItWorks: isHebrew
-        ? "המערכת סורקת מוצרים, מנתחת התנהגות קונים ומספקת תובנות עסקיות בזמן אמת"
-        : "System scans products, analyzes buying behavior, and provides real-time business insights"
-    },
-    {
-      icon: UtensilsCrossed,
-      title: isHebrew ? "מסעדה דיגיטלית" : "Digital Restaurant",
-      description: isHebrew 
-        ? "מערכת הזמנות וניהול מטבח חכמה עם בינה מלאכותית"
-        : "Smart ordering and kitchen management system with AI",
-      benefits: isHebrew 
-        ? ["הזמנות אוטומטיות", "אופטימיזציה של תפריט", "חיזוי ביקוש", "ניהול מלאי מזון"]
-        : ["Automated ordering", "Menu optimization", "Demand forecasting", "Food inventory management"],
-      howItWorks: isHebrew
-        ? "הבינה המלאכותית מנתחת העדפות לקוחות, מייעלת את המטבח ומנהלת הזמנות"
-        : "AI analyzes customer preferences, optimizes kitchen operations, and manages orders"
+        ? "הטכנאי מצלם את החלק הפגום, הבינה המלאכותית מזהה אותו ומספקת הצעת מחיר והזמנה מיידית"
+        : "Technician takes a photo of the damaged part, AI identifies it and provides instant quote and ordering"
     },
     {
       icon: Heart,

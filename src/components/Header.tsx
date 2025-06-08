@@ -3,10 +3,31 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Menu } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 export const Header = () => {
   const { isHebrew, toggleLanguage } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleSectionClick = (sectionId: string) => {
+    if (location.pathname !== '/') {
+      // If not on home page, navigate to home first then scroll
+      navigate('/');
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      // If on home page, just scroll to section
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   return (
     <header className="fixed top-0 w-full z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
@@ -53,15 +74,24 @@ export const Header = () => {
         </Link>
         
         <nav className="hidden md:flex items-center space-x-8">
+          <Link to="/" className="text-gray-300 hover:text-white transition-colors">
+            {isHebrew ? "בית" : "Home"}
+          </Link>
           <Link to="/use-cases" className="text-gray-300 hover:text-white transition-colors">
             {isHebrew ? "דוגמאות שימוש" : "Use Cases"}
           </Link>
-          <a href="#services" className="text-gray-300 hover:text-white transition-colors">
+          <button 
+            onClick={() => handleSectionClick('services')} 
+            className="text-gray-300 hover:text-white transition-colors"
+          >
             {isHebrew ? "שירותים" : "Services"}
-          </a>
-          <a href="#features" className="text-gray-300 hover:text-white transition-colors">
+          </button>
+          <button 
+            onClick={() => handleSectionClick('features')} 
+            className="text-gray-300 hover:text-white transition-colors"
+          >
             {isHebrew ? "תכונות" : "Features"}
-          </a>
+          </button>
           <Link to="/contact" className="text-gray-300 hover:text-white transition-colors">
             {isHebrew ? "צור קשר" : "Contact"}
           </Link>

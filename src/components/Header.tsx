@@ -78,7 +78,7 @@ export const Header = () => {
             {isHebrew ? "בית" : "Home"}
           </Link>
           <Link to="/use-cases" className="text-gray-300 hover:text-white transition-colors">
-            {isHebrew ? "דוגמאות שימוש" : "Use Cases"}
+            {isHebrew ? "דוגמאות" : "Use Cases"}
           </Link>
           <button 
             onClick={() => handleSectionClick('services')} 

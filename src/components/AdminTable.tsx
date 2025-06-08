@@ -7,27 +7,13 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { AdminSearchBar } from "@/components/AdminSearchBar";
+import { AdminTableHeader } from "@/components/AdminTableHeader";
+import { AdminTableRow } from "@/components/AdminTableRow";
 import { SubmissionDetails } from "@/components/SubmissionDetails";
-import { Search, Eye, Trash, RefreshCw } from "lucide-react";
-import { format } from "date-fns";
+import { RefreshCw } from "lucide-react";
 
 interface ContactSubmission {
   id: string;
@@ -147,10 +133,6 @@ export const AdminTable = () => {
     setFilteredSubmissions(filtered);
   }, [searchTerm, submissions]);
 
-  const truncateText = (text: string, maxLength: number = 50) => {
-    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -161,59 +143,17 @@ export const AdminTable = () => {
 
   return (
     <div className="space-y-6">
-      {/* Search and Stats */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <Input
-            placeholder={isHebrew ? "חיפוש פניות..." : "Search submissions..."}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400"
-          />
-        </div>
-        
-        <div className="flex gap-4 items-center">
-          <Badge variant="secondary" className="bg-purple-500/20 text-purple-300">
-            {filteredSubmissions.length} {isHebrew ? "פניות" : "submissions"}
-          </Badge>
-          <Button
-            onClick={fetchSubmissions}
-            variant="outline"
-            size="sm"
-            className="border-white/20 text-white hover:bg-white/10"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            {isHebrew ? "רענן" : "Refresh"}
-          </Button>
-        </div>
-      </div>
+      <AdminSearchBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        submissionCount={filteredSubmissions.length}
+        onRefresh={fetchSubmissions}
+      />
 
       {/* Table */}
       <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-gray-300">
-                {isHebrew ? "שם" : "Name"}
-              </TableHead>
-              <TableHead className="text-gray-300">
-                {isHebrew ? "אימייל" : "Email"}
-              </TableHead>
-              <TableHead className="text-gray-300">
-                {isHebrew ? "חברה" : "Company"}
-              </TableHead>
-              <TableHead className="text-gray-300">
-                {isHebrew ? "הודעה" : "Message"}
-              </TableHead>
-              <TableHead className="text-gray-300">
-                {isHebrew ? "תאריך" : "Date"}
-              </TableHead>
-              <TableHead className="text-gray-300">
-                {isHebrew ? "פעולות" : "Actions"}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
+          <AdminTableHeader />
           <TableBody>
             {filteredSubmissions.length === 0 ? (
               <TableRow>
@@ -223,80 +163,13 @@ export const AdminTable = () => {
               </TableRow>
             ) : (
               filteredSubmissions.map((submission) => (
-                <TableRow key={submission.id} className="border-white/10">
-                  <TableCell className="text-white">
-                    {submission.first_name} {submission.last_name}
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    {submission.email}
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    {submission.company || '-'}
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    {truncateText(submission.message)}
-                  </TableCell>
-                  <TableCell className="text-gray-300">
-                    {format(new Date(submission.created_at), 'MMM dd, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setSelectedSubmission(submission)}
-                        className="border-purple-400/20 text-purple-300 hover:bg-purple-400/10"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={deletingId === submission.id}
-                            className="border-red-400/20 text-red-300 hover:bg-red-400/10"
-                          >
-                            {deletingId === submission.id ? (
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-slate-900 border-white/10 text-white">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle className="text-white">
-                              {isHebrew ? "מחק פנייה" : "Delete Submission"}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription className="text-gray-300">
-                              {isHebrew 
-                                ? "האם אתה בטוח שברצונך למחוק את הפנייה הזו? פעולה זו לא ניתנת לביטול."
-                                : "Are you sure you want to delete this submission? This action cannot be undone."
-                              }
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
-                              {isHebrew ? "ביטול" : "Cancel"}
-                            </AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => deleteSubmission(submission.id)}
-                              className="bg-red-600 hover:bg-red-700 text-white"
-                              disabled={deletingId === submission.id}
-                            >
-                              {deletingId === submission.id ? (
-                                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                              ) : null}
-                              {isHebrew ? "מחק" : "Delete"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <AdminTableRow
+                  key={submission.id}
+                  submission={submission}
+                  onView={setSelectedSubmission}
+                  onDelete={deleteSubmission}
+                  isDeleting={deletingId === submission.id}
+                />
               ))
             )}
           </TableBody>

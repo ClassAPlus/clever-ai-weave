@@ -27,7 +27,7 @@ export const Hero = () => {
           <h1 className="text-6xl md:text-8xl font-bold text-white mb-6 leading-tight">
             {isHebrew ? (
               <>
-                הפוך את העסק שלך
+                פתרונות בינה מלאכותית לעסק שלך
                 <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
                   שדרג את העסק שלך עם AI
                 </span>
@@ -43,7 +43,7 @@ export const Hero = () => {
           </h1>
           
           <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Empower your business with cost-effective AI integrations. From chatbots to data analytics, we make AI simple, fast, and affordable.
+            {isHebrew ? "שדרג את העסק שלך עם אינטגרצית בינה מלאכותית יעילה וחסכוניות. מצ'אטבוטים ועד ניתוח נתונים וביצוע משימות, אנו בונים בינה מלאכותית ידידותית, ומותאמת לצרכים שלך" : "Empower your business with cost-effective AI integrations. From chatbots to data analytics, we make AI simple, fast, and affordable."}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

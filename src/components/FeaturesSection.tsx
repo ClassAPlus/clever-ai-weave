@@ -7,7 +7,7 @@ const features = [
     title: { en: "Secure & Private", he: "מאובטח ופרטי" },
     description: { 
       en: "Your data stays safe with enterprise-level security that's simple to manage.",
-      he: "הנתונים שלך נשארים מאובטחים עם אבטחה ברמה ארגונית שקל לנהל."
+      he: "הנתונים שלך נשארים מאובטחים"
     }
   },
   {
@@ -15,7 +15,7 @@ const features = [
     title: { en: "Quick Start", he: "התחלה מהירה" },
     description: { 
       en: "Get up and running in minutes, not months. No technical expertise required.",
-      he: "תפעלו תוך דקות, לא חודשים. ללא צורך בידע טכני."
+      he: "תפעלו תוך דקות, לא חודשים. ללא צורך בידע טכני"
     }
   },
   {

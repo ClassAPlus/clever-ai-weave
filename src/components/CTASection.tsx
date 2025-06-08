@@ -114,8 +114,8 @@ export const CTASection = () => {
           
           <p className="text-sm text-gray-400 mb-8">
             {isHebrew 
-              ? "נקבל קשר תוך שעה עם המלצות מותאמות אישית לסוג העסק שלך"
-              : "We'll contact you within an hour with personalized recommendations for your business type"
+              ? "ניצור קשר עם המלצות מותאמות אישית לסוג העסק שלך"
+              : "We'll contact you with personalized recommendations for your business type"
             }
           </p>
           

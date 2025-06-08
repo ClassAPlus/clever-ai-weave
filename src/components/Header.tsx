@@ -62,9 +62,9 @@ export const Header = () => {
           <a href="#features" className="text-gray-300 hover:text-white transition-colors">
             {isHebrew ? "תכונות" : "Features"}
           </a>
-          <a href="#contact" className="text-gray-300 hover:text-white transition-colors">
+          <Link to="/contact" className="text-gray-300 hover:text-white transition-colors">
             {isHebrew ? "צור קשר" : "Contact"}
-          </a>
+          </Link>
         </nav>
         
         <div className="flex items-center space-x-4">
@@ -77,8 +77,10 @@ export const Header = () => {
             />
             <span className="text-sm text-gray-300">עב</span>
           </div>
-          <Button variant="outline" className="hidden md:inline-flex border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
-            {isHebrew ? "התחל" : "Get Started"}
+          <Button asChild variant="outline" className="hidden md:inline-flex border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
+            <Link to="/contact">
+              {isHebrew ? "התחל" : "Get Started"}
+            </Link>
           </Button>
           <Button size="icon" variant="ghost" className="md:hidden text-white">
             <Menu className="h-6 w-6" />

@@ -33,7 +33,7 @@ export const HeroFeatures = () => {
           {isHebrew ? "תמיכה מקומית" : "Local Support"}
         </h3>
         <p className={`text-gray-300 ${isHebrew ? 'text-right' : 'text-left'}`}>
-          {isHebrew ? "צוות ישראלי שזמין בכל שעה לעזור לך" : "Always available to help when you need it"}
+          {isHebrew ? "צוות שזמין בכל שעה לעזור לך" : "Always available to help when you need it"}
         </p>
       </div>
     </div>

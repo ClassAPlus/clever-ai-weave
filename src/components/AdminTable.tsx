@@ -154,8 +154,7 @@ export const AdminTable = ({ onSubmissionCountChange }: AdminTableProps) => {
       {selectedSubmission && (
         <SubmissionDetails
           submission={selectedSubmission}
-          open={!!selectedSubmission}
-          onOpenChange={(open) => !open && setSelectedSubmission(null)}
+          onClose={() => setSelectedSubmission(null)}
         />
       )}
     </div>

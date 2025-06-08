@@ -26,6 +26,7 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [submissionCount, setSubmissionCount] = useState(0);
 
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +136,7 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
             </p>
           </div>
 
-          <AdminTable />
+          <AdminTable onSubmissionCountChange={setSubmissionCount} />
         </div>
       </main>
       

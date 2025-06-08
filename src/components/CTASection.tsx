@@ -17,14 +17,14 @@ export const CTASection = () => {
               <>
                 הפוך את העסק שלך לחכם יותר
                 <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  תוך 15 דקות
+                  היום
                 </span>
               </>
             ) : (
               <>
                 Make Your Business Smarter
                 <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  in 15 Minutes
+                  Today
                 </span>
               </>
             )}

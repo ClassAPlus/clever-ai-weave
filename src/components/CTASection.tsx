@@ -64,7 +64,7 @@ export const CTASection = () => {
               <div className="text-2xl font-bold text-white mb-2">
                 {isHebrew ? "התחלה חינמית" : "Free Start"}
               </div>
-              <div className="text-gray-300">
+              <div className={`text-gray-300 ${isHebrew ? 'text-right' : 'text-left'}`}>
                 {isHebrew ? "ללא עלות התחלתית" : "No upfront costs"}
               </div>
             </div>
@@ -72,7 +72,7 @@ export const CTASection = () => {
               <div className="text-2xl font-bold text-white mb-2">
                 {isHebrew ? "התקנה מהירה" : "Quick Setup"}
               </div>
-              <div className="text-gray-300">
+              <div className={`text-gray-300 ${isHebrew ? 'text-right' : 'text-left'}`}>
                 {isHebrew ? "תוך 15 דקות" : "Within 15 minutes"}
               </div>
             </div>
@@ -80,7 +80,7 @@ export const CTASection = () => {
               <div className="text-2xl font-bold text-white mb-2">
                 {isHebrew ? "תמיכה מלאה" : "Full Support"}
               </div>
-              <div className="text-gray-300">
+              <div className={`text-gray-300 ${isHebrew ? 'text-right' : 'text-left'}`}>
                 {isHebrew ? "צוות ישראלי זמין" : "Always available team"}
               </div>
             </div>

@@ -1,3 +1,4 @@
+
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,32 +91,32 @@ const UseCases = () => {
                     <div className="p-3 rounded-lg bg-purple-500/20">
                       <useCase.icon className="h-8 w-8 text-purple-400" />
                     </div>
-                    <CardTitle className="text-white text-xl">{useCase.title}</CardTitle>
+                    <CardTitle className={`text-white text-xl ${isHebrew ? 'text-right' : 'text-left'}`}>{useCase.title}</CardTitle>
                   </div>
-                  <CardDescription className="text-gray-300 text-base">
+                  <CardDescription className={`text-gray-300 text-base ${isHebrew ? 'text-right' : 'text-left'}`}>
                     {useCase.description}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div>
-                      <h4 className="text-purple-300 font-semibold mb-2">
+                      <h4 className={`text-purple-300 font-semibold mb-2 ${isHebrew ? 'text-right' : 'text-left'}`}>
                         {isHebrew ? "יתרונות:" : "Benefits:"}
                       </h4>
                       <ul className="space-y-1">
                         {useCase.benefits.map((benefit, idx) => (
-                          <li key={idx} className="text-gray-300 text-sm flex items-center">
-                            <ArrowRight className="h-3 w-3 text-purple-400 mr-2 flex-shrink-0" />
+                          <li key={idx} className={`text-gray-300 text-sm flex items-center ${isHebrew ? 'flex-row-reverse text-right' : 'text-left'}`}>
+                            <ArrowRight className={`h-3 w-3 text-purple-400 flex-shrink-0 ${isHebrew ? 'ml-2' : 'mr-2'}`} />
                             {benefit}
                           </li>
                         ))}
                       </ul>
                     </div>
                     <div>
-                      <h4 className="text-purple-300 font-semibold mb-2">
+                      <h4 className={`text-purple-300 font-semibold mb-2 ${isHebrew ? 'text-right' : 'text-left'}`}>
                         {isHebrew ? "איך זה עובד:" : "How it works:"}
                       </h4>
-                      <p className="text-gray-300 text-sm">{useCase.howItWorks}</p>
+                      <p className={`text-gray-300 text-sm ${isHebrew ? 'text-right' : 'text-left'}`}>{useCase.howItWorks}</p>
                     </div>
                   </div>
                 </CardContent>

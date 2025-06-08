@@ -1,6 +1,7 @@
 import { Bot, Image, MessageSquare, Database, Video, Music } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
+
 const services = [{
   icon: MessageSquare,
   title: {
@@ -92,25 +93,30 @@ const services = [{
     he: ["הזמנות קוליות", "מצב ללא ידיים", "גישה קלה"]
   }
 }];
+
 export const ServicesSection = () => {
-  const {
-    isHebrew
-  } = useLanguage();
-  return <section id="services" className="py-20 px-6">
+  const { isHebrew } = useLanguage();
+  
+  return (
+    <section id="services" className="py-20 px-6">
       <div className="container mx-auto max-w-7xl">
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold text-white mb-6">
-            {isHebrew ? <>
+            {isHebrew ? (
+              <>
                 פתרונות AI
                 <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   לעסק שלך
                 </span>
-              </> : <>
+              </>
+            ) : (
+              <>
                 AI Solutions
                 <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   For Your Business
                 </span>
-              </>}
+              </>
+            )}
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             {isHebrew ? "כלים חכמים שחוסכים לך זמן, כסף ומשפרים את החוויה ללקוחות." : "Smart tools that save you time, money, and improve customer experience."}
@@ -118,30 +124,37 @@ export const ServicesSection = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {services.map((service, index) => <Card key={index} className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105 group" style={{
-          animationDelay: `${index * 0.1}s`
-        }}>
+          {services.map((service, index) => (
+            <Card 
+              key={index} 
+              className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all duration-300 hover:scale-105 group"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
               <CardHeader>
                 <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${service.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                   <service.icon className="h-8 w-8 text-white" />
                 </div>
-                <CardTitle className="text-2xl text-white text-right">
+                <CardTitle className={`text-2xl text-white ${isHebrew ? 'text-right' : 'text-left'}`}>
                   {isHebrew ? service.title.he : service.title.en}
                 </CardTitle>
-                <CardDescription className="text-gray-300 text-base text-right">
+                <CardDescription className={`text-gray-300 text-base ${isHebrew ? 'text-right' : 'text-left'}`}>
                   {isHebrew ? service.description.he : service.description.en}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {(isHebrew ? service.features.he : service.features.en).map((feature, featureIndex) => <li key={featureIndex} className="flex items-center text-gray-300">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full mr-3"></div>
+                  {(isHebrew ? service.features.he : service.features.en).map((feature, featureIndex) => (
+                    <li key={featureIndex} className={`flex items-center text-gray-300 ${isHebrew ? 'flex-row-reverse' : ''}`}>
+                      <div className={`w-2 h-2 bg-purple-400 rounded-full ${isHebrew ? 'ml-3' : 'mr-3'}`}></div>
                       {feature}
-                    </li>)}
+                    </li>
+                  ))}
                 </ul>
               </CardContent>
-            </Card>)}
+            </Card>
+          ))}
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };

@@ -39,7 +39,7 @@ export const Footer = () => {
               </div>
               <div className={`flex items-center ${isHebrew ? 'flex-row-reverse' : ''}`}>
                 <Phone className={`h-4 w-4 text-purple-400 ${isHebrew ? 'ml-2' : 'mr-2'}`} />
-                <span className="text-gray-300">+972-50-123-4567</span>
+                <span className="text-gray-300">+972-53-931-0919</span>
               </div>
               <div className={`flex items-center ${isHebrew ? 'flex-row-reverse' : ''}`}>
                 <MapPin className={`h-4 w-4 text-purple-400 ${isHebrew ? 'ml-2' : 'mr-2'}`} />

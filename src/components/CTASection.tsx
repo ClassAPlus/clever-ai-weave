@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Mail } from "lucide-react";
@@ -64,7 +63,7 @@ export const CTASection = () => {
               <div className="text-2xl font-bold text-white mb-2">
                 {isHebrew ? "פתרונות מותאמים" : "Custom Solutions"}
               </div>
-              <div className={`text-gray-300 ${isHebrew ? 'text-right' : 'text-left'}`}>
+              <div className={`text-gray-300 ${isHebrew ? 'text-center' : 'text-center'}`}>
                 {isHebrew ? "מותאמים לעסק שלך" : "Tailored to your business"}
               </div>
             </div>
@@ -72,7 +71,7 @@ export const CTASection = () => {
               <div className="text-2xl font-bold text-white mb-2">
                 {isHebrew ? "התקנה מהירה" : "Quick Setup"}
               </div>
-              <div className={`text-gray-300 ${isHebrew ? 'text-right' : 'text-left'}`}>
+              <div className={`text-gray-300 ${isHebrew ? 'text-center' : 'text-center'}`}>
                 {isHebrew ? "תוך 15 דקות" : "Within 15 minutes"}
               </div>
             </div>
@@ -80,7 +79,7 @@ export const CTASection = () => {
               <div className="text-2xl font-bold text-white mb-2">
                 {isHebrew ? "תמיכה מקומית" : "Local Support"}
               </div>
-              <div className={`text-gray-300 ${isHebrew ? 'text-right' : 'text-left'}`}>
+              <div className={`text-gray-300 ${isHebrew ? 'text-center' : 'text-center'}`}>
                 {isHebrew ? "צוות ישראלי מנוסה" : "Experienced team"}
               </div>
             </div>

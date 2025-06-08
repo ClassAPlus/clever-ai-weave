@@ -125,10 +125,6 @@ export const AdminAuth = ({ onAuthenticated }: AdminAuthProps) => {
             </DialogContent>
           </Dialog>
         </div>
-        
-        <p className="text-xs text-gray-400 text-center mt-4">
-          {isHebrew ? "סיסמה: Rla102232@50" : "Password: Rla102232@50"}
-        </p>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Brain, Code } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -25,7 +26,12 @@ export const Hero = () => {
           
           <h1 className="text-6xl md:text-8xl font-bold text-white mb-6 leading-tight">
             {isHebrew ? (
-              "הפוך לעסק חכם בעזרת אינטגרציית AI"
+              <>
+                הפוך לעסק חכם
+                <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+                  בעזרת אינטגרציית AI
+                </span>
+              </>
             ) : (
               <>
                 Make Your Business

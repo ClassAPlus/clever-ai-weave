@@ -1,22 +1,29 @@
 
+import { useState } from "react";
+import { ContactSheet } from "./ContactSheet";
 import { FloatingNetworkAnimation } from "./FloatingNetworkAnimation";
 import { HeroContent } from "./HeroContent";
 import { HeroFeatures } from "./HeroFeatures";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 export const Hero = () => {
-  const { isHebrew } = useLanguage();
-  
+  const [showContactSheet, setShowContactSheet] = useState(false);
+
   return (
-    <section className={`relative min-h-screen flex items-center justify-center overflow-hidden ${isHebrew ? 'rtl' : 'ltr'}`}>
-      <FloatingNetworkAnimation />
-      
-      <div className="container mx-auto px-6 pt-20 pb-16 relative z-10">
-        <div className="text-center">
-          <HeroContent />
+    <>
+      <section className="relative pt-32 pb-20 px-6 overflow-hidden">
+        {/* Animated background elements */}
+        <FloatingNetworkAnimation />
+        
+        <div className="container mx-auto max-w-6xl relative z-10">
+          <HeroContent onContactClick={() => setShowContactSheet(true)} />
           <HeroFeatures />
         </div>
-      </div>
-    </section>
+      </section>
+
+      <ContactSheet 
+        open={showContactSheet} 
+        onOpenChange={setShowContactSheet}
+      />
+    </>
   );
 };

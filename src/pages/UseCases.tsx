@@ -14,7 +14,7 @@ const UseCases = () => {
       icon: Camera,
       title: isHebrew ? "חנות חלקי חילוף לטכנאים" : "Replacement Parts Store",
       description: isHebrew 
-        ? "מערכת זיהוי חלקים וקבלת הצעות מחיר באמצעות צילום עם בינה מלאכותית"
+        ? "AI מערכת זיהוי חלקים וקבלת הצעות מחיר באמצעות צילום עם בינה מלאכותית"
         : "AI-powered part identification and quote system through photo capture",
       benefits: isHebrew 
         ? ["זיהוי חלקים אוטומטי", "הצעות מחיר מיידיות", "מעקב הזמנות", "מאגר חלקים חכם"]
@@ -53,7 +53,7 @@ const UseCases = () => {
       icon: FileText,
       title: isHebrew ? "סורק מסמכים משפטי" : "Legal Document Scanner",
       description: isHebrew 
-        ? "מערכת סריקה וניתוח מסמכים משפטיים עם בינה מלאכותית מתקדמת"
+        ? "AI מערכת סריקה וניתוח מסמכים משפטיים עם בינה מלאכותית מתקדמת"
         : "Advanced AI-powered legal document scanning and analysis system",
       benefits: isHebrew 
         ? ["סריקה אוטומטית של חוזים", "זיהוי סעיפים חשובים", "ניתוח סיכונים משפטיים", "חיפוש מהיר במסמכים"]
@@ -78,7 +78,7 @@ const UseCases = () => {
   ];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 ${isHebrew ? 'rtl' : 'ltr'}`}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <Header />
       
       <main className="pt-24 pb-16">
@@ -88,9 +88,9 @@ const UseCases = () => {
             <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               {isHebrew ? "דוגמאות שימוש" : "Use Cases"}
             </h1>
-            <p className={`text-xl text-gray-300 max-w-3xl mx-auto ${isHebrew ? 'text-center' : 'text-center'}`}>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
               {isHebrew 
-                ? "גלה כיצד LocalEdgeAI משנה עסקים ומקצועות שונים עם פתרונות בינה מלאכותית מותאמים אישית"
+                ? "LocalEdgeAI גלה כיצד משנה עסקים ומקצועות שונים עם פתרונות בינה מלאכותית מותאמים אישית"
                 : "Discover how LocalEdgeAI transforms various businesses and professions with tailored AI solutions"
               }
             </p>
@@ -101,7 +101,7 @@ const UseCases = () => {
             {useCases.map((useCase, index) => (
               <Card key={index} className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
                 <CardHeader>
-                  <div className={`flex items-center space-x-4 mb-4 ${isHebrew ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                  <div className="flex items-center space-x-4 mb-4">
                     <div className="p-3 rounded-lg bg-purple-500/20">
                       <useCase.icon className="h-8 w-8 text-purple-400" />
                     </div>
@@ -115,7 +115,7 @@ const UseCases = () => {
                   <div className="space-y-4">
                     <div>
                       <h4 className={`text-purple-300 font-semibold mb-2 ${isHebrew ? 'text-right' : 'text-left'}`}>
-                        {isHebrew ? "יתרונות:" : "Benefits:"}
+                        {isHebrew ? ":יתרונות" : "Benefits:"}
                       </h4>
                       <ul className="space-y-1">
                         {useCase.benefits.map((benefit, idx) => (
@@ -128,7 +128,7 @@ const UseCases = () => {
                     </div>
                     <div>
                       <h4 className={`text-purple-300 font-semibold mb-2 ${isHebrew ? 'text-right' : 'text-left'}`}>
-                        {isHebrew ? "איך זה עובד:" : "How it works:"}
+                        {isHebrew ? ":איך זה עובד" : "How it works:"}
                       </h4>
                       <p className={`text-gray-300 text-sm ${isHebrew ? 'text-right' : 'text-left'}`}>{useCase.howItWorks}</p>
                     </div>
@@ -141,11 +141,11 @@ const UseCases = () => {
           {/* CTA Section */}
           <div className="text-center">
             <h2 className="text-3xl font-bold text-white mb-4">
-              {isHebrew ? "מוכנים להתחיל?" : "Ready to Get Started?"}
+              {isHebrew ? "?מוכנים להתחיל" : "Ready to Get Started?"}
             </h2>
             <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
               {isHebrew 
-                ? "פתחו את הפוטנציאל העסקי שלכם עם פתרונות בינה מלאכותית מותאמים אישית"
+                ? "AI פתחו את הפוטנציאל העסקי שלכם עם פתרונות בינה מלאכותית מותאמים אישית"
                 : "Unlock your business potential with custom AI solutions tailored to your needs"
               }
             </p>

@@ -4,6 +4,7 @@ import { ServicesSection } from "@/components/ServicesSection";
 import { FeaturesSection } from "@/components/FeaturesSection";
 import { CTASection } from "@/components/CTASection";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 const Index = () => {
   return (
@@ -13,6 +14,7 @@ const Index = () => {
       <ServicesSection />
       <FeaturesSection />
       <CTASection />
+      <Footer />
     </div>
   );
 };

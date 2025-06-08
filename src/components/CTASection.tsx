@@ -64,10 +64,10 @@ export const CTASection = () => {
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-white mb-2">
-                {isHebrew ? "התקנה מהירה" : "Quick Setup"}
+                {isHebrew ? "התקנה מהירה" : "Fast Implementation"}
               </div>
               <div className="text-gray-300 text-center">
-                {isHebrew ? "הטמעה ובניה מהירה עם מינימום עבודה" : "Within 15 minutes"}
+                {isHebrew ? "הטמעה מהירה ופשוטה" : "Quick and simple deployment"}
               </div>
             </div>
             <div className="text-center">

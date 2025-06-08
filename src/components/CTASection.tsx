@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Mail } from "lucide-react";
@@ -36,7 +37,7 @@ export const CTASection = () => {
       if (error) throw error;
 
       toast({
-        title: isHebrew ? "נרשמת בהצלחה!" : "Successfully registered!",
+        title: isHebrew ? "!נרשמת בהצלחה" : "Successfully registered!",
         description: isHebrew 
           ? "נקבל קשר תוך שעה עם המלצות מותאמות אישית" 
           : "We'll contact you within an hour with personalized recommendations",
@@ -80,7 +81,7 @@ export const CTASection = () => {
           </h2>
           <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto">
             {isHebrew 
-              ? "קבל הערכה חינמית ומותאמת אישית לעסק שלך. ללא התחייבות, ללא תשלום."
+              ? ".קבל הערכה חינמית ומותאמת אישית לעסק שלך. ללא התחייבות, ללא תשלום"
               : "Get a free, personalized assessment for your business. No commitment, no payment required."
             }
           </p>
@@ -104,7 +105,7 @@ export const CTASection = () => {
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white group"
             >
               {isSubmitting 
-                ? (isHebrew ? "שולח..." : "Sending...")
+                ? (isHebrew ? "...שולח" : "Sending...")
                 : (isHebrew ? "התחל עכשיו" : "Get Started")
               }
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />

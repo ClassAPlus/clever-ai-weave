@@ -1,3 +1,4 @@
+
 import { Bot, Image, MessageSquare, Database, Video, Music } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -10,12 +11,12 @@ const services = [{
   },
   description: {
     en: "AI chatbot that handles customer questions 24/7, understands your business, and never takes a day off.",
-    he: "צ'אטבוט AI שמטפל בשאלות לקוחות 24/7, מבין את העסק שלך ואף פעם לא לוקח יום חופש."
+    he: ".צ'אטבוט AI שמטפל בשאלות לקוחות 24/7, מבין את העסק שלך ואף פעם לא לוקח יום חופש"
   },
   gradient: "from-blue-500 to-cyan-500",
   features: {
     en: ["24/7 Availability", "Instant Responses", "Learns Your Business"],
-    he: ["זמינות 24/7", "מענה מיידי", "לומד את העסק שלך"]
+    he: ["24/7 זמינות", "מענה מיידי", "לומד את העסק שלך"]
   }
 }, {
   icon: Image,
@@ -25,7 +26,7 @@ const services = [{
   },
   description: {
     en: "Automatically organize products, track inventory, and identify what customers are looking for.",
-    he: "ארגון אוטומטי של מוצרים, מעקב מלאי, וזיהוי מה שהלקוחות מחפשים."
+    he: ".ארגון אוטומטי של מוצרים, מעקב מלאי, וזיהוי מה שהלקוחות מחפשים"
   },
   gradient: "from-purple-500 to-pink-500",
   features: {
@@ -40,7 +41,7 @@ const services = [{
   },
   description: {
     en: "Virtual assistant that schedules appointments, follows up with customers, and manages daily tasks.",
-    he: "עוזר וירטואלי שמתאם פגישות, עוקב אחרי לקוחות ומנהל משימות יומיות."
+    he: ".עוזר וירטואלי שמתאם פגישות, עוקב אחרי לקוחות ומנהל משימות יומיות"
   },
   gradient: "from-green-500 to-teal-500",
   features: {
@@ -55,7 +56,7 @@ const services = [{
   },
   description: {
     en: "Understand your local market trends, customer behavior, and what drives sales in your area.",
-    he: "הבנה של מגמות השוק המקומי, התנהגות לקוחות ומה מניע מכירות באזור שלך."
+    he: ".הבנה של מגמות השוק המקומי, התנהגות לקוחות ומה מניע מכירות באזור שלך"
   },
   gradient: "from-orange-500 to-red-500",
   features: {
@@ -70,7 +71,7 @@ const services = [{
   },
   description: {
     en: "Track foot traffic, understand customer flow, and optimize your store layout for better sales.",
-    he: "מעקב תנועת לקוחות, הבנת זרימה בחנות ואופטימיזציה של פריסה למכירות טובות יותר."
+    he: ".מעקב תנועת לקוחות, הבנת זרימה בחנות ואופטימיזציה של פריסה למכירות טובות יותר"
   },
   gradient: "from-indigo-500 to-purple-500",
   features: {
@@ -85,7 +86,7 @@ const services = [{
   },
   description: {
     en: "Voice-activated ordering, hands-free operations, and accessibility features for all customers.",
-    he: "הזמנות קוליות, פעולות ללא ידיים ותכונות נגישות לכל הלקוחות."
+    he: ".הזמנות קוליות, פעולות ללא ידיים ותכונות נגישות לכל הלקוחות"
   },
   gradient: "from-pink-500 to-rose-500",
   features: {
@@ -104,7 +105,7 @@ export const ServicesSection = () => {
           <h2 className="text-5xl font-bold text-white mb-6">
             {isHebrew ? (
               <>
-                פתרונות AI
+                AI פתרונות
                 <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   לעסק שלך
                 </span>
@@ -119,7 +120,7 @@ export const ServicesSection = () => {
             )}
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            {isHebrew ? "כלים חכמים שחוסכים לך זמן, כסף ומשפרים את החוויה ללקוחות." : "Smart tools that save you time, money, and improve customer experience."}
+            {isHebrew ? ".כלים חכמים שחוסכים לך זמן, כסף ומשפרים את החוויה ללקוחות" : "Smart tools that save you time, money, and improve customer experience."}
           </p>
         </div>
         

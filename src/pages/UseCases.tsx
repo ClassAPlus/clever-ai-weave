@@ -14,7 +14,7 @@ const UseCases = () => {
       icon: Camera,
       title: isHebrew ? "חנות חלקי חילוף לטכנאים" : "Replacement Parts Store",
       description: isHebrew 
-        ? "מערכת זיהוי חלקים וקבלת הצעות מחיר באמצעות צילום עם בינה מלאכותית"
+        ? "AI מערכת זיהוי חלקים וקבלת הצעות מחיר באמצעות צילום עם בינה מלאכותית"
         : "AI-powered part identification and quote system through photo capture",
       benefits: isHebrew 
         ? ["זיהוי חלקים אוטומטי", "הצעות מחיר מיידיות", "מעקב הזמנות", "מאגר חלקים חכם"]
@@ -40,7 +40,7 @@ const UseCases = () => {
       icon: FileText,
       title: isHebrew ? "סורק מסמכים משפטי" : "Legal Document Scanner",
       description: isHebrew 
-        ? "מערכת סריקה וניתוח מסמכים משפטיים עם בינה מלאכותית מתקדמת"
+        ? "AI מערכת סריקה וניתוח מסמכים משפטיים עם בינה מלאכותית מתקדמת"
         : "Advanced AI-powered legal document scanning and analysis system",
       benefits: isHebrew 
         ? ["סריקה אוטומטית של חוזים", "זיהוי סעיפים חשובים", "ניתוח סיכונים משפטיים", "חיפוש מהיר במסמכים"]
@@ -77,7 +77,7 @@ const UseCases = () => {
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
               {isHebrew 
-                ? "גלה כיצד LocalEdgeAI משנה עסקים ומקצועות שונים עם פתרונות בינה מלאכותית מותאמים אישית"
+                ? "LocalEdgeAI גלה כיצד משנה עסקים ומקצועות שונים עם פתרונות בינה מלאכותית מותאמים אישית"
                 : "Discover how LocalEdgeAI transforms various businesses and professions with tailored AI solutions"
               }
             </p>
@@ -102,7 +102,7 @@ const UseCases = () => {
                   <div className="space-y-4">
                     <div>
                       <h4 className={`text-purple-300 font-semibold mb-2 ${isHebrew ? 'text-right' : 'text-left'}`}>
-                        {isHebrew ? "יתרונות:" : "Benefits:"}
+                        {isHebrew ? ":יתרונות" : "Benefits:"}
                       </h4>
                       <ul className="space-y-1">
                         {useCase.benefits.map((benefit, idx) => (
@@ -115,7 +115,7 @@ const UseCases = () => {
                     </div>
                     <div>
                       <h4 className={`text-purple-300 font-semibold mb-2 ${isHebrew ? 'text-right' : 'text-left'}`}>
-                        {isHebrew ? "איך זה עובד:" : "How it works:"}
+                        {isHebrew ? ":איך זה עובד" : "How it works:"}
                       </h4>
                       <p className={`text-gray-300 text-sm ${isHebrew ? 'text-right' : 'text-left'}`}>{useCase.howItWorks}</p>
                     </div>
@@ -128,11 +128,11 @@ const UseCases = () => {
           {/* CTA Section */}
           <div className="text-center">
             <h2 className="text-3xl font-bold text-white mb-4">
-              {isHebrew ? "מוכנים להתחיל?" : "Ready to Get Started?"}
+              {isHebrew ? "?מוכנים להתחיל" : "Ready to Get Started?"}
             </h2>
             <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
               {isHebrew 
-                ? "פתחו את הפוטנציאל העסקי שלכם עם פתרונות בינה מלאכותית מותאמים אישית"
+                ? "AI פתחו את הפוטנציאל העסקי שלכם עם פתרונות בינה מלאכותית מותאמים אישית"
                 : "Unlock your business potential with custom AI solutions tailored to your needs"
               }
             </p>

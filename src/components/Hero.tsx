@@ -29,7 +29,7 @@ export const Hero = () => {
               <>
                 הפוך לעסק חכם
                 <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent" dir="rtl">
-                  בעזרת אינטגרציית AI
+                  AI בעזרת אינטגרציית
                 </span>
               </>
             ) : (
@@ -59,7 +59,7 @@ export const Hero = () => {
               variant="outline" 
               className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg"
             >
-              {isHebrew ? "צפה ב-demo" : "Watch Demo"}
+              {isHebrew ? "demo צפה ב-" : "Watch Demo"}
             </Button>
           </div>
         </div>

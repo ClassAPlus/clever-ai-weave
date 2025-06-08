@@ -31,6 +31,13 @@ export const Header = () => {
     }
   };
 
+  // Create URL for Hebrew version
+  const getHebrewUrl = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('lang', 'he');
+    return url.toString();
+  };
+
   return (
     <>
       <header className="fixed top-0 w-full z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
@@ -98,6 +105,14 @@ export const Header = () => {
             <Link to="/contact" className="text-gray-300 hover:text-white transition-colors">
               {isHebrew ? "צור קשר" : "Contact"}
             </Link>
+            {!isHebrew && (
+              <a 
+                href={getHebrewUrl()} 
+                className="text-purple-400 hover:text-purple-300 transition-colors text-sm"
+              >
+                עברית
+              </a>
+            )}
           </nav>
           
           <div className="flex items-center space-x-4">

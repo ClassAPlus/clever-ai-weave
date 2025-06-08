@@ -59,7 +59,7 @@ export const Hero = () => {
               variant="outline" 
               className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg"
             >
-              {isHebrew ? "demo צפה ב-" : "Watch Demo"}
+              {isHebrew ? "הערכה חינמית של 30 דקות" : "Free 30-Minute AI Assessment"}
             </Button>
           </div>
         </div>

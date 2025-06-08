@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Mail } from "lucide-react";
@@ -133,7 +132,7 @@ export const CTASection = () => {
                 {isHebrew ? "התקנה מהירה" : "Quick Setup"}
               </div>
               <div className="text-gray-300 text-center">
-                {isHebrew ? "תוך 15 דקות" : "Within 15 minutes"}
+                {isHebrew ? "הטמעה ובניה מהירה עם מינימום עבודה" : "Within 15 minutes"}
               </div>
             </div>
             <div className="text-center">

@@ -50,20 +50,48 @@ export const AdminTable = ({ onSubmissionCountChange }: AdminTableProps) => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('=== Starting delete operation ===');
       console.log('Attempting to delete submission with ID:', id);
       
-      const { data, error } = await supabase
+      // First check if the row exists
+      const { data: existingData, error: checkError } = await supabase
+        .from('contact_submissions')
+        .select('id')
+        .eq('id', id);
+      
+      console.log('Existing data before delete:', existingData);
+      if (checkError) {
+        console.error('Error checking existing data:', checkError);
+      }
+      
+      // Perform the delete
+      const { data, error, count } = await supabase
         .from('contact_submissions')
         .delete()
         .eq('id', id)
-        .select(); // Add select() to get the deleted row back for confirmation
+        .select();
+      
+      console.log('Delete operation result:');
+      console.log('- Data returned:', data);
+      console.log('- Error:', error);
+      console.log('- Count:', count);
       
       if (error) {
-        console.error('Delete error:', error);
+        console.error('Delete error details:', error);
         throw error;
       }
       
-      console.log('Successfully deleted submission. Deleted data:', data);
+      // Verify the row is actually deleted
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('contact_submissions')
+        .select('id')
+        .eq('id', id);
+      
+      console.log('Verification after delete:');
+      console.log('- Remaining data with same ID:', verifyData);
+      console.log('- Verify error:', verifyError);
+      
+      console.log('=== Delete operation completed ===');
       return id;
     },
     onSuccess: (deletedId) => {

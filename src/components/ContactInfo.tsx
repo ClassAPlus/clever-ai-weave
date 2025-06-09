@@ -1,3 +1,4 @@
+
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Mail, Phone, MapPin } from "lucide-react";
 export const ContactInfo = () => {
@@ -43,7 +44,7 @@ export const ContactInfo = () => {
               {isHebrew ? "כתובת" : "Address"}
             </h4>
             <p className="text-gray-300">
-              {isHebrew ? "תל אביב, ישראל" : "Tel Aviv, Israel"}
+              {isHebrew ? "בית שמש, ישראל" : "Beit Shemesh, Israel"}
             </p>
           </div>
         </div>

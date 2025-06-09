@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -75,7 +74,7 @@ export const CTASection = () => {
                 {isHebrew ? "תמיכה מקומית" : "Local Support"}
               </div>
               <div className="text-gray-300 text-center">
-                {isHebrew ? "צוות ישראלי מנוסה" : "Experienced team"}
+                {isHebrew ? "צוות מנוסה" : "Experienced team"}
               </div>
             </div>
           </div>

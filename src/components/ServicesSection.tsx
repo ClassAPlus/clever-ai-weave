@@ -11,7 +11,7 @@ const services = [{
   },
   description: {
     en: "AI chatbot that handles customer questions 24/7, understands your business, and never takes a day off.",
-    he: "שמטפל בשאלות לקוחות 24/7, בינה מלאכותית שמבין את העסק שלך ואף פעם לא לוקח יום חופש"
+    he: "שמטפל בשאלות לקוחות 24/7, בינה מלאכותית שמבינה את העסק שלך ואף פעם לא לוקחת יום חופש"
   },
   gradient: "from-blue-500 to-cyan-500",
   features: {

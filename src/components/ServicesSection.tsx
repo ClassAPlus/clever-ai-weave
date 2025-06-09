@@ -1,4 +1,4 @@
-
+י
 import { Bot, Image, MessageSquare, Database, Video, Music } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -71,7 +71,7 @@ const services = [{
   },
   description: {
     en: "Track foot traffic, understand customer flow, and optimize your store layout for better sales.",
-    he: ".מעקב תנועת לקוחות, הבנת זרימה בחנות ואופטימיזציה של פריסה למכירות טובות יותר"
+    he: "מעקב תנועת לקוחות, הבנת זרימה בחנות ואופטימיזציה של פריסה למכירות טובות יותר"
   },
   gradient: "from-indigo-500 to-purple-500",
   features: {
@@ -91,7 +91,7 @@ const services = [{
   gradient: "from-pink-500 to-rose-500",
   features: {
     en: ["Voice Orders", "Hands-free Mode", "Easy Access"],
-    he: ["הזמנות קוליות", "מצב ללא ידיים", "גישה קלה"]
+    he: ["הזמנות אודיו", "ללא צורך התערבות אנושית", "גישה קלה"]
   }
 }];
 

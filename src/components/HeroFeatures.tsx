@@ -1,4 +1,3 @@
-
 import { Brain, Code, Zap } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -13,7 +12,7 @@ export const HeroFeatures = () => {
           {isHebrew ? "חכם ופשוט" : "Smart & Simple"}
         </h3>
         <p className={`text-gray-300 ${isHebrew ? 'text-right' : 'text-left'}`}>
-          {isHebrew ? "AI שמבין את העסק שלך ופועל בלי להסבך" : "AI that understands your business and works without complication"}
+          {isHebrew ? "בינה מלאכותית שמבינה את העסק שלך ופשוטה לתפעול" : "AI that understands your business and works without complication"}
         </p>
       </div>
       

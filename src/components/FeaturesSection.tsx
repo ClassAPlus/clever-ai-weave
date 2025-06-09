@@ -1,5 +1,6 @@
 import { Shield, Zap, Globe, Users, Clock, Award } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+
 const features = [{
   icon: Shield,
   title: {
@@ -61,6 +62,7 @@ const features = [{
     he: "מעוצב במיוחד לעסקים קטנים, לא פתרונות ארגוניים מוגדלים."
   }
 }];
+
 export const FeaturesSection = () => {
   const {
     isHebrew
@@ -81,7 +83,7 @@ export const FeaturesSection = () => {
                 </span>
               </>}
           </h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto text-center">
             {isHebrew ? "נבנה במיוחד לעסקים כמו שלך - פשוט, אמין ומשתלם" : "Built specifically for businesses like yours - simple, reliable, and affordable."}
           </p>
         </div>

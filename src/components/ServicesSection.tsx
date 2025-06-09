@@ -41,7 +41,7 @@ const services = [{
   },
   description: {
     en: "Virtual assistant that schedules appointments, follows up with customers, and manages daily tasks.",
-    he: "עוזר וירטואלי שמתאם פגישות, עוקב אחרי לקוחות ומנהל משימות יומיות"
+    he: "עוזר וירטואלי שמתאם פגישות, מעקב לקוחות ומנהל משימות יומיות"
   },
   gradient: "from-green-500 to-teal-500",
   features: {

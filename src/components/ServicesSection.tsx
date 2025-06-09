@@ -1,4 +1,4 @@
-י
+
 import { Bot, Image, MessageSquare, Database, Video, Music } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";

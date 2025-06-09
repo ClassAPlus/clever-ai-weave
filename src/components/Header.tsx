@@ -6,12 +6,14 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { ContactSheet } from "./ContactSheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 export const Header = () => {
   const { isHebrew, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [showContactSheet, setShowContactSheet] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const handleSectionClick = (sectionId: string) => {
     if (location.pathname !== '/') {
@@ -30,6 +32,13 @@ export const Header = () => {
         element.scrollIntoView({ behavior: 'smooth' });
       }
     }
+    // Close mobile menu after navigation
+    setShowMobileMenu(false);
+  };
+
+  const handleMobileNavClick = (action: () => void) => {
+    action();
+    setShowMobileMenu(false);
   };
 
   return (
@@ -118,9 +127,64 @@ export const Header = () => {
             >
               {isHebrew ? "התחל" : "Get Started"}
             </Button>
-            <Button size="icon" variant="ghost" className="md:hidden text-white">
-              <Menu className="h-6 w-6" />
-            </Button>
+            
+            {/* Mobile Menu */}
+            <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
+              <SheetTrigger asChild>
+                <Button size="icon" variant="ghost" className="md:hidden text-white">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] bg-gray-900 border-gray-800">
+                <SheetHeader>
+                  <SheetTitle className="text-white text-left">
+                    {isHebrew ? "תפריט" : "Menu"}
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col space-y-4 mt-8">
+                  <Link 
+                    to="/" 
+                    className="text-gray-300 hover:text-white transition-colors py-2 px-4 rounded-md hover:bg-gray-800"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    {isHebrew ? "בית" : "Home"}
+                  </Link>
+                  <Link 
+                    to="/use-cases" 
+                    className="text-gray-300 hover:text-white transition-colors py-2 px-4 rounded-md hover:bg-gray-800"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    {isHebrew ? "דוגמאות" : "Use Cases"}
+                  </Link>
+                  <button 
+                    onClick={() => handleSectionClick('services')} 
+                    className="text-gray-300 hover:text-white transition-colors py-2 px-4 rounded-md hover:bg-gray-800 text-left"
+                  >
+                    {isHebrew ? "שירותים" : "Services"}
+                  </button>
+                  <button 
+                    onClick={() => handleSectionClick('features')} 
+                    className="text-gray-300 hover:text-white transition-colors py-2 px-4 rounded-md hover:bg-gray-800 text-left"
+                  >
+                    {isHebrew ? "תכונות" : "Features"}
+                  </button>
+                  <Link 
+                    to="/contact" 
+                    className="text-gray-300 hover:text-white transition-colors py-2 px-4 rounded-md hover:bg-gray-800"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    {isHebrew ? "צור קשר" : "Contact"}
+                  </Link>
+                  <Button 
+                    onClick={() => handleMobileNavClick(() => setShowContactSheet(true))}
+                    variant="outline" 
+                    className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white mt-4"
+                  >
+                    {isHebrew ? "התחל" : "Get Started"}
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>

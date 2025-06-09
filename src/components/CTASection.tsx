@@ -13,18 +13,18 @@ export const CTASection = () => {
     <section id="contact" className="py-20 px-6">
       <div className="container mx-auto max-w-4xl">
         <div className="bg-gradient-to-r from-purple-600/30 to-pink-600/30 rounded-3xl p-12 border border-white/20 backdrop-blur-sm text-center">
-          <h2 className="text-5xl font-bold text-white mb-6">
+          <h2 className="text-5xl font-bold text-white mb-6 leading-tight">
             {isHebrew ? (
               <>
                 הפוך את העסק שלך לחכם יותר
-                <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent leading-tight py-2">
                   היום
                 </span>
               </>
             ) : (
               <>
                 Make Your Business Smarter
-                <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent leading-tight py-2">
                   Today
                 </span>
               </>

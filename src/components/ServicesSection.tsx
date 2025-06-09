@@ -86,7 +86,7 @@ const services = [{
   },
   description: {
     en: "Voice-activated ordering, hands-free operations, and accessibility features for all customers.",
-    he: ".הזמנות קוליות, פעולות ללא ידיים ותכונות נגישות לכל הלקוחות"
+    he: "הזמנות אודיו ותכונות נגישות ונוחות למגוון לקוחות"
   },
   gradient: "from-pink-500 to-rose-500",
   features: {

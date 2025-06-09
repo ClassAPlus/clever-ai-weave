@@ -120,7 +120,7 @@ export const ServicesSection = () => {
             )}
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            {isHebrew ? ".כלים חכמים שחוסכים לך זמן וכסף ומשפרים את החוויה ללקוחות" : "Smart tools that save you time, money, and improve customer experience."}
+            {isHebrew ? "כלים חכמים שחוסכים לך זמן וכסף ומשפרים את החוויה ללקוחות" : "Smart tools that save you time, money, and improve customer experience."}
           </p>
         </div>
         

@@ -35,11 +35,11 @@ const features = [{
   icon: Users,
   title: {
     en: "Real Human Support",
-    he: "תמיכה אנושית אמיתי"
+    he: "תמיכה אנושית אמיתית"
   },
   description: {
     en: "Talk to real people who understand your business and are here to help you succeed.",
-    he: "דבר עם אנשים אמיתיים שמבינים את העסק שלך וכאן כדי לעזור לך להצליח."
+    he: "דבר עם אנשים אמיתיים שמבינים את העסק שלך וכאן כדי לעזור לך להצליח"
   }
 }, {
   icon: Clock,
@@ -49,7 +49,7 @@ const features = [{
   },
   description: {
     en: "Automate routine tasks so you can focus on growing your business, not managing it.",
-    he: "אוטומציה של משימות שגרתיות כדי שתוכל להתמקד בצמיחת העסק, לא בניהולו."
+    he: "אוטומציה של משימות שגרתיות כדי שתוכל להתמקד בצמיחת העסק"
   }
 }, {
   icon: Award,
@@ -59,7 +59,7 @@ const features = [{
   },
   description: {
     en: "Designed specifically for small businesses, not oversized corporate solutions.",
-    he: "מעוצב במיוחד לעסקים קטנים, לא פתרונות ארגוניים מוגדלים."
+    he: "מיוצר עבור מגוון עסקים הכולל עסקים קטנים ובינונים"
   }
 }];
 

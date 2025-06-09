@@ -1,12 +1,10 @@
-
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Mail, Phone, MapPin } from "lucide-react";
-
 export const ContactInfo = () => {
-  const { isHebrew } = useLanguage();
-
-  return (
-    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8">
+  const {
+    isHebrew
+  } = useLanguage();
+  return <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8">
       <h3 className="text-xl font-bold text-white mb-6">
         {isHebrew ? "פרטי קשר" : "Contact Information"}
       </h3>
@@ -32,7 +30,7 @@ export const ContactInfo = () => {
             <h4 className="text-white font-semibold">
               {isHebrew ? "טלפון" : "Phone"}
             </h4>
-            <p className="text-gray-300">+972-50-123-4567</p>
+            <p className="text-gray-300">+972-53-931-0919</p>
           </div>
         </div>
         
@@ -50,6 +48,5 @@ export const ContactInfo = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };

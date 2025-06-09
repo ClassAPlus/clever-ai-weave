@@ -71,7 +71,7 @@ const services = [{
   },
   description: {
     en: "Track foot traffic, understand customer flow, and optimize your store layout for better sales.",
-    he: "מעקב תנועת לקוחות, הבנת זרימה בחנות ואופטימיזציה של פריסה למכירות טובות יותר"
+    he: "מעקב תנועת לקוחות, ניתוח זרימה בחנות ואופטימיזציה של פריסה למכירות טובות יותר"
   },
   gradient: "from-indigo-500 to-purple-500",
   features: {

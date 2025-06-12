@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,10 +8,12 @@ import { AIAssessmentProps, Message } from "./ai-assessment/types";
 import { ChatMessages } from "./ai-assessment/ChatMessages";
 import { AssessmentSummary } from "./ai-assessment/AssessmentSummary";
 import { MessageInput } from "./ai-assessment/MessageInput";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const { isHebrew } = useLanguage();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
   
@@ -141,17 +142,17 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30">
-        <DialogHeader className="border-b border-gray-100 pb-4">
-          <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
+      <DialogContent className={`${isMobile ? 'max-w-[95vw] max-h-[95vh] h-[95vh]' : 'max-w-4xl max-h-[85vh]'} overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30`}>
+        <DialogHeader className="border-b border-gray-100 pb-4 flex-shrink-0">
+          <DialogTitle className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center`}>
             {isHebrew ? "🤖 הערכת AI חינמית של LocalEdgeAI" : "🤖 Free LocalEdgeAI Assessment"}
           </DialogTitle>
-          <p className="text-center text-gray-600 mt-2">
+          <p className={`text-center text-gray-600 mt-2 ${isMobile ? 'text-sm' : ''}`}>
             {isHebrew ? "גלה איך LocalEdgeAI יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
           </p>
         </DialogHeader>
 
-        <ScrollArea className="h-[65vh] relative" ref={scrollAreaRef}>
+        <ScrollArea className={`${isMobile ? 'h-[calc(95vh-180px)]' : 'h-[65vh]'} relative flex-1`} ref={scrollAreaRef}>
           <div className="flex flex-col min-h-full p-1">
             {/* Background decoration */}
             <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
@@ -169,20 +170,20 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
                 showContactButton={showContactButton}
               />
             )}
-
-            {!isCompleted && (
-              <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent pt-4">
-                <MessageInput
-                  ref={messageInputRef}
-                  currentMessage={currentMessage}
-                  setCurrentMessage={setCurrentMessage}
-                  onSendMessage={sendMessage}
-                  isLoading={isLoading}
-                />
-              </div>
-            )}
           </div>
         </ScrollArea>
+
+        {!isCompleted && (
+          <div className={`flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent ${isMobile ? 'pt-2 pb-2' : 'pt-4'}`}>
+            <MessageInput
+              ref={messageInputRef}
+              currentMessage={currentMessage}
+              setCurrentMessage={setCurrentMessage}
+              onSendMessage={sendMessage}
+              isLoading={isLoading}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

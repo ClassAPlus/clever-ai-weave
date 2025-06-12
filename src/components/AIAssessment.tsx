@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,6 +26,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const [isCompleted, setIsCompleted] = useState(false);
   const [summary, setSummary] = useState("");
   const [stage, setStage] = useState<'initial' | 'assessment_complete' | 'contact_collected'>('initial');
+  const [showContactButton, setShowContactButton] = useState(false);
 
   const sendMessage = async () => {
     if (!currentMessage.trim() || isLoading) return;
@@ -53,8 +55,9 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
         setStage(data.stage);
         
         if (data.stage === 'assessment_complete') {
-          // Assessment is complete, show summary
+          // Assessment is complete, show summary with contact button
           setSummary(data.summary);
+          setShowContactButton(true);
           setMessages([...newMessages, { 
             role: 'assistant', 
             content: isHebrew 
@@ -63,6 +66,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
           }]);
         } else if (data.stage === 'contact_collected') {
           // Contact info collected
+          setShowContactButton(false);
           setMessages([...newMessages, { 
             role: 'assistant', 
             content: data.message
@@ -87,6 +91,17 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     }
   };
 
+  const handleContactRequest = () => {
+    // Add a message to start collecting contact information
+    const contactMessage = isHebrew 
+      ? "נהדר! אשמח לעזור לך עם פתרונות AI מותאמים אישית. כדי שהצוות שלנו יוכל ליצור איתך קשר, אני צריך כמה פרטים. מה השם הפרטי והמשפחה שלך?"
+      : "Great! I'd love to help you with custom AI solutions. So our team can contact you, I need a few details. What's your first and last name?";
+    
+    setMessages(prev => [...prev, { role: 'assistant', content: contactMessage }]);
+    setShowContactButton(false);
+    setIsCompleted(false); // Allow continuing the conversation
+  };
+
   const resetAssessment = () => {
     setMessages([{
       role: 'assistant',
@@ -98,6 +113,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     setIsCompleted(false);
     setSummary("");
     setStage('initial');
+    setShowContactButton(false);
   };
 
   return (
@@ -122,7 +138,13 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </div>
 
             {isCompleted && summary && (
-              <AssessmentSummary summary={summary} onResetAssessment={resetAssessment} />
+              <AssessmentSummary 
+                summary={summary} 
+                onResetAssessment={resetAssessment} 
+                onRequestContact={handleContactRequest}
+                stage={stage}
+                showContactButton={showContactButton}
+              />
             )}
 
             {!isCompleted && (

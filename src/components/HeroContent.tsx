@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Bot, Sparkles } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -43,15 +42,6 @@ export const HeroContent = ({ onContactClick, onAIAssessmentClick }: HeroContent
       </p>
       
       <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-        <Button 
-          size="lg" 
-          onClick={onContactClick}
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 text-lg group"
-        >
-          {isHebrew ? "התחל עכשיו" : "Get Started Now"}
-          <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-        </Button>
-        
         <Button 
           size="lg" 
           onClick={onAIAssessmentClick}

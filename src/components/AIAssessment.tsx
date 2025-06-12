@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,6 +24,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [summary, setSummary] = useState("");
+  const [stage, setStage] = useState<'initial' | 'assessment_complete' | 'contact_collected'>('initial');
 
   const sendMessage = async () => {
     if (!currentMessage.trim() || isLoading) return;
@@ -49,15 +49,25 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
       console.log('Edge function response:', data);
 
       if (data.completed) {
-        // Assessment is complete, show summary
         setIsCompleted(true);
-        setSummary(data.summary);
-        setMessages([...newMessages, { 
-          role: 'assistant', 
-          content: isHebrew 
-            ? "תודה! סיימנו את ההערכה. הנה המלצות מותאמות אישית עבור העסק שלך:"
-            : "Thank you! We've completed the assessment. Here are your personalized recommendations:"
-        }]);
+        setStage(data.stage);
+        
+        if (data.stage === 'assessment_complete') {
+          // Assessment is complete, show summary
+          setSummary(data.summary);
+          setMessages([...newMessages, { 
+            role: 'assistant', 
+            content: isHebrew 
+              ? "תודה! סיימנו את ההערכה. הנה המלצות מותאמות אישית עבור העסק שלך:"
+              : "Thank you! We've completed the assessment. Here are your personalized recommendations:"
+          }]);
+        } else if (data.stage === 'contact_collected') {
+          // Contact info collected
+          setMessages([...newMessages, { 
+            role: 'assistant', 
+            content: data.message
+          }]);
+        }
       } else if (data.reply) {
         // Continue conversation
         setMessages([...newMessages, { role: 'assistant', content: data.reply }]);
@@ -87,6 +97,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     setCurrentMessage("");
     setIsCompleted(false);
     setSummary("");
+    setStage('initial');
   };
 
   return (

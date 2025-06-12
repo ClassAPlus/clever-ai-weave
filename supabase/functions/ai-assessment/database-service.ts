@@ -1,6 +1,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { BusinessInfo } from './types.ts';
+import { BusinessInfo, ContactInfo } from './types.ts';
 
 export async function saveAssessment(bizInfo: BusinessInfo) {
   const supabase = createClient(
@@ -23,6 +23,31 @@ export async function saveAssessment(bizInfo: BusinessInfo) {
     console.error('Supabase insert error:', error);
   } else {
     console.log('Assessment saved successfully:', data);
+  }
+
+  return { data, error };
+}
+
+export async function saveContactRequest(contactInfo: ContactInfo, businessName: string) {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  const { data, error } = await supabase
+    .from('contact_submissions')
+    .insert([{
+      first_name: contactInfo.firstName,
+      last_name: contactInfo.lastName,
+      email: contactInfo.email,
+      company: businessName,
+      message: `Contact request from AI assessment. Phone: ${contactInfo.phone || 'Not provided'}`
+    }]);
+
+  if (error) {
+    console.error('Contact submission error:', error);
+  } else {
+    console.log('Contact request saved successfully:', data);
   }
 
   return { data, error };

@@ -16,5 +16,19 @@ export const functions: OpenAIFunction[] = [
       },
       required: ['businessName', 'industry', 'employees', 'painPoints', 'goals']
     }
+  },
+  {
+    name: 'collectContactInfo',
+    description: 'Collects contact information when user wants to be contacted for additional assistance or a quote.',
+    parameters: {
+      type: 'object',
+      properties: {
+        firstName: { type: 'string' },
+        lastName: { type: 'string' },
+        email: { type: 'string' },
+        phone: { type: 'string' }
+      },
+      required: ['firstName', 'lastName', 'email']
+    }
   }
 ];

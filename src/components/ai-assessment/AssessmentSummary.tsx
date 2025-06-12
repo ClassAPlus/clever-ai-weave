@@ -1,14 +1,15 @@
 
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Sparkles, RotateCcw } from "lucide-react";
+import { Sparkles, RotateCcw, Phone } from "lucide-react";
 
 interface AssessmentSummaryProps {
   summary: string;
   onResetAssessment: () => void;
+  stage?: 'assessment_complete' | 'contact_collected';
 }
 
-export const AssessmentSummary = ({ summary, onResetAssessment }: AssessmentSummaryProps) => {
+export const AssessmentSummary = ({ summary, onResetAssessment, stage = 'assessment_complete' }: AssessmentSummaryProps) => {
   const { isHebrew } = useLanguage();
 
   return (
@@ -20,10 +21,18 @@ export const AssessmentSummary = ({ summary, onResetAssessment }: AssessmentSumm
       
       <div className="flex items-center space-x-2 mb-4">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-          <Sparkles className="w-4 h-4 text-white" />
+          {stage === 'contact_collected' ? (
+            <Phone className="w-4 h-4 text-white" />
+          ) : (
+            <Sparkles className="w-4 h-4 text-white" />
+          )}
         </div>
         <h3 className="font-bold text-xl bg-gradient-to-r from-purple-700 to-pink-700 bg-clip-text text-transparent">
-          {isHebrew ? "המלצות מותאמות אישית" : "Your Personalized Recommendations"}
+          {stage === 'contact_collected' ? (
+            isHebrew ? "תודה על פנייתך!" : "Thank You for Your Interest!"
+          ) : (
+            isHebrew ? "המלצות מותאמות אישית" : "Your Personalized Recommendations"
+          )}
         </h3>
       </div>
       

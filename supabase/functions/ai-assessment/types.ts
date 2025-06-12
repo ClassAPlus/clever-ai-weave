@@ -7,6 +7,13 @@ export interface BusinessInfo {
   goals: string;
 }
 
+export interface ContactInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+}
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;

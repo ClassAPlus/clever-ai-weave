@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -81,9 +82,9 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full w-full">
             {/* Header */}
-            <div className="flex-shrink-0 border-b border-gray-100 px-4 py-3 bg-white/95 backdrop-blur-sm">
+            <div className="flex-shrink-0 border-b border-gray-100 px-4 py-3 bg-white/95 backdrop-blur-sm w-full">
               <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
                 {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
               </div>
@@ -93,12 +94,12 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </div>
 
             {/* Chat Content */}
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 w-full">
               <ScrollArea 
-                className="h-full" 
+                className="h-full w-full" 
                 ref={scrollAreaRef}
               >
-                <div className="px-4 py-2">
+                <div className="w-full">
                   {/* Background decoration */}
                   <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
                   
@@ -119,14 +120,16 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
 
             {/* Input */}
             {!isCompleted && (
-              <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3 pb-8">
-                <MessageInput
-                  ref={messageInputRef}
-                  currentMessage={currentMessage}
-                  setCurrentMessage={setCurrentMessage}
-                  onSendMessage={sendMessage}
-                  isLoading={isLoading}
-                />
+              <div className="flex-shrink-0 bg-white border-t border-gray-100 w-full">
+                <div className="w-full max-w-none mx-auto px-4 py-3 pb-8">
+                  <MessageInput
+                    ref={messageInputRef}
+                    currentMessage={currentMessage}
+                    setCurrentMessage={setCurrentMessage}
+                    onSendMessage={sendMessage}
+                    isLoading={isLoading}
+                  />
+                </div>
               </div>
             )}
           </div>

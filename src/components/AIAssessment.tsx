@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -54,7 +53,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`
         ${isMobile 
-          ? 'max-w-[95vw] h-[100vh] max-h-[100vh] p-4 fixed inset-0 m-0 rounded-none' 
+          ? 'max-w-[100vw] max-h-[100vh] h-[100vh] w-[100vw] p-3' 
           : 'max-w-4xl h-[80vh] max-h-[80vh] p-6'
         } 
         overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col

@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -8,6 +9,7 @@ import { MessageInput } from "./ai-assessment/MessageInput";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAssessmentState } from "@/hooks/useAssessmentState";
 import { AssessmentChat } from "./ai-assessment/AssessmentChat";
+import { useKeyboardDetection } from "@/hooks/useKeyboardDetection";
 import { useEffect } from "react";
 
 export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
@@ -34,6 +36,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     resetAssessment
   } = useAssessmentState();
 
+  const keyboardState = useKeyboardDetection(messageInputRef);
+
   const { sendMessage, handleContactRequest } = AssessmentChat({
     messages,
     setMessages,
@@ -50,7 +54,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     messageInputRef
   });
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or keyboard appears
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -60,7 +64,16 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
         }, 100);
       }
     }
-  }, [messages.length]);
+  }, [messages.length, keyboardState.isVisible]);
+
+  // Calculate dynamic heights for mobile layout
+  const inputHeight = 80; // Approximate input container height
+  const headerHeight = 80; // Approximate header height
+  const safeAreaBottom = 20; // Safe area padding
+
+  const mobileContentHeight = isCompleted 
+    ? keyboardState.availableHeight - headerHeight 
+    : keyboardState.availableHeight - headerHeight - inputHeight - safeAreaBottom;
 
   if (isMobile) {
     return (
@@ -68,8 +81,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
         <DialogContent 
           className="fixed inset-0 w-screen h-screen max-w-none max-h-none p-0 m-0 rounded-none border-0 flex flex-col overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
           style={{ 
-            height: '100dvh',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+            height: `${keyboardState.availableHeight}px`,
+            transition: 'height 0.2s ease-in-out'
           }}
           aria-describedby="ai-assessment-description"
         >
@@ -92,10 +105,13 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </p>
           </div>
 
-          {/* Chat Content - fills remaining space above input */}
-          <div className="flex-1 overflow-hidden flex flex-col min-h-0" style={{ paddingBottom: isCompleted ? '0' : '100px' }}>
+          {/* Chat Content - dynamically sized */}
+          <div 
+            className="flex-shrink-0 overflow-hidden"
+            style={{ height: `${mobileContentHeight}px` }}
+          >
             <ScrollArea 
-              className="flex-1" 
+              className="h-full" 
               ref={scrollAreaRef}
             >
               <div className="flex flex-col min-h-full px-4 py-2">
@@ -119,12 +135,17 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </ScrollArea>
           </div>
 
-          {/* Input - fixed at bottom when not completed */}
+          {/* Input - positioned at bottom when not completed */}
           {!isCompleted && (
             <div 
-              className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 z-50"
+              className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3"
               style={{
-                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)'
+                position: 'absolute',
+                bottom: keyboardState.isVisible ? `${keyboardState.height}px` : '0',
+                left: 0,
+                right: 0,
+                transition: 'bottom 0.2s ease-in-out',
+                paddingBottom: `${safeAreaBottom}px`
               }}
             >
               <MessageInput

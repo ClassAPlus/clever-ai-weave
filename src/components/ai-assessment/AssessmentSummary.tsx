@@ -37,7 +37,9 @@ export const AssessmentSummary = ({
           </h3>
         </div>
         
-        <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-6 bg-white/60 p-4 rounded-xl border border-white/50">
+        <div className={`text-sm text-gray-700 whitespace-pre-wrap leading-relaxed mb-6 bg-white/60 p-4 rounded-xl border border-white/50 ${
+          isHebrew ? 'text-right' : 'text-left'
+        }`}>
           {summary}
         </div>
         
@@ -70,12 +72,14 @@ export const AssessmentSummary = ({
                 {isHebrew ? "המלצות מותאמות אישית" : "Your Personalized AI Recommendations"}
               </h3>
               <p className="text-sm text-gray-600 font-medium">
-                {isHebrew ? "מ-LocalEdgeAI במיוחד עבורך" : "Crafted by LocalEdgeAI specifically for you"}
+                {isHebrew ? "מ-לוקל אדג׳ במיוחד עבורך" : "Crafted by LocalEdgeAI specifically for you"}
               </p>
             </div>
           </div>
           
-          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed bg-white/70 backdrop-blur-sm p-5 rounded-xl border border-white/50 shadow-inner">
+          <div className={`prose prose-sm max-w-none text-gray-700 leading-relaxed bg-white/70 backdrop-blur-sm p-5 rounded-xl border border-white/50 shadow-inner ${
+            isHebrew ? 'text-right' : 'text-left'
+          }`}>
             <div className="whitespace-pre-wrap font-medium text-gray-800">
               {summary}
             </div>
@@ -105,9 +109,11 @@ export const AssessmentSummary = ({
               </h4>
             </div>
             
-            <p className="text-gray-600 text-sm leading-relaxed max-w-md mx-auto">
+            <p className={`text-gray-600 text-sm leading-relaxed max-w-md mx-auto ${
+              isHebrew ? 'text-right' : 'text-left'
+            }`}>
               {isHebrew 
-                ? "צוות המומחים של LocalEdgeAI מוכן לעזור לך להטמיע פתרונות AI מותאמים אישית. בואו נדבר!"
+                ? "צוות המומחים של לוקל אדג׳ מוכן לעזור לך להטמיע פתרונות AI מותאמים אישית. בואו נדבר!"
                 : "LocalEdgeAI's expert team is ready to help you implement custom AI solutions. Let's discuss your next steps!"
               }
             </p>

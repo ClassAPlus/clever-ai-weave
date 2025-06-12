@@ -1,5 +1,5 @@
 
-import { openAIApiKey, SUMMARY_SYSTEM_PROMPT } from './config.ts';
+import { openAIApiKey, SUMMARY_SYSTEM_PROMPT, HEBREW_SUMMARY_SYSTEM_PROMPT } from './config.ts';
 import { ChatMessage, BusinessInfo } from './types.ts';
 
 export async function callOpenAI(messages: ChatMessage[], functions: any[]) {
@@ -20,7 +20,25 @@ export async function callOpenAI(messages: ChatMessage[], functions: any[]) {
   return await response.json();
 }
 
-export async function generateSummary(bizInfo: BusinessInfo): Promise<string> {
+export async function generateSummary(bizInfo: BusinessInfo, isHebrew: boolean = false): Promise<string> {
+  const systemPrompt = isHebrew ? HEBREW_SUMMARY_SYSTEM_PROMPT : SUMMARY_SYSTEM_PROMPT;
+  
+  const userContent = isHebrew 
+    ? `אנא צור הצעת לוקל אדג׳ עבור העסק הזה:
+
+עסק: ${bizInfo.businessName}
+תחום: ${bizInfo.industry}
+עובדים: ${bizInfo.employees}
+נקודות כאב: ${bizInfo.painPoints.join(', ')}
+מטרות: ${bizInfo.goals}`
+    : `Please create a LocalEdgeAI proposal for this business:
+
+Business: ${bizInfo.businessName}
+Industry: ${bizInfo.industry}
+Employees: ${bizInfo.employees}
+Pain Points: ${bizInfo.painPoints.join(', ')}
+Goals: ${bizInfo.goals}`;
+
   const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -32,17 +50,11 @@ export async function generateSummary(bizInfo: BusinessInfo): Promise<string> {
       messages: [
         {
           role: 'system',
-          content: SUMMARY_SYSTEM_PROMPT
+          content: systemPrompt
         },
         {
           role: 'user',
-          content: `Please create a LocalEdgeAI proposal for this business:
-
-Business: ${bizInfo.businessName}
-Industry: ${bizInfo.industry}
-Employees: ${bizInfo.employees}
-Pain Points: ${bizInfo.painPoints.join(', ')}
-Goals: ${bizInfo.goals}`
+          content: userContent
         }
       ]
     }),

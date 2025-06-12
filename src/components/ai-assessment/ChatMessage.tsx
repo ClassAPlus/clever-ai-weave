@@ -1,6 +1,7 @@
 
 import { Bot, User } from "lucide-react";
 import { Message } from "./types";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ChatMessageProps {
   message: Message;
@@ -8,6 +9,8 @@ interface ChatMessageProps {
 }
 
 export const ChatMessage = ({ message, index }: ChatMessageProps) => {
+  const { isHebrew } = useLanguage();
+
   return (
     <div
       key={index}
@@ -45,7 +48,9 @@ export const ChatMessage = ({ message, index }: ChatMessageProps) => {
             }`}
           ></div>
           
-          <p className="text-sm leading-relaxed whitespace-pre-wrap font-medium">
+          <p className={`text-sm leading-relaxed whitespace-pre-wrap font-medium ${
+            isHebrew ? 'text-right' : 'text-left'
+          }`}>
             {message.content}
           </p>
         </div>

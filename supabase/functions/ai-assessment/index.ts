@@ -36,7 +36,7 @@ serve(async (req) => {
       // Save bizInfo to Supabase
       await saveAssessment(bizInfo);
 
-      // Generate LocalEdgeAI-focused recommendations
+      // Generate LocalEdgeAI-focused recommendations with correct language
       const summaryText = await generateSummary(bizInfo, isHebrew);
 
       return new Response(JSON.stringify({

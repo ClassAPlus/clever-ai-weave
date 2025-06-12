@@ -51,52 +51,27 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     messageInputRef
   });
 
-  // Handle mobile viewport height and keyboard visibility
+  // Simple mobile keyboard handling
   useEffect(() => {
     if (!isMobile) return;
 
-    const handleResize = () => {
-      // Use visual viewport for better keyboard handling
-      const vh = window.visualViewport?.height || window.innerHeight;
-      document.documentElement.style.setProperty('--vh', `${vh * 0.01}px`);
-    };
-
     const handleFocus = () => {
-      // Delay to ensure keyboard is open
       setTimeout(() => {
         if (messageInputRef.current) {
           messageInputRef.current.scrollIntoView({ 
             behavior: 'smooth', 
-            block: 'end',
-            inline: 'nearest'
+            block: 'center'
           });
         }
       }, 300);
     };
 
-    // Set initial viewport height
-    handleResize();
-
-    // Listen for viewport changes (keyboard open/close)
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
-    } else {
-      window.addEventListener('resize', handleResize);
-    }
-
-    // Listen for input focus to scroll into view
     const inputElement = messageInputRef.current;
     if (inputElement) {
       inputElement.addEventListener('focus', handleFocus);
     }
 
     return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
-      } else {
-        window.removeEventListener('resize', handleResize);
-      }
-      
       if (inputElement) {
         inputElement.removeEventListener('focus', handleFocus);
       }
@@ -107,15 +82,11 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`
         ${isMobile 
-          ? 'max-w-[100vw] w-[100vw] h-[100dvh] max-h-[100dvh] p-3 fixed inset-0 m-0 rounded-none border-0' 
+          ? 'max-w-[100vw] w-[100vw] h-[100vh] max-h-[100vh] p-3 fixed inset-0 m-0 rounded-none border-0' 
           : 'max-w-4xl h-[80vh] max-h-[80vh] p-6'
         } 
         overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col
-      `} 
-      style={isMobile ? { 
-        height: 'calc(var(--vh, 1vh) * 100)',
-        maxHeight: 'calc(var(--vh, 1vh) * 100)'
-      } : undefined}>
+      `}>
         <DialogHeader className="border-b border-gray-100 pb-4 flex-shrink-0">
           <DialogTitle className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center`}>
             {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
@@ -149,8 +120,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
 
           {!isCompleted && (
             <div className={`flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent ${
-              isMobile ? 'pt-2 pb-safe-bottom' : 'pt-4'
-            }`} style={isMobile ? { paddingBottom: 'max(8px, env(safe-area-inset-bottom))' } : undefined}>
+              isMobile ? 'pt-2 pb-4' : 'pt-4'
+            }`}>
               <MessageInput
                 ref={messageInputRef}
                 currentMessage={currentMessage}

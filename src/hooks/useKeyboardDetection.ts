@@ -11,7 +11,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
   const [keyboardState, setKeyboardState] = useState<KeyboardState>({
     isVisible: false,
     height: 0,
-    availableHeight: window.innerHeight
+    availableHeight: window.innerHeight - 60 // Account for mobile toolbar/navbar
   });
 
   useEffect(() => {
@@ -31,9 +31,11 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       const keyboardHeight = window.visualViewport ? Math.max(methodB, methodC) : methodA;
       const isKeyboardVisible = keyboardHeight > 50; // Threshold to avoid false positives
       
+      // Account for mobile toolbar/navbar (typically 60px) and keyboard
+      const toolbarHeight = 60;
       const availableHeight = isKeyboardVisible 
-        ? visualViewportHeight 
-        : currentHeight;
+        ? Math.max(visualViewportHeight - toolbarHeight, 300) // Ensure minimum height
+        : currentHeight - toolbarHeight;
 
       setKeyboardState({
         isVisible: isKeyboardVisible,
@@ -54,7 +56,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
         setKeyboardState({
           isVisible: false,
           height: 0,
-          availableHeight: window.innerHeight
+          availableHeight: window.innerHeight - 60 // Account for toolbar
         });
       }, 150);
     };
@@ -80,6 +82,9 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       inputElement.addEventListener('focus', handleFocus);
       inputElement.addEventListener('blur', handleBlur);
     }
+
+    // Initial calculation
+    updateKeyboardState();
 
     // Cleanup
     return () => {

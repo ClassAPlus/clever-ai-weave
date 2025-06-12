@@ -60,12 +60,29 @@ export const HeroContent = ({ onContactClick, onAIAssessmentClick }: HeroContent
           {/* Animated background on hover */}
           <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           
+          {/* Shine animation */}
+          <div className="absolute inset-0 -top-0 -left-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 animate-[shine_3s_ease-in-out_infinite]"></div>
+          
           <Sparkles className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform duration-200 relative z-10" />
           <span className="relative z-10">
             {isHebrew ? "בוט הערכה חינמית" : "Free AI Assessment Bot"}
           </span>
         </Button>
       </div>
+      
+      <style jsx>{`
+        @keyframes shine {
+          0% {
+            transform: translateX(-100%) skewX(-12deg);
+          }
+          20% {
+            transform: translateX(200%) skewX(-12deg);
+          }
+          100% {
+            transform: translateX(200%) skewX(-12deg);
+          }
+        }
+      `}</style>
     </div>
   );
 };

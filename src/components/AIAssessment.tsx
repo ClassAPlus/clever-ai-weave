@@ -1,5 +1,4 @@
-
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { AIAssessmentProps } from "./ai-assessment/types";
@@ -14,7 +13,7 @@ import { useEffect, useState } from "react";
 export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const { isHebrew } = useLanguage();
   const isMobile = useIsMobile();
-  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   
   const {
     messages,
@@ -52,74 +51,57 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     messageInputRef
   });
 
-  // Enhanced mobile viewport handling
+  // Enhanced mobile viewport and keyboard handling
   useEffect(() => {
     if (!isMobile) return;
 
-    const handleViewportChange = () => {
-      // Use visual viewport API if available
+    const handleKeyboardShow = () => {
       if (window.visualViewport) {
-        setViewportHeight(window.visualViewport.height);
-      } else {
-        setViewportHeight(window.innerHeight);
-      }
-    };
-
-    const handleFocus = () => {
-      // Prevent zoom on input focus
-      const viewport = document.querySelector('meta[name=viewport]');
-      if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-      }
-
-      // Small delay to handle keyboard appearance
-      setTimeout(() => {
-        handleViewportChange();
+        const newKeyboardHeight = window.innerHeight - window.visualViewport.height;
+        setKeyboardHeight(newKeyboardHeight);
         
         // Scroll to bottom when keyboard appears
-        if (scrollAreaRef.current) {
-          const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-          if (scrollElement) {
-            scrollElement.scrollTop = scrollElement.scrollHeight;
+        setTimeout(() => {
+          if (scrollAreaRef.current) {
+            const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+            if (scrollElement) {
+              scrollElement.scrollTop = scrollElement.scrollHeight;
+            }
           }
-        }
-      }, 150);
-    };
-
-    const handleBlur = () => {
-      // Reset viewport meta
-      const viewport = document.querySelector('meta[name=viewport]');
-      if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0');
+        }, 100);
       }
-      
-      setTimeout(() => {
-        setViewportHeight(window.innerHeight);
-      }, 150);
     };
 
-    // Add event listeners
-    const inputElement = messageInputRef.current;
-    if (inputElement) {
-      inputElement.addEventListener('focus', handleFocus);
-      inputElement.addEventListener('blur', handleBlur);
-    }
+    const handleKeyboardHide = () => {
+      setKeyboardHeight(0);
+    };
+
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const newKeyboardHeight = window.innerHeight - window.visualViewport.height;
+        setKeyboardHeight(newKeyboardHeight);
+      }
+    };
 
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('resize', handleResize);
     }
 
-    window.addEventListener('resize', handleViewportChange);
+    // Focus and blur events for better keyboard detection
+    const inputElement = messageInputRef.current;
+    if (inputElement) {
+      inputElement.addEventListener('focus', handleKeyboardShow);
+      inputElement.addEventListener('blur', handleKeyboardHide);
+    }
 
     return () => {
-      if (inputElement) {
-        inputElement.removeEventListener('focus', handleFocus);
-        inputElement.removeEventListener('blur', handleBlur);
-      }
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('resize', handleResize);
       }
-      window.removeEventListener('resize', handleViewportChange);
+      if (inputElement) {
+        inputElement.removeEventListener('focus', handleKeyboardShow);
+        inputElement.removeEventListener('blur', handleKeyboardHide);
+      }
     };
   }, [isMobile, messageInputRef, scrollAreaRef]);
 
@@ -139,17 +121,22 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent 
-          className="fixed inset-0 w-full h-full max-w-none max-h-none p-0 m-0 rounded-none border-0 flex flex-col overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
+          className="fixed inset-0 w-screen h-screen max-w-none max-h-none p-0 m-0 rounded-none border-0 flex flex-col overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
           style={{ 
-            height: '100vh',
-            width: '100vw',
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0
+            height: keyboardHeight > 0 ? `${window.innerHeight - keyboardHeight}px` : '100vh',
+            paddingBottom: keyboardHeight > 0 ? '0px' : 'env(safe-area-inset-bottom, 0px)'
           }}
+          aria-describedby="ai-assessment-description"
         >
+          <DialogHeader className="sr-only">
+            <DialogTitle>
+              {isHebrew ? "הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "Free LocalEdgeAI Assessment"}
+            </DialogTitle>
+            <DialogDescription id="ai-assessment-description">
+              {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
+            </DialogDescription>
+          </DialogHeader>
+
           {/* Header */}
           <div className="flex-shrink-0 border-b border-gray-100 px-4 py-3 bg-white/95 backdrop-blur-sm">
             <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
@@ -192,7 +179,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             <div 
               className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3"
               style={{
-                paddingBottom: 'env(safe-area-inset-bottom, 12px)'
+                transform: keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'none',
+                transition: 'transform 0.2s ease-in-out'
               }}
             >
               <MessageInput
@@ -214,14 +202,15 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="max-w-4xl h-[80vh] max-h-[80vh] p-6 overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
+        aria-describedby="ai-assessment-description"
       >
         <DialogHeader className="border-b border-gray-100 pb-4 flex-shrink-0">
           <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
             {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
           </DialogTitle>
-          <p className="text-center text-gray-600 mt-2">
+          <DialogDescription id="ai-assessment-description" className="text-center text-gray-600 mt-2">
             {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">

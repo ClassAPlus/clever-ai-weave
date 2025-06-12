@@ -82,16 +82,16 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`
         ${isMobile 
-          ? 'w-full h-full max-w-none max-h-none p-3 m-0 rounded-none border-0' 
+          ? 'w-screen h-screen max-w-none max-h-none p-2 m-0 rounded-none border-0 left-0 top-0 translate-x-0 translate-y-0' 
           : 'max-w-4xl h-[80vh] max-h-[80vh] p-6'
         } 
         overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col
       `}>
         <DialogHeader className="border-b border-gray-100 pb-4 flex-shrink-0">
-          <DialogTitle className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center`}>
+          <DialogTitle className={`${isMobile ? 'text-lg' : 'text-3xl'} font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center`}>
             {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
           </DialogTitle>
-          <p className={`text-center text-gray-600 mt-2 ${isMobile ? 'text-sm' : ''}`}>
+          <p className={`text-center text-gray-600 mt-2 ${isMobile ? 'text-xs' : ''}`}>
             {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
           </p>
         </DialogHeader>
@@ -120,7 +120,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
 
           {!isCompleted && (
             <div className={`flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent ${
-              isMobile ? 'pt-2 pb-4' : 'pt-4'
+              isMobile ? 'pt-2 pb-2 px-1' : 'pt-4'
             }`}>
               <MessageInput
                 ref={messageInputRef}

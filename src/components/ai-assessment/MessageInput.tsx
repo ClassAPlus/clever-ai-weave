@@ -36,6 +36,7 @@ export const MessageInput = ({
           placeholder={isHebrew ? "הקלד את התשובה שלך..." : "Type your response..."}
           className="min-h-[70px] max-h-[140px] border-2 border-purple-200 bg-white/90 backdrop-blur-sm focus:border-purple-400 focus:ring-purple-400/20 rounded-xl resize-none shadow-lg transition-all duration-200"
           disabled={isLoading}
+          autoFocus
         />
         
         {/* Subtle glow effect when focused */}

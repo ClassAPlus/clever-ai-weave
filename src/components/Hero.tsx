@@ -4,9 +4,11 @@ import { ContactSheet } from "./ContactSheet";
 import { FloatingNetworkAnimation } from "./FloatingNetworkAnimation";
 import { HeroContent } from "./HeroContent";
 import { HeroFeatures } from "./HeroFeatures";
+import { AIAssessment } from "./AIAssessment";
 
 export const Hero = () => {
   const [showContactSheet, setShowContactSheet] = useState(false);
+  const [showAIAssessment, setShowAIAssessment] = useState(false);
 
   return (
     <>
@@ -15,7 +17,10 @@ export const Hero = () => {
         <FloatingNetworkAnimation />
         
         <div className="container mx-auto max-w-6xl relative z-10">
-          <HeroContent onContactClick={() => setShowContactSheet(true)} />
+          <HeroContent 
+            onContactClick={() => setShowContactSheet(true)}
+            onAIAssessmentClick={() => setShowAIAssessment(true)}
+          />
           <HeroFeatures />
         </div>
       </section>
@@ -23,6 +28,11 @@ export const Hero = () => {
       <ContactSheet 
         open={showContactSheet} 
         onOpenChange={setShowContactSheet}
+      />
+
+      <AIAssessment 
+        open={showAIAssessment} 
+        onOpenChange={setShowAIAssessment}
       />
     </>
   );

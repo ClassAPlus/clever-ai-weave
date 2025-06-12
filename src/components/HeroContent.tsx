@@ -1,6 +1,7 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Zap, Mail } from "lucide-react";
+import { ArrowRight, Zap, Mail, Bot } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,9 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface HeroContentProps {
   onContactClick: () => void;
+  onAIAssessmentClick: () => void;
 }
 
-export const HeroContent = ({ onContactClick }: HeroContentProps) => {
+export const HeroContent = ({ onContactClick, onAIAssessmentClick }: HeroContentProps) => {
   const { isHebrew } = useLanguage();
   const { toast } = useToast();
   const [showEmailInput, setShowEmailInput] = useState(false);
@@ -107,6 +109,16 @@ export const HeroContent = ({ onContactClick }: HeroContentProps) => {
         >
           {isHebrew ? "התחל עכשיו" : "Get Started Now"}
           <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+        </Button>
+        
+        <Button 
+          size="lg" 
+          onClick={onAIAssessmentClick}
+          variant="outline" 
+          className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg group"
+        >
+          <Bot className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+          {isHebrew ? "בוט הערכה חינמית" : "Free AI Assessment Bot"}
         </Button>
         
         {!showEmailInput ? (

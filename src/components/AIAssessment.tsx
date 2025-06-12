@@ -8,12 +8,11 @@ import { MessageInput } from "./ai-assessment/MessageInput";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAssessmentState } from "@/hooks/useAssessmentState";
 import { AssessmentChat } from "./ai-assessment/AssessmentChat";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const { isHebrew } = useLanguage();
   const isMobile = useIsMobile();
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   
   const {
     messages,
@@ -51,60 +50,6 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     messageInputRef
   });
 
-  // Enhanced mobile viewport and keyboard handling
-  useEffect(() => {
-    if (!isMobile) return;
-
-    const handleKeyboardShow = () => {
-      if (window.visualViewport) {
-        const newKeyboardHeight = window.innerHeight - window.visualViewport.height;
-        setKeyboardHeight(newKeyboardHeight);
-        
-        // Scroll to bottom when keyboard appears
-        setTimeout(() => {
-          if (scrollAreaRef.current) {
-            const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-            if (scrollElement) {
-              scrollElement.scrollTop = scrollElement.scrollHeight;
-            }
-          }
-        }, 100);
-      }
-    };
-
-    const handleKeyboardHide = () => {
-      setKeyboardHeight(0);
-    };
-
-    const handleResize = () => {
-      if (window.visualViewport) {
-        const newKeyboardHeight = window.innerHeight - window.visualViewport.height;
-        setKeyboardHeight(newKeyboardHeight);
-      }
-    };
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
-    }
-
-    // Focus and blur events for better keyboard detection
-    const inputElement = messageInputRef.current;
-    if (inputElement) {
-      inputElement.addEventListener('focus', handleKeyboardShow);
-      inputElement.addEventListener('blur', handleKeyboardHide);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
-      }
-      if (inputElement) {
-        inputElement.removeEventListener('focus', handleKeyboardShow);
-        inputElement.removeEventListener('blur', handleKeyboardHide);
-      }
-    };
-  }, [isMobile, messageInputRef, scrollAreaRef]);
-
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -123,8 +68,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
         <DialogContent 
           className="fixed inset-0 w-screen h-screen max-w-none max-h-none p-0 m-0 rounded-none border-0 flex flex-col overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
           style={{ 
-            height: keyboardHeight > 0 ? `${window.innerHeight - keyboardHeight}px` : '100vh',
-            paddingBottom: keyboardHeight > 0 ? '0px' : 'env(safe-area-inset-bottom, 0px)'
+            height: '100dvh',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
           }}
           aria-describedby="ai-assessment-description"
         >
@@ -147,8 +92,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </p>
           </div>
 
-          {/* Chat Content - fills remaining space */}
-          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          {/* Chat Content - fills remaining space above input */}
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0" style={{ paddingBottom: isCompleted ? '0' : '100px' }}>
             <ScrollArea 
               className="flex-1" 
               ref={scrollAreaRef}
@@ -174,13 +119,12 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </ScrollArea>
           </div>
 
-          {/* Input - fixed at bottom */}
+          {/* Input - fixed at bottom when not completed */}
           {!isCompleted && (
             <div 
-              className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3"
+              className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3 z-50"
               style={{
-                transform: keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'none',
-                transition: 'transform 0.2s ease-in-out'
+                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)'
               }}
             >
               <MessageInput

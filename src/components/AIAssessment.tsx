@@ -41,7 +41,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     }
   }, [messages, isLoading]);
 
-  // Focus input field after bot responses
+  // Focus input field after bot responses and when dialog opens
   useEffect(() => {
     if (!isLoading && !isCompleted && messageInputRef.current) {
       // Small delay to ensure the message has been rendered
@@ -49,7 +49,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
         messageInputRef.current?.focus();
       }, 100);
     }
-  }, [messages, isLoading, isCompleted]);
+  }, [messages, isLoading, isCompleted, open]);
 
   const sendMessage = async () => {
     if (!currentMessage.trim() || isLoading) return;

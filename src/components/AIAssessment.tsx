@@ -122,7 +122,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
         } 
         overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col
       `} 
-      style={isMobile ? { height: '100vh', height: '100dvh' } : undefined}>
+      style={isMobile ? { height: '100dvh' } : undefined}>
         <DialogHeader className={`border-b border-gray-100 pb-4 flex-shrink-0 ${isMobile ? 'px-4 pt-4' : ''}`}>
           <DialogTitle className={`${isMobile ? 'text-lg' : 'text-3xl'} font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center`}>
             {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}

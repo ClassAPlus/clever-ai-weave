@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, SYSTEM_PROMPT } from './config.ts';
@@ -39,7 +40,8 @@ serve(async (req) => {
         bizInfo,
         summary: summaryText,
         completed: true,
-        stage: 'assessment_complete'
+        stage: 'assessment_complete',
+        message: `Thank you, ${bizInfo.userName.split(' ')[0]}! Here are your personalized LocalEdgeAI recommendations: ${summaryText}`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

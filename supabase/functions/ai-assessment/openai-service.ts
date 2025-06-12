@@ -13,7 +13,8 @@ export async function callOpenAI(messages: ChatMessage[], functions: any[]) {
       model: 'gpt-4o-mini',
       messages,
       functions,
-      function_call: 'auto'
+      function_call: 'auto',
+      temperature: 0.7
     }),
   });
 
@@ -56,7 +57,8 @@ Goals: ${bizInfo.goals}`;
           role: 'user',
           content: userContent
         }
-      ]
+      ],
+      temperature: 0.7
     }),
   });
 

@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, SYSTEM_PROMPT, HEBREW_SYSTEM_PROMPT } from './config.ts';
@@ -19,6 +20,36 @@ serve(async (req) => {
 
     const isHebrew = language === 'hebrew';
     const systemPrompt = isHebrew ? HEBREW_SYSTEM_PROMPT : SYSTEM_PROMPT;
+
+    // Check if we have enough information to extract business info manually
+    const hasEnoughInfo = checkForCompleteBusinessInfo(history);
+    
+    if (hasEnoughInfo && !hasAlreadyCollectedInfo(history)) {
+      console.log('Detected complete business info, extracting manually...');
+      const bizInfo = extractBusinessInfoFromHistory(history);
+      
+      if (bizInfo) {
+        console.log('Extracted business info:', bizInfo);
+        
+        // Save bizInfo to Supabase
+        await saveAssessment(bizInfo);
+
+        // Generate LocalEdgeAI-focused recommendations with correct language
+        const summaryText = await generateSummary(bizInfo, isHebrew);
+
+        return new Response(JSON.stringify({
+          bizInfo,
+          summary: summaryText,
+          completed: true,
+          stage: 'assessment_complete',
+          message: isHebrew 
+            ? `תודה, ${bizInfo.userName.split(' ')[0]}! הנה המלצות לוקל אדג׳ מותאמות אישית עבורך.`
+            : `Thank you, ${bizInfo.userName.split(' ')[0]}! Here are your personalized LocalEdgeAI recommendations.`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     const completion = await callOpenAI([
       { role: 'system', content: systemPrompt },
@@ -45,8 +76,8 @@ serve(async (req) => {
         completed: true,
         stage: 'assessment_complete',
         message: isHebrew 
-          ? `תודה, ${bizInfo.userName.split(' ')[0]}! הנה המלצות לוקל אדג׳ מותאמות אישית עבורך: ${summaryText}`
-          : `Thank you, ${bizInfo.userName.split(' ')[0]}! Here are your personalized LocalEdgeAI recommendations: ${summaryText}`
+          ? `תודה, ${bizInfo.userName.split(' ')[0]}! הנה המלצות לוקל אדג׳ מותאמות אישית עבורך.`
+          : `Thank you, ${bizInfo.userName.split(' ')[0]}! Here are your personalized LocalEdgeAI recommendations.`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -94,6 +125,121 @@ serve(async (req) => {
     });
   }
 });
+
+function checkForCompleteBusinessInfo(history: any[]): boolean {
+  const conversation = history.map(msg => msg.content.toLowerCase()).join(' ');
+  
+  // Check if we have collected all required information
+  const hasName = history.some(msg => 
+    msg.role === 'assistant' && 
+    (msg.content.toLowerCase().includes('name') && !msg.content.toLowerCase().includes('business'))
+  );
+  
+  const hasBusinessName = history.some(msg => 
+    msg.role === 'assistant' && 
+    msg.content.toLowerCase().includes('business') && 
+    msg.content.toLowerCase().includes('name')
+  );
+  
+  const hasIndustry = history.some(msg => 
+    msg.role === 'assistant' && 
+    msg.content.toLowerCase().includes('industry')
+  );
+  
+  const hasEmployees = history.some(msg => 
+    msg.role === 'assistant' && 
+    msg.content.toLowerCase().includes('employees')
+  );
+  
+  const hasPainPoints = history.some(msg => 
+    msg.role === 'assistant' && 
+    msg.content.toLowerCase().includes('pain points')
+  );
+  
+  const hasGoals = history.some(msg => 
+    msg.role === 'assistant' && 
+    msg.content.toLowerCase().includes('goals')
+  );
+  
+  return hasName && hasBusinessName && hasIndustry && hasEmployees && hasPainPoints && hasGoals;
+}
+
+function hasAlreadyCollectedInfo(history: any[]): boolean {
+  return history.some(msg => 
+    msg.role === 'assistant' && 
+    msg.content.includes('personalized LocalEdgeAI recommendations')
+  );
+}
+
+function extractBusinessInfoFromHistory(history: any[]): BusinessInfo | null {
+  let userName = 'Unknown User';
+  let businessName = 'Unknown Business';
+  let industry = 'Unknown Industry';
+  let employees = '1';
+  let painPoints: string[] = ['Unknown'];
+  let goals = 'Unknown Goals';
+  
+  console.log('Extracting business info from history:', history);
+  
+  // Look through conversation history to extract information
+  for (let i = 0; i < history.length; i++) {
+    const message = history[i];
+    if (message.role === 'user' && message.content) {
+      const content = message.content.trim();
+      
+      // Check previous assistant message for context
+      if (i > 0) {
+        const prevMessage = history[i - 1];
+        if (prevMessage.role === 'assistant' && prevMessage.content) {
+          const prevContent = prevMessage.content.toLowerCase();
+          
+          // Look for different types of questions
+          if (prevContent.includes('name') && !prevContent.includes('business')) {
+            userName = content;
+            console.log('Found user name:', userName);
+          }
+          else if (prevContent.includes('business') && prevContent.includes('name')) {
+            businessName = content;
+            console.log('Found business name:', businessName);
+          }
+          else if (prevContent.includes('industry')) {
+            industry = content;
+            console.log('Found industry:', industry);
+          }
+          else if (prevContent.includes('employees')) {
+            employees = content;
+            console.log('Found employees:', employees);
+          }
+          else if (prevContent.includes('pain points')) {
+            painPoints = [content];
+            console.log('Found pain points:', painPoints);
+          }
+          else if (prevContent.includes('goals')) {
+            goals = content;
+            console.log('Found goals:', goals);
+          }
+        }
+      }
+    }
+  }
+  
+  // Only return if we have meaningful data
+  if (userName !== 'Unknown User' && businessName !== 'Unknown Business') {
+    const bizInfo: BusinessInfo = {
+      userName,
+      businessName,
+      industry,
+      employees,
+      painPoints,
+      goals
+    };
+    
+    console.log('Extracted complete business info:', bizInfo);
+    return bizInfo;
+  }
+  
+  return null;
+}
 
 function extractBusinessAndUserInfo(history: any[]): { businessName: string, userName: string } {
   let businessName = 'Unknown Business';

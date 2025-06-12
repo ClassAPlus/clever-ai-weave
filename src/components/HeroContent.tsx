@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Bot, Sparkles } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,8 +16,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     {
       role: 'assistant',
       content: isHebrew 
-        ? "שלום! אני כאן כדי לעזור לך לקבל הערכת AI מותאמת אישית מ-LocalEdgeAI. בואו נתחיל - איך קוראים לך?"
-        : "Hello! I'm here to help you get a personalized AI assessment from LocalEdgeAI. Let's start - what's your name?"
+        ? "שלום! אני טרוויס, מומחה הערכות AI מ-LocalEdgeAI. אני כאן כדי לעזור לך לקבל הערכת AI מותאמת אישית. בואו נתחיל - איך קוראים לך?"
+        : "Hello! I'm Travis, an AI assessment specialist from LocalEdgeAI. I'm here to help you get a personalized AI assessment. Let's start - what's your name?"
     }
   ]);
   const [currentMessage, setCurrentMessage] = useState("");
@@ -92,8 +91,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     setMessages([{
       role: 'assistant',
       content: isHebrew 
-        ? "שלום! אני כאן כדי לעזור לך לקבל הערכת AI מותאמת אישית מ-LocalEdgeAI. בואו נתחיל - איך קוראים לך?"
-        : "Hello! I'm here to help you get a personalized AI assessment from LocalEdgeAI. Let's start - what's your name?"
+        ? "שלום! אני טרוויס, מומחה הערכות AI מ-LocalEdgeAI. אני כאן כדי לעזור לך לקבל הערכת AI מותאמת אישית. בואו נתחיל - איך קוראים לך?"
+        : "Hello! I'm Travis, an AI assessment specialist from LocalEdgeAI. I'm here to help you get a personalized AI assessment. Let's start - what's your name?"
     }]);
     setCurrentMessage("");
     setIsCompleted(false);

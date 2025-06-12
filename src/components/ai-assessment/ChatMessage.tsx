@@ -2,6 +2,7 @@
 import { Bot, User } from "lucide-react";
 import { Message } from "./types";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatMessageProps {
   message: Message;
@@ -10,6 +11,7 @@ interface ChatMessageProps {
 
 export const ChatMessage = ({ message, index }: ChatMessageProps) => {
   const { isHebrew } = useLanguage();
+  const isMobile = useIsMobile();
 
   return (
     <div
@@ -17,7 +19,9 @@ export const ChatMessage = ({ message, index }: ChatMessageProps) => {
       className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
     >
       <div
-        className={`flex items-start space-x-3 max-w-[85%] ${
+        className={`flex items-start space-x-3 ${
+          isMobile ? 'max-w-[95%]' : 'max-w-[85%]'
+        } ${
           message.role === 'user'
             ? 'flex-row-reverse space-x-reverse'
             : 'flex-row'

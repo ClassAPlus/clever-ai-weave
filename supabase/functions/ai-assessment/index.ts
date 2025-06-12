@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -24,7 +23,6 @@ CONVERSATION FLOW:
   • businessName
   • industry  
   • employees
-  • revenueRange
   • painPoints (up to 3 items)
   • goals
 - When you have all fields, call the function "collectBusinessInfo" with the arguments as JSON
@@ -47,11 +45,10 @@ const functions = [
         businessName: { type: 'string' },
         industry: { type: 'string' },
         employees: { type: 'integer' },
-        revenueRange: { type: 'string' },
         painPoints: { type: 'array', items: { type: 'string' } },
         goals: { type: 'string' }
       },
-      required: ['businessName', 'industry', 'employees', 'revenueRange', 'painPoints', 'goals']
+      required: ['businessName', 'industry', 'employees', 'painPoints', 'goals']
     }
   }
 ];
@@ -99,14 +96,14 @@ serve(async (req) => {
       const bizInfo = JSON.parse(message.function_call.arguments);
       console.log('Collected business info:', bizInfo);
 
-      // Save bizInfo to Supabase
+      // Save bizInfo to Supabase (without revenue_range)
       const { data, error } = await supabase
         .from('assessments')
         .insert([{
           business_name: bizInfo.businessName,
           industry: bizInfo.industry,
           employees: bizInfo.employees,
-          revenue_range: bizInfo.revenueRange,
+          revenue_range: 'Not collected', // Default value since column is required
           pain_points: bizInfo.painPoints,
           goals: bizInfo.goals
         }]);
@@ -163,6 +160,8 @@ How LocalEdgeAI's cost-effective approach will save them money
 NEXT STEPS
 Clear call-to-action to work with LocalEdgeAI
 
+IMPORTANT: End your response by asking: "Would you like us to contact you for additional assistance or to provide a personalized quote for implementing these AI solutions?"
+
 Be specific, actionable, and emphasize LocalEdgeAI's expertise in making AI simple, fast, and affordable. Position LocalEdgeAI as their ideal AI partner.`
             },
             {
@@ -172,7 +171,6 @@ Be specific, actionable, and emphasize LocalEdgeAI's expertise in making AI simp
 Business: ${bizInfo.businessName}
 Industry: ${bizInfo.industry}
 Employees: ${bizInfo.employees}
-Revenue Range: ${bizInfo.revenueRange}
 Pain Points: ${bizInfo.painPoints.join(', ')}
 Goals: ${bizInfo.goals}`
             }

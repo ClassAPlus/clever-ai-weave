@@ -1,5 +1,6 @@
 
 export interface BusinessInfo {
+  userName: string;
   businessName: string;
   industry: string;
   employees: number;

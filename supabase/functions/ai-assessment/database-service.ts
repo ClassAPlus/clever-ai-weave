@@ -28,7 +28,7 @@ export async function saveAssessment(bizInfo: BusinessInfo) {
   return { data, error };
 }
 
-export async function saveContactRequest(contactInfo: ContactInfo, businessName: string) {
+export async function saveContactRequest(contactInfo: ContactInfo, businessName: string, userName: string) {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -41,7 +41,7 @@ export async function saveContactRequest(contactInfo: ContactInfo, businessName:
       last_name: contactInfo.lastName,
       email: contactInfo.email,
       company: businessName,
-      message: `Contact request from AI assessment. Phone: ${contactInfo.phone || 'Not provided'}`
+      message: `Contact request from AI assessment. User: ${userName}. Phone: ${contactInfo.phone || 'Not provided'}`
     }]);
 
   if (error) {

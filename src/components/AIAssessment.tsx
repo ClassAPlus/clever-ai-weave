@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -16,8 +17,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     {
       role: 'assistant',
       content: isHebrew 
-        ? "שלום! אני כאן כדי לעזור לך לקבל הערכת AI מותאמת אישית לעסק שלך. בואו נתחיל - איך קוראים לעסק שלך?"
-        : "Hello! I'm here to help you get a personalized AI assessment for your business. Let's start - what's your business name?"
+        ? "שלום! אני כאן כדי לעזור לך לקבל הערכת AI מותאמת אישית מ-LocalEdgeAI. בואו נתחיל - איך קוראים לך?"
+        : "Hello! I'm here to help you get a personalized AI assessment from LocalEdgeAI. Let's start - what's your name?"
     }
   ]);
   const [currentMessage, setCurrentMessage] = useState("");
@@ -58,8 +59,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
           setMessages([...newMessages, { 
             role: 'assistant', 
             content: isHebrew 
-              ? "תודה! סיימנו את ההערכה. הנה המלצות מותאמות אישית עבור העסק שלך:"
-              : "Thank you! We've completed the assessment. Here are your personalized recommendations:"
+              ? "תודה! סיימנו את ההערכה. הנה המלצות LocalEdgeAI מותאמות אישית עבור העסק שלך:"
+              : "Thank you! We've completed the assessment. Here are your personalized LocalEdgeAI recommendations:"
           }]);
         } else if (data.stage === 'contact_collected') {
           // Contact info collected
@@ -91,8 +92,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     setMessages([{
       role: 'assistant',
       content: isHebrew 
-        ? "שלום! אני כאן כדי לעזור לך לקבל הערכת AI מותאמת אישית לעסק שלך. בואו נתחיל - איך קוראים לעסק שלך?"
-        : "Hello! I'm here to help you get a personalized AI assessment for your business. Let's start - what's your business name?"
+        ? "שלום! אני כאן כדי לעזור לך לקבל הערכת AI מותאמת אישית מ-LocalEdgeAI. בואו נתחיל - איך קוראים לך?"
+        : "Hello! I'm here to help you get a personalized AI assessment from LocalEdgeAI. Let's start - what's your name?"
     }]);
     setCurrentMessage("");
     setIsCompleted(false);
@@ -105,10 +106,10 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30">
         <DialogHeader className="border-b border-gray-100 pb-4">
           <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
-            {isHebrew ? "🤖 הערכת AI חינמית של 30 דקות" : "🤖 Free 30-Minute AI Assessment"}
+            {isHebrew ? "🤖 הערכת AI חינמית של LocalEdgeAI" : "🤖 Free LocalEdgeAI Assessment"}
           </DialogTitle>
           <p className="text-center text-gray-600 mt-2">
-            {isHebrew ? "גלה איך AI יכול לשדרג את העסק שלך" : "Discover how AI can transform your business"}
+            {isHebrew ? "גלה איך LocalEdgeAI יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
           </p>
         </DialogHeader>
 

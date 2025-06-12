@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders, SYSTEM_PROMPT } from './config.ts';
@@ -33,7 +32,7 @@ serve(async (req) => {
       // Save bizInfo to Supabase
       await saveAssessment(bizInfo);
 
-      // Generate LocalEdgeAI-specific recommendations
+      // Generate LocalEdgeAI-focused recommendations
       const summaryText = await generateSummary(bizInfo);
 
       return new Response(JSON.stringify({
@@ -51,17 +50,17 @@ serve(async (req) => {
       const contactInfo: ContactInfo = JSON.parse(message.function_call.arguments);
       console.log('Collected contact info:', contactInfo);
 
-      // Get business name from previous messages
-      const businessName = extractBusinessNameFromHistory(history);
+      // Get business name and user name from previous messages
+      const { businessName, userName } = extractBusinessAndUserInfo(history);
       
       // Save contact request to Supabase
-      await saveContactRequest(contactInfo, businessName);
+      await saveContactRequest(contactInfo, businessName, userName);
 
       return new Response(JSON.stringify({
         contactInfo,
         completed: true,
         stage: 'contact_collected',
-        message: `Thank you, ${contactInfo.firstName}! We've received your contact information and will reach out to you within 24 hours to discuss how LocalEdgeAI can help transform your business with AI solutions.`
+        message: `Thank you, ${contactInfo.firstName}! We've received your contact information and LocalEdgeAI will reach out to you within 24 hours to discuss how we can help transform your business with our AI solutions.`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -87,16 +86,29 @@ serve(async (req) => {
   }
 });
 
-function extractBusinessNameFromHistory(history: any[]): string {
-  // Look for business name in the conversation history
-  for (const message of history) {
-    if (message.content && typeof message.content === 'string') {
-      // Simple extraction - in a real implementation, this could be more sophisticated
-      const businessMatch = message.content.match(/business.*?(?:name|called).*?is\s+([^.!?]+)/i);
-      if (businessMatch) {
-        return businessMatch[1].trim();
+function extractBusinessAndUserInfo(history: any[]): { businessName: string, userName: string } {
+  let businessName = 'Unknown Business';
+  let userName = 'Unknown User';
+  
+  // Look through conversation history to extract business and user names
+  for (let i = 0; i < history.length; i++) {
+    const message = history[i];
+    if (message.role === 'user' && message.content) {
+      const content = message.content.toLowerCase();
+      
+      // Try to identify business name from context
+      if (i > 0) {
+        const prevMessage = history[i - 1];
+        if (prevMessage.role === 'assistant' && prevMessage.content) {
+          if (prevMessage.content.toLowerCase().includes('business name')) {
+            businessName = message.content.trim();
+          } else if (prevMessage.content.toLowerCase().includes('name') && !prevMessage.content.toLowerCase().includes('business')) {
+            userName = message.content.trim();
+          }
+        }
       }
     }
   }
-  return 'Unknown Business';
+  
+  return { businessName, userName };
 }

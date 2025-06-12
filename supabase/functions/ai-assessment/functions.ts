@@ -4,22 +4,23 @@ import { OpenAIFunction } from './types.ts';
 export const functions: OpenAIFunction[] = [
   {
     name: 'collectBusinessInfo',
-    description: 'Collects structured business assessment fields from the user for LocalEdgeAI recommendations.',
+    description: 'Collects structured business assessment fields including user name from the user for LocalEdgeAI recommendations.',
     parameters: {
       type: 'object',
       properties: {
+        userName: { type: 'string' },
         businessName: { type: 'string' },
         industry: { type: 'string' },
         employees: { type: 'integer' },
         painPoints: { type: 'array', items: { type: 'string' } },
         goals: { type: 'string' }
       },
-      required: ['businessName', 'industry', 'employees', 'painPoints', 'goals']
+      required: ['userName', 'businessName', 'industry', 'employees', 'painPoints', 'goals']
     }
   },
   {
     name: 'collectContactInfo',
-    description: 'Collects contact information when user wants to be contacted for additional assistance or a quote.',
+    description: 'Collects contact information when user wants LocalEdgeAI to contact them for additional assistance or a quote.',
     parameters: {
       type: 'object',
       properties: {

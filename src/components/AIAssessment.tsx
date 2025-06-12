@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -66,23 +65,13 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     }
   }, [messages.length, keyboardState.isVisible]);
 
-  // Calculate dynamic heights for mobile layout
-  const inputHeight = 80; // Approximate input container height
-  const headerHeight = 80; // Approximate header height
-  const safeAreaBottom = 20; // Safe area padding
-
-  const mobileContentHeight = isCompleted 
-    ? keyboardState.availableHeight - headerHeight 
-    : keyboardState.availableHeight - headerHeight - inputHeight - safeAreaBottom;
-
   if (isMobile) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent 
           className="fixed inset-0 w-screen h-screen max-w-none max-h-none p-0 m-0 rounded-none border-0 flex flex-col overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
           style={{ 
-            height: `${keyboardState.availableHeight}px`,
-            transition: 'height 0.2s ease-in-out'
+            height: '100dvh'
           }}
           aria-describedby="ai-assessment-description"
         >
@@ -105,13 +94,10 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </p>
           </div>
 
-          {/* Chat Content - dynamically sized */}
-          <div 
-            className="flex-shrink-0 overflow-hidden"
-            style={{ height: `${mobileContentHeight}px` }}
-          >
+          {/* Chat Content - takes remaining space */}
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
             <ScrollArea 
-              className="h-full" 
+              className="flex-1" 
               ref={scrollAreaRef}
             >
               <div className="flex flex-col min-h-full px-4 py-2">
@@ -133,30 +119,20 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
                 )}
               </div>
             </ScrollArea>
-          </div>
 
-          {/* Input - positioned at bottom when not completed */}
-          {!isCompleted && (
-            <div 
-              className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3"
-              style={{
-                position: 'absolute',
-                bottom: keyboardState.isVisible ? `${keyboardState.height}px` : '0',
-                left: 0,
-                right: 0,
-                transition: 'bottom 0.2s ease-in-out',
-                paddingBottom: `${safeAreaBottom}px`
-              }}
-            >
-              <MessageInput
-                ref={messageInputRef}
-                currentMessage={currentMessage}
-                setCurrentMessage={setCurrentMessage}
-                onSendMessage={sendMessage}
-                isLoading={isLoading}
-              />
-            </div>
-          )}
+            {/* Input - fixed at bottom of dialog */}
+            {!isCompleted && (
+              <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3 pb-8">
+                <MessageInput
+                  ref={messageInputRef}
+                  currentMessage={currentMessage}
+                  setCurrentMessage={setCurrentMessage}
+                  onSendMessage={sendMessage}
+                  isLoading={isLoading}
+                />
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     );

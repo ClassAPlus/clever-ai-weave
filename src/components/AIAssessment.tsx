@@ -82,7 +82,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`
         ${isMobile 
-          ? 'max-w-[100vw] w-[100vw] h-[100vh] max-h-[100vh] p-3 fixed inset-0 m-0 rounded-none border-0' 
+          ? 'w-full h-full max-w-none max-h-none p-3 m-0 rounded-none border-0' 
           : 'max-w-4xl h-[80vh] max-h-[80vh] p-6'
         } 
         overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col

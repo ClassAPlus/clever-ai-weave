@@ -1,5 +1,6 @@
 
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Sparkles, RotateCcw, Phone, ArrowRight, Users } from "lucide-react";
 
@@ -52,8 +53,8 @@ export const AssessmentSummary = ({
   }
 
   return (
-    <div className="mb-4 space-y-4 animate-fade-in">
-      {/* Stylish Recommendations Display */}
+    <div className="mb-4 space-y-6 animate-fade-in">
+      {/* Section 1: Stylish Recommendations Display */}
       <div className="p-6 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 rounded-2xl border border-purple-200/50 shadow-lg backdrop-blur-sm relative overflow-hidden">
         {/* Decorative background elements */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-100/30 to-transparent rounded-full -translate-y-8 translate-x-8"></div>
@@ -74,7 +75,7 @@ export const AssessmentSummary = ({
             </div>
           </div>
           
-          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed mb-6 bg-white/70 backdrop-blur-sm p-5 rounded-xl border border-white/50 shadow-inner">
+          <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed bg-white/70 backdrop-blur-sm p-5 rounded-xl border border-white/50 shadow-inner">
             <div className="whitespace-pre-wrap font-medium text-gray-800">
               {summary}
             </div>
@@ -82,12 +83,23 @@ export const AssessmentSummary = ({
         </div>
       </div>
 
-      {/* Engaging Contact Request Button */}
+      {/* Visual Separator */}
+      <div className="flex items-center justify-center py-2">
+        <Separator className="flex-1 bg-gradient-to-r from-transparent via-purple-200 to-transparent" />
+        <div className="px-4">
+          <div className="w-2 h-2 rounded-full bg-purple-300"></div>
+        </div>
+        <Separator className="flex-1 bg-gradient-to-r from-purple-200 via-purple-200 to-transparent" />
+      </div>
+
+      {/* Section 2: Engaging Contact Request Button */}
       {showContactButton && (
-        <div className="p-6 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl border border-blue-200/50 shadow-lg">
+        <div className="p-6 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl border border-blue-200/50 shadow-lg transform transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center space-x-2 mb-3">
-              <Users className="w-6 h-6 text-blue-600" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
+                <Users className="w-4 h-4 text-white" />
+              </div>
               <h4 className="text-lg font-bold text-gray-800">
                 {isHebrew ? "מוכן לשדרג את העסק שלך?" : "Ready to Transform Your Business?"}
               </h4>
@@ -112,12 +124,21 @@ export const AssessmentSummary = ({
         </div>
       )}
 
-      {/* Reset Button */}
-      <div className="text-center">
+      {/* Visual Separator */}
+      <div className="flex items-center justify-center py-2">
+        <Separator className="flex-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+        <div className="px-4">
+          <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+        </div>
+        <Separator className="flex-1 bg-gradient-to-r from-gray-200 via-gray-200 to-transparent" />
+      </div>
+
+      {/* Section 3: Reset Action Button */}
+      <div className="text-center bg-white/50 backdrop-blur-sm p-4 rounded-xl border border-gray-100 shadow-sm">
         <Button
           onClick={onResetAssessment}
           variant="outline"
-          className="border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300 group"
+          className="border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all duration-300 group bg-white/80"
         >
           <RotateCcw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-300" />
           {isHebrew ? "התחל הערכה חדשה" : "Start New Assessment"}

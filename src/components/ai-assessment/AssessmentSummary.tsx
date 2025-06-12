@@ -7,7 +7,7 @@ interface AssessmentSummaryProps {
   summary: string;
   onResetAssessment: () => void;
   onRequestContact?: () => void;
-  stage?: 'assessment_complete' | 'contact_collected';
+  stage?: 'initial' | 'assessment_complete' | 'contact_collected';
   showContactButton?: boolean;
 }
 

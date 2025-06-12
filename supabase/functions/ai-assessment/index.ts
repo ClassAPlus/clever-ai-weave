@@ -1,7 +1,6 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders, SYSTEM_PROMPT } from './config.ts';
+import { corsHeaders, SYSTEM_PROMPT, HEBREW_SYSTEM_PROMPT } from './config.ts';
 import { functions } from './functions.ts';
 import { callOpenAI, generateSummary } from './openai-service.ts';
 import { saveAssessment, saveContactRequest } from './database-service.ts';
@@ -14,11 +13,15 @@ serve(async (req) => {
   }
 
   try {
-    const { history } = await req.json();
+    const { history, language } = await req.json();
     console.log('Received chat history:', history);
+    console.log('Language:', language);
+
+    const isHebrew = language === 'hebrew';
+    const systemPrompt = isHebrew ? HEBREW_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
     const completion = await callOpenAI([
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: systemPrompt },
       ...history
     ], functions);
 
@@ -34,14 +37,16 @@ serve(async (req) => {
       await saveAssessment(bizInfo);
 
       // Generate LocalEdgeAI-focused recommendations
-      const summaryText = await generateSummary(bizInfo);
+      const summaryText = await generateSummary(bizInfo, isHebrew);
 
       return new Response(JSON.stringify({
         bizInfo,
         summary: summaryText,
         completed: true,
         stage: 'assessment_complete',
-        message: `Thank you, ${bizInfo.userName.split(' ')[0]}! Here are your personalized LocalEdgeAI recommendations: ${summaryText}`
+        message: isHebrew 
+          ? `תודה, ${bizInfo.userName.split(' ')[0]}! הנה המלצות לוקל אדג׳ מותאמות אישית עבורך: ${summaryText}`
+          : `Thank you, ${bizInfo.userName.split(' ')[0]}! Here are your personalized LocalEdgeAI recommendations: ${summaryText}`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -62,7 +67,9 @@ serve(async (req) => {
         contactInfo,
         completed: true,
         stage: 'contact_collected',
-        message: `Thank you, ${contactInfo.firstName}! We've received your contact information and LocalEdgeAI will reach out to you within 24 hours to discuss how we can help transform your business with our AI solutions.`
+        message: isHebrew
+          ? `תודה, ${contactInfo.firstName}! קיבלנו את פרטי הקשר שלך ולוקל אדג׳ ייצור איתך קשר תוך 24 שעות כדי לדון איך אנחנו יכולים לעזור לשנות את העסק שלך עם פתרונות הבינה המלאכותית שלנו.`
+          : `Thank you, ${contactInfo.firstName}! We've received your contact information and LocalEdgeAI will reach out to you within 24 hours to discuss how we can help transform your business with our AI solutions.`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

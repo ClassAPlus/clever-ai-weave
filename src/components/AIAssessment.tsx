@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,7 +22,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     {
       role: 'assistant',
       content: isHebrew 
-        ? "שלום! אני טרוויס, מומחה הערכות AI מ-LocalEdgeAI. אני כאן כדי לעזור לך לקבל הערכת AI מותאמת אישית. בואו נתחיל - איך קוראים לך?"
+        ? "שלום! אני טרוויס, מומחה הערכות בינה מלאכותית מלוקל אדג׳. אני כאן כדי לעזור לך לקבל הערכת בינה מלאכותית מותאמת אישית. בואו נתחיל - איך קוראים לך?"
         : "Hello! I'm Travis, an AI assessment specialist from LocalEdgeAI. I'm here to help you get a personalized AI assessment. Let's start - what's your name?"
     }
   ]);
@@ -71,7 +72,8 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     try {
       const { data, error } = await supabase.functions.invoke('ai-assessment', {
         body: {
-          history: newMessages
+          history: newMessages,
+          language: isHebrew ? 'hebrew' : 'english'
         }
       });
 
@@ -90,7 +92,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
           setMessages([...newMessages, { 
             role: 'assistant', 
             content: isHebrew 
-              ? "תודה! סיימנו את ההערכה. הנה המלצות LocalEdgeAI מותאמות אישית עבור העסק שלך:"
+              ? "תודה! סיימנו את ההערכה. הנה המלצות לוקל אדג׳ מותאמות אישית עבור העסק שלך:"
               : "Thank you! We've completed the assessment. Here are your personalized LocalEdgeAI recommendations:"
           }]);
         } else if (data.stage === 'contact_collected') {
@@ -123,7 +125,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const handleContactRequest = () => {
     // Add a message to start collecting contact information
     const contactMessage = isHebrew 
-      ? "נהדר! אשמח לעזור לך עם פתרונות AI מותאמים אישית. כדי שהצוות שלנו יוכל ליצור איתך קשר, אני צריך כמה פרטים. מה השם הפרטי והמשפחה שלך?"
+      ? "נהדר! אשמח לעזור לך עם פתרונות בינה מלאכותית מותאמים אישית. כדי שהצוות שלנו יוכל ליצור איתך קשר, אני צריך כמה פרטים. מה השם הפרטי והמשפחה שלך?"
       : "Great! I'd love to help you with custom AI solutions. So our team can contact you, I need a few details. What's your first and last name?";
     
     setMessages(prev => [...prev, { role: 'assistant', content: contactMessage }]);
@@ -135,7 +137,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     setMessages([{
       role: 'assistant',
       content: isHebrew 
-        ? "שלום! אני טרוויס, מומחה הערכות AI מ-LocalEdgeAI. אני כאן כדי לעזור לך לקבל הערכת AI מותאמת אישית. בואו נתחיל - איך קוראים לך?"
+        ? "שלום! אני טרוויס, מומחה הערכות בינה מלאכותית מלוקל אדג׳. אני כאן כדי לעזור לך לקבל הערכת בינה מלאכותית מותאמת אישית. בואו נתחיל - איך קוראים לך?"
         : "Hello! I'm Travis, an AI assessment specialist from LocalEdgeAI. I'm here to help you get a personalized AI assessment. Let's start - what's your name?"
     }]);
     setCurrentMessage("");
@@ -156,10 +158,10 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
       `}>
         <DialogHeader className="border-b border-gray-100 pb-4 flex-shrink-0">
           <DialogTitle className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center`}>
-            {isHebrew ? "🤖 הערכת AI חינמית של LocalEdgeAI" : "🤖 Free LocalEdgeAI Assessment"}
+            {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
           </DialogTitle>
           <p className={`text-center text-gray-600 mt-2 ${isMobile ? 'text-sm' : ''}`}>
-            {isHebrew ? "גלה איך LocalEdgeAI יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
+            {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
           </p>
         </DialogHeader>
 

@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -138,24 +139,31 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent 
-          className="fixed inset-0 w-full max-w-none p-0 m-0 rounded-none border-0 flex flex-col overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
+          className="fixed inset-0 w-full h-full max-w-none max-h-none p-0 m-0 rounded-none border-0 flex flex-col overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
           style={{ 
-            height: `${viewportHeight}px`,
-            maxHeight: `${viewportHeight}px`
+            height: '100vh',
+            width: '100vw',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
           }}
         >
-          <DialogHeader className="border-b border-gray-100 pb-4 flex-shrink-0 px-4 pt-4">
-            <DialogTitle className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
+          {/* Header */}
+          <div className="flex-shrink-0 border-b border-gray-100 px-4 py-3 bg-white/95 backdrop-blur-sm">
+            <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
               {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
-            </DialogTitle>
-            <p className="text-center text-gray-600 mt-2 text-sm">
+            </div>
+            <p className="text-center text-gray-600 mt-1 text-sm">
               {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
             </p>
-          </DialogHeader>
+          </div>
 
+          {/* Chat Content - fills remaining space */}
           <div className="flex-1 overflow-hidden flex flex-col min-h-0">
             <ScrollArea 
-              className="flex-1 relative" 
+              className="flex-1" 
               ref={scrollAreaRef}
             >
               <div className="flex flex-col min-h-full px-4 py-2">
@@ -177,19 +185,25 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
                 )}
               </div>
             </ScrollArea>
-
-            {!isCompleted && (
-              <div className="flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent border-t border-gray-100 px-4 py-3">
-                <MessageInput
-                  ref={messageInputRef}
-                  currentMessage={currentMessage}
-                  setCurrentMessage={setCurrentMessage}
-                  onSendMessage={sendMessage}
-                  isLoading={isLoading}
-                />
-              </div>
-            )}
           </div>
+
+          {/* Input - fixed at bottom */}
+          {!isCompleted && (
+            <div 
+              className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3"
+              style={{
+                paddingBottom: 'env(safe-area-inset-bottom, 12px)'
+              }}
+            >
+              <MessageInput
+                ref={messageInputRef}
+                currentMessage={currentMessage}
+                setCurrentMessage={setCurrentMessage}
+                onSendMessage={sendMessage}
+                isLoading={isLoading}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     );

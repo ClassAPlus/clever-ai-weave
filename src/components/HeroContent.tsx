@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Zap, Mail, Bot } from "lucide-react";
+import { ArrowRight, Zap, Mail, Bot, Clock, Sparkles } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -126,9 +126,35 @@ export const HeroContent = ({ onContactClick, onAIAssessmentClick }: HeroContent
             size="lg" 
             variant="outline" 
             onClick={() => setShowEmailInput(true)}
-            className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg"
+            className="relative overflow-hidden group
+              bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 
+              border-2 border-emerald-400/40 text-white 
+              hover:from-emerald-500/30 hover:via-teal-500/30 hover:to-cyan-500/30
+              hover:border-emerald-400/60 hover:shadow-lg hover:shadow-emerald-400/25
+              transform transition-all duration-300 hover:scale-105 hover:-translate-y-1
+              px-8 py-4 text-lg font-semibold backdrop-blur-sm
+              before:absolute before:inset-0 before:bg-gradient-to-r before:from-emerald-400/10 before:to-cyan-400/10 before:opacity-0 before:transition-opacity before:duration-300 hover:before:opacity-100"
           >
-            {isHebrew ? "הערכה חינמית של 30 דקות" : "Free 30-Minute AI Assessment"}
+            <div className="relative z-10 flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
+                <Clock className="h-5 w-5 text-emerald-400 group-hover:rotate-12 transition-transform duration-300" />
+                <span className="text-emerald-400 font-bold">30</span>
+                <span className="text-sm text-emerald-300">min</span>
+              </div>
+              <Sparkles className="h-4 w-4 text-cyan-400 group-hover:scale-125 group-hover:rotate-180 transition-all duration-500" />
+              <span className="bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">
+                {isHebrew ? "הערכה חינמית" : "Free Assessment"}
+              </span>
+            </div>
+            
+            {/* Animated border effect */}
+            <div className="absolute inset-0 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 rounded-md blur-sm animate-pulse"></div>
+            </div>
+            
+            {/* Floating particles effect */}
+            <div className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
+            <div className="absolute -bottom-1 -left-1 w-1.5 h-1.5 bg-cyan-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-500"></div>
           </Button>
         ) : (
           <form onSubmit={handleEmailSubmit} className="flex items-center gap-2">

@@ -56,17 +56,19 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     if (!isMobile) return;
 
     const handleResize = () => {
-      // Get the visual viewport height
+      // Use visual viewport for better keyboard handling
       const vh = window.visualViewport?.height || window.innerHeight;
       document.documentElement.style.setProperty('--vh', `${vh * 0.01}px`);
     };
 
     const handleFocus = () => {
+      // Delay to ensure keyboard is open
       setTimeout(() => {
         if (messageInputRef.current) {
           messageInputRef.current.scrollIntoView({ 
             behavior: 'smooth', 
-            block: 'nearest' 
+            block: 'end',
+            inline: 'nearest'
           });
         }
       }, 300);
@@ -105,7 +107,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`
         ${isMobile 
-          ? 'max-w-[100vw] w-[100vw] p-3 fixed inset-0 m-0 rounded-none border-0' 
+          ? 'max-w-[100vw] w-[100vw] h-[100dvh] max-h-[100dvh] p-3 fixed inset-0 m-0 rounded-none border-0' 
           : 'max-w-4xl h-[80vh] max-h-[80vh] p-6'
         } 
         overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col
@@ -146,7 +148,9 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
           </ScrollArea>
 
           {!isCompleted && (
-            <div className={`flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent ${isMobile ? 'pt-2 pb-2' : 'pt-4'}`}>
+            <div className={`flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent ${
+              isMobile ? 'pt-2 pb-safe-bottom' : 'pt-4'
+            }`} style={isMobile ? { paddingBottom: 'max(8px, env(safe-area-inset-bottom))' } : undefined}>
               <MessageInput
                 ref={messageInputRef}
                 currentMessage={currentMessage}

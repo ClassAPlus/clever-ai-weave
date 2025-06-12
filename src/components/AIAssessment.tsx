@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -8,6 +9,7 @@ import { MessageInput } from "./ai-assessment/MessageInput";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAssessmentState } from "@/hooks/useAssessmentState";
 import { AssessmentChat } from "./ai-assessment/AssessmentChat";
+import { useEffect } from "react";
 
 export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const { isHebrew } = useLanguage();
@@ -49,15 +51,69 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     messageInputRef
   });
 
+  // Handle mobile viewport height and keyboard visibility
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const handleResize = () => {
+      // Get the visual viewport height
+      const vh = window.visualViewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty('--vh', `${vh * 0.01}px`);
+    };
+
+    const handleFocus = () => {
+      setTimeout(() => {
+        if (messageInputRef.current) {
+          messageInputRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest' 
+          });
+        }
+      }, 300);
+    };
+
+    // Set initial viewport height
+    handleResize();
+
+    // Listen for viewport changes (keyboard open/close)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    } else {
+      window.addEventListener('resize', handleResize);
+    }
+
+    // Listen for input focus to scroll into view
+    const inputElement = messageInputRef.current;
+    if (inputElement) {
+      inputElement.addEventListener('focus', handleFocus);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      } else {
+        window.removeEventListener('resize', handleResize);
+      }
+      
+      if (inputElement) {
+        inputElement.removeEventListener('focus', handleFocus);
+      }
+    };
+  }, [isMobile, messageInputRef]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`
         ${isMobile 
-          ? 'max-w-[100vw] max-h-[100vh] h-[100vh] w-[100vw] p-3' 
+          ? 'max-w-[100vw] w-[100vw] p-3 fixed inset-0 m-0 rounded-none border-0' 
           : 'max-w-4xl h-[80vh] max-h-[80vh] p-6'
         } 
-        overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col
-      `}>
+        overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col
+      `} 
+      style={isMobile ? { 
+        height: 'calc(var(--vh, 1vh) * 100)',
+        maxHeight: 'calc(var(--vh, 1vh) * 100)'
+      } : undefined}>
         <DialogHeader className="border-b border-gray-100 pb-4 flex-shrink-0">
           <DialogTitle className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center`}>
             {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}

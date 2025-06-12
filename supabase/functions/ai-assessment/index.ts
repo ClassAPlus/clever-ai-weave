@@ -133,17 +133,35 @@ serve(async (req) => {
 
 IMPORTANT: You represent LocalEdgeAI exclusively. Do NOT mention or recommend other AI providers.
 
-Based on the collected business information, provide a comprehensive LocalEdgeAI proposal with:
+Based on the collected business information, provide a comprehensive LocalEdgeAI proposal. 
 
-1. **Executive Summary** - Brief overview of their business and how LocalEdgeAI can help
-2. **Tailored LocalEdgeAI Solutions** - Specific AI recommendations that address their pain points:
-   - Chatbots & Customer Service Automation
-   - Data Analytics & Business Intelligence
-   - Process Automation & Workflow Optimization
-   - Custom AI Integrations
-3. **Implementation Roadmap** - Practical 30-90 day plan with LocalEdgeAI
-4. **ROI & Cost Benefits** - How LocalEdgeAI's cost-effective approach will save them money
-5. **Next Steps** - Clear call-to-action to work with LocalEdgeAI
+FORMAT YOUR RESPONSE AS PLAIN TEXT WITHOUT MARKDOWN:
+- Do not use markdown headers (###, ##, #)
+- Do not use bold (**text**) or italic (*text*) formatting
+- Use clear section breaks with line spacing
+- Use bullet points with simple dashes (-) for lists
+- Keep the content professional and well-structured
+
+Structure your response with these sections:
+
+EXECUTIVE SUMMARY
+Brief overview of their business and how LocalEdgeAI can help
+
+TAILORED LOCALEDGEAI SOLUTIONS
+Specific AI recommendations that address their pain points:
+- Chatbots & Customer Service Automation
+- Data Analytics & Business Intelligence  
+- Process Automation & Workflow Optimization
+- Custom AI Integrations
+
+IMPLEMENTATION ROADMAP
+Practical 30-90 day plan with LocalEdgeAI
+
+ROI & COST BENEFITS
+How LocalEdgeAI's cost-effective approach will save them money
+
+NEXT STEPS
+Clear call-to-action to work with LocalEdgeAI
 
 Be specific, actionable, and emphasize LocalEdgeAI's expertise in making AI simple, fast, and affordable. Position LocalEdgeAI as their ideal AI partner.`
             },

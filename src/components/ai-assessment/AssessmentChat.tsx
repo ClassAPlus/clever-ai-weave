@@ -7,7 +7,7 @@ import { Message } from "./types";
 
 interface AssessmentChatProps {
   messages: Message[];
-  setMessages: (messages: Message[]) => void;
+  setMessages: (messages: Message[] | ((prev: Message[]) => Message[])) => void;
   currentMessage: string;
   setCurrentMessage: (message: string) => void;
   isLoading: boolean;
@@ -134,7 +134,7 @@ export const AssessmentChat = ({
       ? "נהדר! אשמח לעזור לך עם פתרונות בינה מלאכותית מותאמים אישית. כדי שהצוות שלנו יוכל ליצור איתך קשר, אני צריך כמה פרטים. מה השם הפרטי והמשפחה שלך?"
       : "Great! I'd love to help you with custom AI solutions. So our team can contact you, I need a few details. What's your first and last name?";
     
-    setMessages(prev => [...prev, { role: 'assistant', content: contactMessage }]);
+    setMessages((prev: Message[]) => [...prev, { role: 'assistant', content: contactMessage }]);
     setShowContactButton(false);
     setIsCompleted(false); // Allow continuing the conversation
   };

@@ -31,10 +31,12 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       const keyboardHeight = window.visualViewport ? Math.max(methodB, methodC) : methodA;
       const isKeyboardVisible = keyboardHeight > 50; // Threshold to avoid false positives
       
-      // Account for mobile toolbar/navbar (typically 60px) and keyboard
+      // Account for mobile toolbar/navbar and ensure reasonable minimum height
       const toolbarHeight = 60;
+      const minVisibleHeight = 400; // Minimum height to keep UI usable
+      
       const availableHeight = isKeyboardVisible 
-        ? Math.max(visualViewportHeight - toolbarHeight, 300) // Ensure minimum height
+        ? Math.max(visualViewportHeight - toolbarHeight, minVisibleHeight) // Ensure minimum usable height
         : currentHeight - toolbarHeight;
 
       setKeyboardState({

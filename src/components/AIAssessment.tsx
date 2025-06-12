@@ -90,14 +90,20 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            {isHebrew ? "הערכת AI חינמית של 30 דקות" : "Free 30-Minute AI Assessment"}
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30">
+        <DialogHeader className="border-b border-gray-100 pb-4">
+          <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
+            {isHebrew ? "🤖 הערכת AI חינמית של 30 דקות" : "🤖 Free 30-Minute AI Assessment"}
           </DialogTitle>
+          <p className="text-center text-gray-600 mt-2">
+            {isHebrew ? "גלה איך AI יכול לשדרג את העסק שלך" : "Discover how AI can transform your business"}
+          </p>
         </DialogHeader>
 
-        <div className="flex flex-col h-[60vh]">
+        <div className="flex flex-col h-[65vh] relative">
+          {/* Background decoration */}
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
+          
           <ChatMessages messages={messages} isLoading={isLoading} />
 
           {isCompleted && summary && (

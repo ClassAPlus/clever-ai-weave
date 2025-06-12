@@ -1,23 +1,13 @@
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Send, Bot, User } from "lucide-react";
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-interface AIAssessmentProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
+import { AIAssessmentProps, Message } from "./ai-assessment/types";
+import { ChatMessages } from "./ai-assessment/ChatMessages";
+import { AssessmentSummary } from "./ai-assessment/AssessmentSummary";
+import { MessageInput } from "./ai-assessment/MessageInput";
 
 export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const { isHebrew } = useLanguage();
@@ -86,13 +76,6 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
   const resetAssessment = () => {
     setMessages([{
       role: 'assistant',
@@ -115,94 +98,19 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
         </DialogHeader>
 
         <div className="flex flex-col h-[60vh]">
-          {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto space-y-4 p-4 bg-gray-50 rounded-lg mb-4">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`flex items-start space-x-2 max-w-[80%] ${
-                    message.role === 'user'
-                      ? 'flex-row-reverse space-x-reverse'
-                      : 'flex-row'
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.role === 'user'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-blue-600 text-white'
-                    }`}
-                  >
-                    {message.role === 'user' ? <User size={16} /> : <Bot size={16} />}
-                  </div>
-                  <div
-                    className={`p-3 rounded-lg ${
-                      message.role === 'user'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-white border shadow-sm'
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="flex items-start space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                    <Bot size={16} />
-                  </div>
-                  <div className="bg-white border shadow-sm p-3 rounded-lg">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <ChatMessages messages={messages} isLoading={isLoading} />
 
-          {/* Summary Section */}
           {isCompleted && summary && (
-            <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border">
-              <h3 className="font-semibold text-lg mb-2 text-purple-800">
-                {isHebrew ? "המלצות מותאמות אישית" : "Your Personalized Recommendations"}
-              </h3>
-              <div className="text-sm text-gray-700 whitespace-pre-wrap">{summary}</div>
-              <Button
-                onClick={resetAssessment}
-                className="mt-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-              >
-                {isHebrew ? "התחל הערכה חדשה" : "Start New Assessment"}
-              </Button>
-            </div>
+            <AssessmentSummary summary={summary} onResetAssessment={resetAssessment} />
           )}
 
-          {/* Input Section */}
           {!isCompleted && (
-            <div className="flex space-x-2">
-              <Textarea
-                value={currentMessage}
-                onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder={isHebrew ? "הקלד את התשובה שלך..." : "Type your response..."}
-                className="flex-1 min-h-[60px] max-h-[120px]"
-                disabled={isLoading}
-              />
-              <Button
-                onClick={sendMessage}
-                disabled={!currentMessage.trim() || isLoading}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-6"
-              >
-                <Send size={16} />
-              </Button>
-            </div>
+            <MessageInput
+              currentMessage={currentMessage}
+              setCurrentMessage={setCurrentMessage}
+              onSendMessage={sendMessage}
+              isLoading={isLoading}
+            />
           )}
         </div>
       </DialogContent>

@@ -54,7 +54,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`
         ${isMobile 
-          ? 'max-w-[95vw] h-[90vh] max-h-[90vh] p-4' 
+          ? 'max-w-[95vw] h-[100vh] max-h-[100vh] p-4 fixed inset-0 m-0 rounded-none' 
           : 'max-w-4xl h-[80vh] max-h-[80vh] p-6'
         } 
         overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col
@@ -91,7 +91,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
           </ScrollArea>
 
           {!isCompleted && (
-            <div className={`flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent ${isMobile ? 'pt-2' : 'pt-4'}`}>
+            <div className={`flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent ${isMobile ? 'pt-2 pb-2' : 'pt-4'}`}>
               <MessageInput
                 ref={messageInputRef}
                 currentMessage={currentMessage}

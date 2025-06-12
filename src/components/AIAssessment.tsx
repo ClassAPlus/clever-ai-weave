@@ -69,10 +69,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent 
-          className="fixed inset-0 w-screen h-screen max-w-none max-h-none p-0 m-0 rounded-none border-0 flex flex-col overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
-          style={{ 
-            height: '100dvh'
-          }}
+          className="fixed inset-0 w-full h-full max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
           aria-describedby="ai-assessment-description"
         >
           <DialogHeader className="sr-only">
@@ -84,43 +81,43 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Header */}
-          <div className="flex-shrink-0 border-b border-gray-100 px-4 py-3 bg-white/95 backdrop-blur-sm">
-            <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
-              {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
-            </div>
-            <p className="text-center text-gray-600 mt-1 text-sm">
-              {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
-            </p>
-          </div>
-
-          {/* Chat Content - takes remaining space */}
-          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-            <ScrollArea 
-              className="flex-1" 
-              ref={scrollAreaRef}
-            >
-              <div className="flex flex-col min-h-full px-4 py-2">
-                {/* Background decoration */}
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
-                
-                <div className="flex-1">
-                  <ChatMessages messages={messages} isLoading={isLoading} />
-                </div>
-
-                {isCompleted && summary && (
-                  <AssessmentSummary 
-                    summary={summary} 
-                    onResetAssessment={resetAssessment} 
-                    onRequestContact={handleContactRequest}
-                    stage={stage}
-                    showContactButton={showContactButton}
-                  />
-                )}
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="flex-shrink-0 border-b border-gray-100 px-4 py-3 bg-white/95 backdrop-blur-sm">
+              <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
+                {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
               </div>
-            </ScrollArea>
+              <p className="text-center text-gray-600 mt-1 text-sm">
+                {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
+              </p>
+            </div>
 
-            {/* Input - fixed at bottom of dialog */}
+            {/* Chat Content */}
+            <div className="flex-1 min-h-0">
+              <ScrollArea 
+                className="h-full" 
+                ref={scrollAreaRef}
+              >
+                <div className="px-4 py-2">
+                  {/* Background decoration */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
+                  
+                  <ChatMessages messages={messages} isLoading={isLoading} />
+
+                  {isCompleted && summary && (
+                    <AssessmentSummary 
+                      summary={summary} 
+                      onResetAssessment={resetAssessment} 
+                      onRequestContact={handleContactRequest}
+                      stage={stage}
+                      showContactButton={showContactButton}
+                    />
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Input */}
             {!isCompleted && (
               <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3 pb-8">
                 <MessageInput

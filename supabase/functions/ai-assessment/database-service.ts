@@ -34,6 +34,16 @@ export async function saveContactRequest(contactInfo: ContactInfo, businessName:
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
+  // Create a more detailed message
+  const messageContent = `Contact request from AI assessment.
+
+Business: ${businessName}
+Contact Person: ${userName}
+Email: ${contactInfo.email}
+Phone: ${contactInfo.phone || 'Not provided'}
+
+The client completed an AI assessment and requested LocalEdgeAI to contact them for additional assistance and to discuss a customized quote for their business.`;
+
   const { data, error } = await supabase
     .from('contact_submissions')
     .insert([{
@@ -41,7 +51,7 @@ export async function saveContactRequest(contactInfo: ContactInfo, businessName:
       last_name: contactInfo.lastName,
       email: contactInfo.email,
       company: businessName,
-      message: `Contact request from AI assessment. User: ${userName}. Phone: ${contactInfo.phone || 'Not provided'}`
+      message: messageContent
     }]);
 
   if (error) {

@@ -92,25 +92,35 @@ function extractBusinessAndUserInfo(history: any[]): { businessName: string, use
   let businessName = 'Unknown Business';
   let userName = 'Unknown User';
   
+  console.log('Extracting business and user info from history:', history);
+  
   // Look through conversation history to extract business and user names
   for (let i = 0; i < history.length; i++) {
     const message = history[i];
     if (message.role === 'user' && message.content) {
-      const content = message.content.toLowerCase();
+      const content = message.content.trim();
       
-      // Try to identify business name from context
+      // Check previous assistant message for context
       if (i > 0) {
         const prevMessage = history[i - 1];
         if (prevMessage.role === 'assistant' && prevMessage.content) {
-          if (prevMessage.content.toLowerCase().includes('business name')) {
-            businessName = message.content.trim();
-          } else if (prevMessage.content.toLowerCase().includes('name') && !prevMessage.content.toLowerCase().includes('business')) {
-            userName = message.content.trim();
+          const prevContent = prevMessage.content.toLowerCase();
+          
+          // Look for business name question patterns
+          if (prevContent.includes('business') && prevContent.includes('name')) {
+            businessName = content;
+            console.log('Found business name:', businessName);
+          }
+          // Look for user name question patterns (but not business name)
+          else if (prevContent.includes('name') && !prevContent.includes('business')) {
+            userName = content;
+            console.log('Found user name:', userName);
           }
         }
       }
     }
   }
   
+  console.log('Extracted info:', { businessName, userName });
   return { businessName, userName };
 }

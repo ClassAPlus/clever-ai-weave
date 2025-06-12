@@ -82,12 +82,12 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`
         ${isMobile 
-          ? 'w-screen h-screen max-w-none max-h-none p-2 m-0 rounded-none border-0 left-0 top-0 translate-x-0 translate-y-0' 
+          ? 'fixed inset-0 w-full h-full max-w-none max-h-none p-0 m-0 rounded-none border-0' 
           : 'max-w-4xl h-[80vh] max-h-[80vh] p-6'
         } 
         overflow-hidden shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col
       `}>
-        <DialogHeader className="border-b border-gray-100 pb-4 flex-shrink-0">
+        <DialogHeader className={`border-b border-gray-100 pb-4 flex-shrink-0 ${isMobile ? 'px-3 pt-3' : ''}`}>
           <DialogTitle className={`${isMobile ? 'text-lg' : 'text-3xl'} font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center`}>
             {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
           </DialogTitle>
@@ -98,7 +98,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
 
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           <ScrollArea className="flex-1 relative" ref={scrollAreaRef}>
-            <div className="flex flex-col min-h-full p-1">
+            <div className={`flex flex-col min-h-full ${isMobile ? 'p-3' : 'p-1'}`}>
               {/* Background decoration */}
               <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
               
@@ -120,7 +120,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
 
           {!isCompleted && (
             <div className={`flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent ${
-              isMobile ? 'pt-2 pb-2 px-1' : 'pt-4'
+              isMobile ? 'px-3 pb-3' : 'pt-4'
             }`}>
               <MessageInput
                 ref={messageInputRef}

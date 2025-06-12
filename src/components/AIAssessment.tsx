@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,25 +101,31 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
           </p>
         </DialogHeader>
 
-        <div className="flex flex-col h-[65vh] relative">
-          {/* Background decoration */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
-          
-          <ChatMessages messages={messages} isLoading={isLoading} />
+        <ScrollArea className="h-[65vh] relative">
+          <div className="flex flex-col min-h-full p-1">
+            {/* Background decoration */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
+            
+            <div className="flex-1">
+              <ChatMessages messages={messages} isLoading={isLoading} />
+            </div>
 
-          {isCompleted && summary && (
-            <AssessmentSummary summary={summary} onResetAssessment={resetAssessment} />
-          )}
+            {isCompleted && summary && (
+              <AssessmentSummary summary={summary} onResetAssessment={resetAssessment} />
+            )}
 
-          {!isCompleted && (
-            <MessageInput
-              currentMessage={currentMessage}
-              setCurrentMessage={setCurrentMessage}
-              onSendMessage={sendMessage}
-              isLoading={isLoading}
-            />
-          )}
-        </div>
+            {!isCompleted && (
+              <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent pt-4">
+                <MessageInput
+                  currentMessage={currentMessage}
+                  setCurrentMessage={setCurrentMessage}
+                  onSendMessage={sendMessage}
+                  isLoading={isLoading}
+                />
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

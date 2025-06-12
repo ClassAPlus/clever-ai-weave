@@ -20,7 +20,7 @@ export const ChatMessage = ({ message, index }: ChatMessageProps) => {
     >
       <div
         className={`flex items-start space-x-3 ${
-          isMobile ? 'max-w-[95%]' : 'max-w-[85%]'
+          isMobile ? 'max-w-[98%]' : 'max-w-[85%]'
         } ${
           message.role === 'user'
             ? 'flex-row-reverse space-x-reverse'

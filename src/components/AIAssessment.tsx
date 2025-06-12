@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,15 +32,20 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const [stage, setStage] = useState<'initial' | 'assessment_complete' | 'contact_collected'>('initial');
   const [showContactButton, setShowContactButton] = useState(false);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change, but not when showing recommendations
   useEffect(() => {
+    // Don't auto-scroll if we're showing recommendations (assessment completed with summary)
+    if (isCompleted && summary && stage === 'assessment_complete') {
+      return;
+    }
+
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, isCompleted, summary, stage]);
 
   // Focus input field after bot responses and when dialog opens
   useEffect(() => {

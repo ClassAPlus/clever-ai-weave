@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Zap, Bot } from "lucide-react";
+import { ArrowRight, Zap, Bot, Sparkles } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface HeroContentProps {
@@ -55,11 +55,15 @@ export const HeroContent = ({ onContactClick, onAIAssessmentClick }: HeroContent
         <Button 
           size="lg" 
           onClick={onAIAssessmentClick}
-          variant="outline" 
-          className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg group"
+          className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group relative overflow-hidden"
         >
-          <Bot className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-          {isHebrew ? "בוט הערכה חינמית" : "Free AI Assessment Bot"}
+          {/* Animated background on hover */}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          <Sparkles className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform duration-200 relative z-10" />
+          <span className="relative z-10">
+            {isHebrew ? "בוט הערכה חינמית" : "Free AI Assessment Bot"}
+          </span>
         </Button>
       </div>
     </div>

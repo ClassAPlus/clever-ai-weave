@@ -146,7 +146,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
       <DialogContent className={`
         ${isMobile 
           ? 'max-w-[95vw] h-[90vh] max-h-[90vh] p-4' 
-          : 'max-w-4xl max-h-[85vh] p-6'
+          : 'max-w-4xl h-[80vh] max-h-[80vh] p-6'
         } 
         overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col
       `}>

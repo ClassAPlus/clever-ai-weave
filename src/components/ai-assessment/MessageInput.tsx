@@ -1,5 +1,4 @@
 
-import { forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -12,12 +11,12 @@ interface MessageInputProps {
   isLoading: boolean;
 }
 
-export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>(({ 
+export const MessageInput = ({ 
   currentMessage, 
   setCurrentMessage, 
   onSendMessage, 
   isLoading 
-}, ref) => {
+}: MessageInputProps) => {
   const { isHebrew } = useLanguage();
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -31,7 +30,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     <div className="flex space-x-4 relative z-10">
       <div className="flex-1 relative">
         <Textarea
-          ref={ref}
           value={currentMessage}
           onChange={(e) => setCurrentMessage(e.target.value)}
           onKeyPress={handleKeyPress}
@@ -61,6 +59,4 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
       </Button>
     </div>
   );
-});
-
-MessageInput.displayName = 'MessageInput';
+};

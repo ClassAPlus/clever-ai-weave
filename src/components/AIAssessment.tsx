@@ -1,5 +1,5 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,9 +13,6 @@ import { MessageInput } from "./ai-assessment/MessageInput";
 export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const { isHebrew } = useLanguage();
   const { toast } = useToast();
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const messageInputRef = useRef<HTMLTextAreaElement>(null);
-  
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -30,26 +27,6 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
   const [summary, setSummary] = useState("");
   const [stage, setStage] = useState<'initial' | 'assessment_complete' | 'contact_collected'>('initial');
   const [showContactButton, setShowContactButton] = useState(false);
-
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
-  }, [messages, isLoading]);
-
-  // Focus input field after bot responses
-  useEffect(() => {
-    if (!isLoading && !isCompleted && messageInputRef.current) {
-      // Small delay to ensure the message has been rendered
-      setTimeout(() => {
-        messageInputRef.current?.focus();
-      }, 100);
-    }
-  }, [messages, isLoading, isCompleted]);
 
   const sendMessage = async () => {
     if (!currentMessage.trim() || isLoading) return;
@@ -151,7 +128,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
           </p>
         </DialogHeader>
 
-        <ScrollArea className="h-[65vh] relative" ref={scrollAreaRef}>
+        <ScrollArea className="h-[65vh] relative">
           <div className="flex flex-col min-h-full p-1">
             {/* Background decoration */}
             <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
@@ -173,7 +150,6 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             {!isCompleted && (
               <div className="sticky bottom-0 bg-gradient-to-t from-white via-white to-transparent pt-4">
                 <MessageInput
-                  ref={messageInputRef}
                   currentMessage={currentMessage}
                   setCurrentMessage={setCurrentMessage}
                   onSendMessage={sendMessage}

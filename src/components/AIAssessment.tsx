@@ -70,7 +70,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent 
-          className="fixed inset-0 w-full h-full max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
+          className="fixed inset-0 w-screen h-screen max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 transform-none translate-x-0 translate-y-0 left-0 top-0"
           aria-describedby="ai-assessment-description"
         >
           <DialogHeader className="sr-only">
@@ -82,7 +82,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col h-full w-full">
+          <div className="flex flex-col h-screen w-screen">
             {/* Header */}
             <div className="flex-shrink-0 border-b border-gray-100 px-4 py-3 bg-white/95 backdrop-blur-sm w-full">
               <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
@@ -94,7 +94,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             </div>
 
             {/* Chat Content */}
-            <div className="flex-1 min-h-0 w-full">
+            <div className="flex-1 min-h-0 w-full overflow-hidden">
               <ScrollArea 
                 className="h-full w-full" 
                 ref={scrollAreaRef}
@@ -121,7 +121,7 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
             {/* Input */}
             {!isCompleted && (
               <div className="flex-shrink-0 bg-white border-t border-gray-100 w-full">
-                <div className="w-full max-w-none mx-auto px-4 py-3 pb-8">
+                <div className="w-full px-4 py-3 pb-8">
                   <MessageInput
                     ref={messageInputRef}
                     currentMessage={currentMessage}

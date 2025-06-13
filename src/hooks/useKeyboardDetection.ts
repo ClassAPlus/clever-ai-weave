@@ -16,77 +16,60 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
   const [keyboardState, setKeyboardState] = useState<KeyboardState>({
     isVisible: false,
     height: 0,
-    availableHeight: window.innerHeight - 60
+    availableHeight: window.innerHeight * 0.6 // Fixed 60% of screen height
   });
 
   useEffect(() => {
-    let initialHeight = window.innerHeight;
-    let initialVisualViewportHeight = window.visualViewport?.height || window.innerHeight;
     const iOS = isIOS();
-    let updateTimeout: NodeJS.Timeout;
+    
+    // For iOS, use a fixed height approach to prevent jumping
+    if (iOS) {
+      // Set a fixed container height that works well with keyboard
+      const fixedHeight = Math.min(window.innerHeight * 0.6, 400);
+      
+      setKeyboardState({
+        isVisible: true, // Always consider keyboard "visible" on iOS mobile
+        height: window.innerHeight * 0.4, // Assume standard keyboard height
+        availableHeight: fixedHeight
+      });
+      
+      return () => {}; // No cleanup needed for fixed approach
+    }
 
+    // For non-iOS devices, use simpler detection
+    let initialHeight = window.innerHeight;
+    
     const updateKeyboardState = () => {
       const currentHeight = window.innerHeight;
-      const visualViewportHeight = window.visualViewport?.height || currentHeight;
-      
-      // Simple keyboard detection
-      const keyboardHeight = window.visualViewport 
-        ? Math.max(0, initialVisualViewportHeight - visualViewportHeight)
-        : Math.max(0, initialHeight - currentHeight);
-      
+      const keyboardHeight = Math.max(0, initialHeight - currentHeight);
       const isKeyboardVisible = keyboardHeight > 50;
       
-      let availableHeight;
-      
-      if (iOS && isKeyboardVisible) {
-        // Improved iOS calculation - use 45% of visual viewport with better min/max
-        availableHeight = Math.max(Math.floor(visualViewportHeight * 0.45), 180);
-        // Better cap to prevent over-jumping
-        availableHeight = Math.min(availableHeight, 320);
-      } else {
-        // Standard calculation for Android or no keyboard
-        availableHeight = isKeyboardVisible 
-          ? Math.max(visualViewportHeight - 60, 200)
-          : currentHeight - 60;
-      }
-
       setKeyboardState({
         isVisible: isKeyboardVisible,
-        height: Math.max(0, keyboardHeight),
-        availableHeight
+        height: keyboardHeight,
+        availableHeight: isKeyboardVisible 
+          ? Math.max(currentHeight - 60, 200)
+          : currentHeight - 60
       });
     };
 
-    const debouncedUpdate = () => {
-      clearTimeout(updateTimeout);
-      // Shorter timeout for faster response
-      updateTimeout = setTimeout(updateKeyboardState, iOS ? 50 : 30);
-    };
-
     const handleFocus = () => {
-      // Shorter delay for iOS with smoother transition
-      const delay = iOS ? 100 : 50;
-      setTimeout(updateKeyboardState, delay);
+      setTimeout(updateKeyboardState, 100);
     };
 
     const handleBlur = () => {
-      const delay = iOS ? 100 : 50;
       setTimeout(() => {
         setKeyboardState({
           isVisible: false,
           height: 0,
           availableHeight: window.innerHeight - 60
         });
-      }, delay);
+      }, 100);
     };
 
-    // Event listeners
-    window.addEventListener('resize', debouncedUpdate);
+    // Event listeners for non-iOS devices
+    window.addEventListener('resize', updateKeyboardState);
     
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', debouncedUpdate);
-    }
-
     const inputElement = inputRef.current;
     if (inputElement) {
       inputElement.addEventListener('focus', handleFocus);
@@ -96,12 +79,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     updateKeyboardState();
 
     return () => {
-      clearTimeout(updateTimeout);
-      window.removeEventListener('resize', debouncedUpdate);
-      
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', debouncedUpdate);
-      }
+      window.removeEventListener('resize', updateKeyboardState);
       
       if (inputElement) {
         inputElement.removeEventListener('focus', handleFocus);

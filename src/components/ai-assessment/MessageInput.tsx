@@ -1,5 +1,5 @@
 
-import { forwardRef } from "react";
+import { forwardRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -22,10 +22,53 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const { isHebrew } = useLanguage();
   const isMobile = useIsMobile();
 
+  // Auto-focus and maintain focus for persistent keyboard on mobile
+  useEffect(() => {
+    if (isMobile && ref && 'current' in ref && ref.current) {
+      // Focus the input to show keyboard initially
+      ref.current.focus();
+      
+      // Prevent blur to maintain keyboard visibility
+      const handleBlur = (e: FocusEvent) => {
+        // Only allow blur if user is actually navigating away
+        setTimeout(() => {
+          if (ref.current && !isLoading) {
+            ref.current.focus();
+          }
+        }, 100);
+      };
+      
+      const inputElement = ref.current;
+      inputElement.addEventListener('blur', handleBlur);
+      
+      return () => {
+        inputElement.removeEventListener('blur', handleBlur);
+      };
+    }
+  }, [isMobile, ref, isLoading]);
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSendMessage();
+      
+      // Re-focus after sending message on mobile
+      if (isMobile && ref && 'current' in ref && ref.current) {
+        setTimeout(() => {
+          ref.current?.focus();
+        }, 100);
+      }
+    }
+  };
+
+  const handleSendClick = () => {
+    onSendMessage();
+    
+    // Re-focus after sending message on mobile
+    if (isMobile && ref && 'current' in ref && ref.current) {
+      setTimeout(() => {
+        ref.current?.focus();
+      }, 100);
     }
   };
 
@@ -51,14 +94,18 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           dir="ltr"
           lang="en"
           inputMode="text"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
           disabled={isLoading}
-          autoFocus
+          autoFocus={isMobile}
           rows={isMobile ? 2 : 3}
         />
       </div>
       
       <Button
-        onClick={onSendMessage}
+        onClick={handleSendClick}
         disabled={!currentMessage.trim() || isLoading}
         className={`bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white ${
           isMobile ? 'px-3 py-2' : 'px-6 py-3'

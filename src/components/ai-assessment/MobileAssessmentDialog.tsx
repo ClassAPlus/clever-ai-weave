@@ -20,12 +20,13 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-  const mobileHeight = keyboardState.isVisible ? keyboardState.availableHeight : window.innerHeight;
+  // Use fixed height for consistent experience
+  const mobileHeight = keyboardState.availableHeight;
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className={`fixed inset-0 max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 transform-none translate-x-0 translate-y-0 left-0 top-0 overflow-hidden`}
+        className="fixed inset-0 max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 transform-none translate-x-0 translate-y-0 left-0 top-0 overflow-hidden"
         style={{ 
           width: '100dvw',
           height: `${mobileHeight}px`,
@@ -47,11 +48,11 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
 
         <div className="flex flex-col overflow-hidden" style={{ width: '100dvw', height: `${mobileHeight}px`, boxSizing: 'border-box' }}>
           {/* Header */}
-          <div className="flex-shrink-0 border-b border-gray-100 py-3 bg-white/95 backdrop-blur-sm w-full" style={{ boxSizing: 'border-box' }}>
-            <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center px-2">
+          <div className="flex-shrink-0 border-b border-gray-100 py-2 bg-white/95 backdrop-blur-sm w-full" style={{ boxSizing: 'border-box' }}>
+            <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
               {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
             </div>
-            <p className="text-center text-gray-600 mt-1 text-sm px-2">
+            <p className="text-center text-gray-600 mt-1 text-sm">
               {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
             </p>
           </div>
@@ -72,12 +73,16 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </ScrollArea>
           </div>
 
-          {/* Input */}
+          {/* Input - Fixed height to prevent jumping */}
           {!isCompleted && (
-            <div className={`flex-shrink-0 bg-white border-t border-gray-100 w-full ${
-              isIOS && keyboardState.isVisible ? 'py-1' : 'py-2'
-            }`} style={{ boxSizing: 'border-box' }}>
-              <div className="w-full px-2" style={{ boxSizing: 'border-box' }}>
+            <div 
+              className="flex-shrink-0 bg-white border-t border-gray-100 w-full py-1"
+              style={{ 
+                boxSizing: 'border-box',
+                height: isIOS ? '80px' : '70px' // Fixed height
+              }}
+            >
+              <div className="w-full h-full flex items-center" style={{ boxSizing: 'border-box', padding: '0 4px' }}>
                 <content.MessageInput />
               </div>
             </div>

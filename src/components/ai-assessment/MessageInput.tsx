@@ -34,8 +34,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   }, [onSendMessage]);
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 flex gap-3 p-4 bg-white border-t border-gray-200 z-50" 
-         style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}>
+    <div className="flex gap-3">
       <div className="flex-1">
         <Textarea
           ref={textareaRef}

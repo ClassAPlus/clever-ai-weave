@@ -98,7 +98,6 @@
 
   body {
     @apply bg-background text-foreground;
-    /* iOS-specific optimizations - but allow normal scrolling */
     -webkit-text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -106,29 +105,7 @@
   }
 
   #root {
-    /* Allow normal scrolling for the main app */
     min-height: 100vh;
-  }
-
-  /* iOS mobile viewport handling - only when dialog is open */
-  .mobile-dialog-open {
-    position: fixed !important;
-    overflow: hidden !important;
-    width: 100% !important;
-    height: 100vh !important;
-  }
-
-  .mobile-dialog-open #root {
-    width: 100% !important;
-    height: 100vh !important;
-    overflow: hidden !important;
-  }
-
-  /* iOS scrolling optimization */
-  .ios-scroll {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-    outline: none !important;
   }
 
   /* Prevent zoom on focus for iOS */
@@ -137,9 +114,5 @@
   input[type="tel"],
   textarea {
     font-size: 16px !important;
-    transform: translateZ(0);
-    -webkit-appearance: none;
-    border-radius: 0;
-    transition: none !important;
   }
 }

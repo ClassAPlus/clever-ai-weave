@@ -39,6 +39,7 @@ interface MobileAssessmentDialogProps {
 export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: MobileAssessmentDialogProps) => {
   const { isHebrew } = useLanguage();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [initialLoad, setInitialLoad] = useState(true);
   
   const {
     messages,
@@ -77,41 +78,56 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     messageInputRef
   });
 
+  // Handle initial load delay for iOS
+  useEffect(() => {
+    if (open) {
+      setInitialLoad(true);
+      // Give iOS time to settle before showing content
+      const timer = setTimeout(() => {
+        setInitialLoad(false);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
   // Auto-scroll to bottom when new messages arrive or keyboard state changes
   useEffect(() => {
-    if (messagesContainerRef.current && messages.length > 0) {
+    if (messagesContainerRef.current && messages.length > 0 && !initialLoad) {
       const scrollToBottom = () => {
         if (messagesContainerRef.current) {
           messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
         }
       };
       
-      // Immediate scroll
       scrollToBottom();
-      
-      // Delayed scroll for keyboard transitions
       setTimeout(scrollToBottom, 100);
       setTimeout(scrollToBottom, 300);
     }
-  }, [messages.length, keyboardState.isVisible, keyboardState.height]);
+  }, [messages.length, keyboardState.isVisible, keyboardState.height, initialLoad]);
 
-  // Calculate dynamic heights with more aggressive iOS keyboard handling
+  // iOS detection
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   
+  // Calculate dynamic heights with better initial positioning
   let containerHeight: string;
   let messagesHeight: string;
   
-  if (keyboardState.isVisible) {
+  if (initialLoad && isIOS) {
+    // On initial load for iOS, use a conservative height to avoid keyboard issues
+    containerHeight = 'calc(100vh - 100px)';
+    messagesHeight = 'calc(100vh - 300px)';
+  } else if (keyboardState.isVisible) {
     // When keyboard is visible, use the available viewport height
     containerHeight = `${keyboardState.availableHeight}px`;
-    messagesHeight = `${keyboardState.availableHeight - 160}px`; // More space for input
+    messagesHeight = `${keyboardState.availableHeight - 160}px`;
   } else {
     // When keyboard is hidden, use full viewport with safe area
     containerHeight = isIOS ? 'calc(100vh - env(safe-area-inset-bottom))' : '100vh';
     messagesHeight = isIOS ? 'calc(100vh - 200px - env(safe-area-inset-bottom))' : 'calc(100vh - 200px)';
   }
 
-  console.log('Mobile Dialog Heights:', {
+  console.log('Mobile Dialog State:', {
+    initialLoad,
     keyboardVisible: keyboardState.isVisible,
     keyboardHeight: keyboardState.height,
     availableHeight: keyboardState.availableHeight,
@@ -128,7 +144,13 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
         style={{ 
           height: containerHeight,
           maxHeight: containerHeight,
-          transform: keyboardState.isVisible && isIOS ? 'translateY(0)' : undefined
+          // Add initial transform for iOS to prevent keyboard hiding
+          transform: initialLoad && isIOS 
+            ? 'translateY(-100px)' 
+            : keyboardState.isVisible && isIOS 
+              ? 'translateY(0)' 
+              : undefined,
+          transition: 'transform 0.2s ease-out'
         }}
       >
         <div 
@@ -161,7 +183,9 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
               maxHeight: messagesHeight,
               WebkitOverflowScrolling: 'touch',
               touchAction: 'pan-y',
-              overscrollBehavior: 'contain'
+              overscrollBehavior: 'contain',
+              opacity: initialLoad ? 0 : 1,
+              transition: 'opacity 0.2s ease-in'
             }}
           >
             <div className="pt-4 pb-4">
@@ -191,11 +215,14 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
                   : isIOS 
                     ? 'max(env(safe-area-inset-bottom), 16px)'
                     : '16px',
-                position: keyboardState.isVisible && isIOS ? 'fixed' : 'relative',
-                bottom: keyboardState.isVisible && isIOS ? '0' : 'auto',
-                left: keyboardState.isVisible && isIOS ? '0' : 'auto',
-                right: keyboardState.isVisible && isIOS ? '0' : 'auto',
-                zIndex: keyboardState.isVisible && isIOS ? 100 : 'auto'
+                // Better positioning for iOS initial load
+                position: (keyboardState.isVisible && isIOS) || (initialLoad && isIOS) ? 'fixed' : 'relative',
+                bottom: (keyboardState.isVisible && isIOS) || (initialLoad && isIOS) ? '0' : 'auto',
+                left: (keyboardState.isVisible && isIOS) || (initialLoad && isIOS) ? '0' : 'auto',
+                right: (keyboardState.isVisible && isIOS) || (initialLoad && isIOS) ? '0' : 'auto',
+                zIndex: (keyboardState.isVisible && isIOS) || (initialLoad && isIOS) ? 100 : 'auto',
+                opacity: initialLoad ? 0 : 1,
+                transition: 'opacity 0.2s ease-in'
               }}
             >
               <div className="p-4">

@@ -25,30 +25,33 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     if (iOS && 'visualViewport' in window && window.visualViewport) {
       // Use Visual Viewport API for iOS
       const viewport = window.visualViewport!;
-      const currentHeight = window.innerHeight;
-      const keyboardHeight = Math.max(0, currentHeight - viewport.height);
+      const windowHeight = window.innerHeight;
+      const viewportHeight = viewport.height;
+      const keyboardHeight = Math.max(0, windowHeight - viewportHeight);
       const isKeyboardVisible = keyboardHeight > 50;
       
       console.log('iOS Keyboard Detection:', {
-        windowHeight: currentHeight,
-        viewportHeight: viewport.height,
+        windowHeight,
+        viewportHeight,
         keyboardHeight,
-        isKeyboardVisible
+        isKeyboardVisible,
+        scale: viewport.scale
       });
       
       setKeyboardState({
         isVisible: isKeyboardVisible,
         height: keyboardHeight,
-        availableHeight: viewport.height
+        availableHeight: viewportHeight
       });
     } else {
-      // Fallback for other platforms or older iOS
+      // Fallback for other platforms
       const currentHeight = window.innerHeight;
-      const isKeyboardVisible = currentHeight < window.screen.height * 0.85;
-      const keyboardHeight = isKeyboardVisible ? window.screen.height - currentHeight : 0;
+      const originalHeight = window.screen.height;
+      const keyboardHeight = Math.max(0, originalHeight - currentHeight - 100); // Account for browser chrome
+      const isKeyboardVisible = keyboardHeight > 50;
       
       console.log('Fallback Keyboard Detection:', {
-        screenHeight: window.screen.height,
+        originalHeight,
         currentHeight,
         keyboardHeight,
         isKeyboardVisible
@@ -62,9 +65,9 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     }
   }, []);
 
-  // Debounced update function
+  // Debounced update function with faster response
   const debouncedUpdate = useCallback(() => {
-    setTimeout(updateKeyboardState, 50);
+    setTimeout(updateKeyboardState, 20);
   }, [updateKeyboardState]);
 
   useEffect(() => {
@@ -74,15 +77,17 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     updateKeyboardState();
 
     if (iOS && 'visualViewport' in window && window.visualViewport) {
-      // Use Visual Viewport API for iOS
+      // Use Visual Viewport API for iOS with immediate updates
       const viewport = window.visualViewport;
-      viewport.addEventListener('resize', debouncedUpdate, { passive: true });
+      viewport.addEventListener('resize', updateKeyboardState, { passive: true });
+      viewport.addEventListener('scroll', updateKeyboardState, { passive: true });
       
       return () => {
-        viewport.removeEventListener('resize', debouncedUpdate);
+        viewport.removeEventListener('resize', updateKeyboardState);
+        viewport.removeEventListener('scroll', updateKeyboardState);
       };
     } else {
-      // Fallback for non-iOS or older iOS
+      // Fallback for non-iOS
       window.addEventListener('resize', debouncedUpdate, { passive: true });
       
       return () => {
@@ -90,6 +95,29 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       };
     }
   }, [debouncedUpdate, updateKeyboardState]);
+
+  // Additional focus/blur detection for better keyboard tracking
+  useEffect(() => {
+    const handleFocus = () => {
+      setTimeout(updateKeyboardState, 300); // Give time for keyboard to appear
+    };
+    
+    const handleBlur = () => {
+      setTimeout(updateKeyboardState, 300); // Give time for keyboard to disappear
+    };
+
+    if (inputRef.current) {
+      inputRef.current.addEventListener('focus', handleFocus);
+      inputRef.current.addEventListener('blur', handleBlur);
+      
+      return () => {
+        if (inputRef.current) {
+          inputRef.current.removeEventListener('focus', handleFocus);
+          inputRef.current.removeEventListener('blur', handleBlur);
+        }
+      };
+    }
+  }, [inputRef, updateKeyboardState]);
 
   return keyboardState;
 };

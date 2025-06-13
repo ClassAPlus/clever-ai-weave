@@ -77,20 +77,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     messageInputRef
   });
 
-  // Handle initial positioning to avoid bottom toolbar overlap
-  useEffect(() => {
-    if (open && messagesContainerRef.current) {
-      // Delay to ensure DOM is ready and safe areas are calculated
-      setTimeout(() => {
-        if (messagesContainerRef.current) {
-          // Scroll up slightly to ensure content is visible above bottom toolbar
-          messagesContainerRef.current.scrollTop = 40;
-        }
-      }, 150);
-    }
-  }, [open]);
-
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or keyboard state changes
   useEffect(() => {
     if (messagesContainerRef.current && messages.length > 0) {
       setTimeout(() => {
@@ -99,17 +86,44 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
         }
       }, 100);
     }
-  }, [messages.length]);
+  }, [messages.length, keyboardState.isVisible]);
+
+  // Calculate dynamic heights based on keyboard state
+  const containerHeight = keyboardState.isVisible 
+    ? `${keyboardState.availableHeight}px` 
+    : '100vh';
+    
+  const messagesHeight = keyboardState.isVisible
+    ? `${keyboardState.availableHeight - 180}px` // Account for header + input
+    : 'calc(100vh - 180px)';
+
+  console.log('Mobile Dialog Render:', {
+    keyboardVisible: keyboardState.isVisible,
+    keyboardHeight: keyboardState.height,
+    availableHeight: keyboardState.availableHeight,
+    containerHeight,
+    messagesHeight
+  });
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         side="bottom"
-        className="w-full border-0 p-0 h-screen max-h-screen overflow-hidden"
+        className="w-full border-0 p-0 overflow-hidden"
+        style={{ 
+          height: containerHeight,
+          maxHeight: containerHeight
+        }}
       >
-        <div className="flex flex-col h-full bg-gradient-to-br from-white via-gray-50 to-purple-50/30">
+        <div 
+          className="flex flex-col bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
+          style={{ 
+            height: containerHeight,
+            maxHeight: containerHeight
+          }}
+        >
           {/* Header */}
-          <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-b pt-4">
+          <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-b pt-safe-top">
             <div className="p-4 pb-2">
               <SheetHeader>
                 <SheetTitle className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
@@ -122,17 +136,18 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </div>
           </div>
 
-          {/* Messages Container with proper bottom spacing */}
+          {/* Messages Container with dynamic height */}
           <div 
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto pb-6"
+            className="flex-1 overflow-y-auto touch-scroll"
             style={{
+              height: messagesHeight,
+              maxHeight: messagesHeight,
               WebkitOverflowScrolling: 'touch',
-              touchAction: 'pan-y',
-              paddingBottom: 'max(env(safe-area-inset-bottom), 24px)'
+              touchAction: 'pan-y'
             }}
           >
-            <div className="pt-4">
+            <div className="pt-4 pb-4">
               <ChatMessages messages={messages} isLoading={isLoading} />
               
               {isCompleted && summary && (
@@ -149,12 +164,14 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </div>
           </div>
 
-          {/* Input Area with proper bottom safe area */}
+          {/* Input Area with keyboard-aware positioning */}
           {!isCompleted && (
             <div 
               className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-t"
               style={{
-                paddingBottom: `max(env(safe-area-inset-bottom), 16px)`
+                paddingBottom: keyboardState.isVisible 
+                  ? '16px' 
+                  : 'max(env(safe-area-inset-bottom), 16px)'
               }}
             >
               <div className="p-4">

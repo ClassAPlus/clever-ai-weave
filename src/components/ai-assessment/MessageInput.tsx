@@ -60,9 +60,15 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, isSending }) => {
         onMouseDown={e => e.preventDefault()}
         disabled={isSending || !text.trim()}
         size="icon"
-        className="ml-2 h-12 w-12 rounded-lg"
+        className="ml-2 h-12 w-12 rounded-lg bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group relative overflow-hidden"
       >
-        <Send className="h-4 w-4" />
+        {/* Animated background on hover */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        
+        {/* Shine animation */}
+        <div className="absolute inset-0 -top-0 -left-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 animate-shine"></div>
+        
+        <Send className="h-4 w-4 group-hover:scale-110 transition-transform duration-200 relative z-10" />
       </Button>
     </div>
   );

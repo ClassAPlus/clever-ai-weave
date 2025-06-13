@@ -58,7 +58,6 @@ export const AssessmentChat = ({
     if (!currentMessage.trim() || isLoading) return;
 
     const userMessage = currentMessage;
-    setCurrentMessage("");
     setIsLoading(true);
 
     // Add user message to chat

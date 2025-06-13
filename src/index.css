@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -97,35 +98,36 @@
 
   body {
     @apply bg-background text-foreground;
-    /* iOS-specific optimizations */
+    /* iOS-specific optimizations - but allow normal scrolling */
     -webkit-text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     touch-action: manipulation;
-    overscroll-behavior: none;
-    /* Prevent iOS rubber band scrolling */
-    position: fixed;
-    overflow: hidden;
-    width: 100%;
-    height: 100vh;
   }
 
   #root {
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
+    /* Allow normal scrolling for the main app */
+    min-height: 100vh;
   }
 
-  /* iOS mobile viewport handling */
-  .mobile-full-height {
-    height: 100vh;
+  /* iOS mobile viewport handling - only when dialog is open */
+  .mobile-dialog-open {
+    position: fixed !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    height: 100vh !important;
+  }
+
+  .mobile-dialog-open #root {
+    width: 100% !important;
+    height: 100vh !important;
+    overflow: hidden !important;
   }
 
   /* iOS scrolling optimization */
   .ios-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
-    /* Prevent focus stealing */
     outline: none !important;
   }
 
@@ -138,7 +140,6 @@
     transform: translateZ(0);
     -webkit-appearance: none;
     border-radius: 0;
-    /* Remove all transitions that cause layout shifts */
     transition: none !important;
   }
 
@@ -154,19 +155,15 @@
     background: white;
     border-top: 1px solid rgb(229, 231, 235);
     z-index: 1000;
-    /* Use env() for iOS keyboard handling */
     padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px) + env(keyboard-inset-height, 0px));
-    /* Hardware acceleration */
     transform: translate3d(0,0,0);
     -webkit-transform: translate3d(0,0,0);
-    /* Remove transitions that cause focus loss */
     transition: none !important;
   }
 
   .input-wrapper-ios {
     flex: 1;
     position: relative;
-    /* Hardware acceleration */
     transform: translate3d(0,0,0);
     -webkit-transform: translate3d(0,0,0);
   }
@@ -182,15 +179,11 @@
     padding: 12px;
     font-size: 16px !important;
     line-height: 1.5;
-    /* Remove ALL transitions */
     transition: none !important;
-    /* iOS specific fixes */
     -webkit-appearance: none;
     -webkit-border-radius: 12px;
-    /* Hardware acceleration */
     transform: translate3d(0,0,0);
     -webkit-transform: translate3d(0,0,0);
-    /* Prevent layout shifts */
     will-change: auto;
   }
 
@@ -198,7 +191,6 @@
     outline: none;
     border-color: rgb(147, 51, 234);
     box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
-    /* Remove transition on focus */
     transition: none !important;
   }
 
@@ -214,11 +206,9 @@
     justify-content: center;
     flex-shrink: 0;
     align-self: flex-end;
-    /* Hardware acceleration */
     transform: translate3d(0,0,0);
     -webkit-transform: translate3d(0,0,0);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    /* Simplified transitions */
     transition: transform 0.2s ease;
   }
 

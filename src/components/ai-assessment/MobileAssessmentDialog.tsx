@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { AssessmentDialogContent } from "./AssessmentDialogContent";
+import { useEffect } from "react";
 
 interface MobileAssessmentDialogProps {
   open: boolean;
@@ -15,6 +16,20 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
   const { isCompleted, keyboardState } = contentProps;
   
   const content = AssessmentDialogContent(contentProps);
+  
+  // Apply body lock only when dialog is open on mobile
+  useEffect(() => {
+    if (open) {
+      document.body.classList.add('mobile-dialog-open');
+    } else {
+      document.body.classList.remove('mobile-dialog-open');
+    }
+    
+    // Cleanup when component unmounts
+    return () => {
+      document.body.classList.remove('mobile-dialog-open');
+    };
+  }, [open]);
   
   // Calculate available height for chat content
   const inputHeight = isCompleted ? 0 : 80; // Approximate input container height
@@ -42,9 +57,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           background: 'linear-gradient(to bottom right, white, rgb(249, 250, 251), rgba(147, 51, 234, 0.05))',
           transform: 'none',
           overflow: 'hidden',
-          /* Hardware acceleration */
           WebkitTransform: 'translate3d(0,0,0)',
-          /* Remove transitions */
           transition: 'none !important'
         }}
         aria-describedby="ai-assessment-description"

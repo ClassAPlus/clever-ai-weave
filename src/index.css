@@ -107,7 +107,7 @@
     min-height: 100vh;
   }
 
-  /* iOS Safe Area Support */
+  /* iOS Safe Area Support with bottom toolbar fixes */
   .pt-safe-top {
     padding-top: max(env(safe-area-inset-top), 20px);
   }
@@ -124,10 +124,12 @@
     padding-right: env(safe-area-inset-right);
   }
 
-  /* Mobile viewport optimization */
+  /* Mobile viewport optimization with bottom toolbar consideration */
   @supports (-webkit-touch-callout: none) {
     .h-screen {
       height: -webkit-fill-available;
+      /* Account for bottom toolbar/home indicator */
+      padding-bottom: env(safe-area-inset-bottom);
     }
   }
 
@@ -167,17 +169,30 @@
       transform-origin: left top;
     }
     
-    /* iOS specific viewport fixes */
+    /* iOS specific viewport fixes with bottom safe area */
     @supports (-webkit-touch-callout: none) {
       .h-screen {
         height: 100vh;
         height: -webkit-fill-available;
+        /* Ensure content doesn't get hidden by bottom toolbar */
+        min-height: calc(100vh - env(safe-area-inset-bottom));
       }
       
       .max-h-screen {
         max-height: 100vh;
         max-height: -webkit-fill-available;
       }
+      
+      /* Fix for bottom toolbar overlap in modals/sheets */
+      [data-radix-dialog-content] {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    }
+    
+    /* Specific fixes for sheet content on iOS */
+    .mobile-sheet-content {
+      padding-bottom: max(env(safe-area-inset-bottom), 20px);
+      margin-bottom: env(safe-area-inset-bottom);
     }
   }
 }

@@ -77,16 +77,16 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     messageInputRef
   });
 
-  // Handle iOS safe area and initial positioning
+  // Handle initial positioning to avoid bottom toolbar overlap
   useEffect(() => {
     if (open && messagesContainerRef.current) {
-      // Small delay to ensure DOM is ready
+      // Delay to ensure DOM is ready and safe areas are calculated
       setTimeout(() => {
         if (messagesContainerRef.current) {
-          // Scroll to a position that accounts for iOS status bar
-          messagesContainerRef.current.scrollTop = 20;
+          // Scroll up slightly to ensure content is visible above bottom toolbar
+          messagesContainerRef.current.scrollTop = 40;
         }
-      }, 100);
+      }, 150);
     }
   }, [open]);
 
@@ -108,9 +108,9 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
         className="w-full border-0 p-0 h-screen max-h-screen overflow-hidden"
       >
         <div className="flex flex-col h-full bg-gradient-to-br from-white via-gray-50 to-purple-50/30">
-          {/* Header with safe area padding */}
-          <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-b pt-safe-top">
-            <div className="p-4">
+          {/* Header */}
+          <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-b pt-4">
+            <div className="p-4 pb-2">
               <SheetHeader>
                 <SheetTitle className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
                   {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
@@ -122,33 +122,41 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </div>
           </div>
 
-          {/* Messages Container */}
+          {/* Messages Container with proper bottom spacing */}
           <div 
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto overscroll-contain"
+            className="flex-1 overflow-y-auto pb-6"
             style={{
               WebkitOverflowScrolling: 'touch',
-              touchAction: 'pan-y'
+              touchAction: 'pan-y',
+              paddingBottom: 'max(env(safe-area-inset-bottom), 24px)'
             }}
           >
-            <ChatMessages messages={messages} isLoading={isLoading} />
-            
-            {isCompleted && summary && (
-              <div className="p-4">
-                <AssessmentSummary 
-                  summary={summary} 
-                  onResetAssessment={resetAssessment} 
-                  onRequestContact={handleContactRequest}
-                  stage={stage}
-                  showContactButton={showContactButton}
-                />
-              </div>
-            )}
+            <div className="pt-4">
+              <ChatMessages messages={messages} isLoading={isLoading} />
+              
+              {isCompleted && summary && (
+                <div className="p-4">
+                  <AssessmentSummary 
+                    summary={summary} 
+                    onResetAssessment={resetAssessment} 
+                    onRequestContact={handleContactRequest}
+                    stage={stage}
+                    showContactButton={showContactButton}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Input Area with safe area padding */}
+          {/* Input Area with proper bottom safe area */}
           {!isCompleted && (
-            <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-t pb-safe-bottom">
+            <div 
+              className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-t"
+              style={{
+                paddingBottom: `max(env(safe-area-inset-bottom), 16px)`
+              }}
+            >
               <div className="p-4">
                 <MessageInput
                   ref={messageInputRef}

@@ -103,41 +103,48 @@
     -moz-osx-font-smoothing: grayscale;
     touch-action: manipulation;
     overscroll-behavior: none;
+    /* Prevent iOS rubber band scrolling */
+    position: fixed;
+    overflow: hidden;
+    width: 100%;
+    height: 100vh;
+  }
+
+  #root {
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
   }
 
   /* iOS mobile viewport handling */
-  @supports (height: 100dvh) {
-    .mobile-full-height {
-      height: 100dvh;
-    }
-  }
-
-  @supports not (height: 100dvh) {
-    .mobile-full-height {
-      height: 100vh;
-    }
+  .mobile-full-height {
+    height: 100vh;
   }
 
   /* iOS scrolling optimization */
   .ios-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
+    /* Prevent focus stealing */
+    outline: none !important;
   }
 
-  /* Prevent zoom on focus */
+  /* Prevent zoom on focus for iOS */
   input[type="text"],
-  input[type="email"],
+  input[type="email"], 
   input[type="tel"],
   textarea {
     font-size: 16px !important;
     transform: translateZ(0);
     -webkit-appearance: none;
     border-radius: 0;
+    /* Remove all transitions that cause layout shifts */
+    transition: none !important;
   }
 
-  /* Input container styles */
-  .input-container {
-    position: sticky;
+  /* iOS-optimized input container */
+  .input-container-ios {
+    position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
@@ -146,17 +153,25 @@
     padding: 16px;
     background: white;
     border-top: 1px solid rgb(229, 231, 235);
-    z-index: 50;
-    /* iOS safe area */
-    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    z-index: 1000;
+    /* Use env() for iOS keyboard handling */
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px) + env(keyboard-inset-height, 0px));
+    /* Hardware acceleration */
+    transform: translate3d(0,0,0);
+    -webkit-transform: translate3d(0,0,0);
+    /* Remove transitions that cause focus loss */
+    transition: none !important;
   }
 
-  .input-wrapper {
+  .input-wrapper-ios {
     flex: 1;
     position: relative;
+    /* Hardware acceleration */
+    transform: translate3d(0,0,0);
+    -webkit-transform: translate3d(0,0,0);
   }
 
-  .input-textarea {
+  .input-textarea-ios {
     width: 100%;
     min-height: 48px;
     max-height: 80px;
@@ -167,21 +182,27 @@
     padding: 12px;
     font-size: 16px !important;
     line-height: 1.5;
-    /* Remove transitions that cause layout shifts */
-    transition: border-color 0.2s ease;
+    /* Remove ALL transitions */
+    transition: none !important;
     /* iOS specific fixes */
     -webkit-appearance: none;
     -webkit-border-radius: 12px;
-    transform: translateZ(0);
+    /* Hardware acceleration */
+    transform: translate3d(0,0,0);
+    -webkit-transform: translate3d(0,0,0);
+    /* Prevent layout shifts */
+    will-change: auto;
   }
 
-  .input-textarea:focus {
+  .input-textarea-ios:focus {
     outline: none;
     border-color: rgb(147, 51, 234);
     box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+    /* Remove transition on focus */
+    transition: none !important;
   }
 
-  .send-button {
+  .send-button-ios {
     background: linear-gradient(to right, rgb(147, 51, 234), rgb(219, 39, 119), rgb(37, 99, 235));
     color: white;
     padding: 12px 16px;
@@ -193,19 +214,24 @@
     justify-content: center;
     flex-shrink: 0;
     align-self: flex-end;
-    transition: all 0.3s ease;
+    /* Hardware acceleration */
+    transform: translate3d(0,0,0);
+    -webkit-transform: translate3d(0,0,0);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    /* Simplified transitions */
+    transition: transform 0.2s ease;
   }
 
-  .send-button:hover {
+  .send-button-ios:hover {
     background: linear-gradient(to right, rgb(126, 34, 206), rgb(190, 24, 93), rgb(29, 78, 216));
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    transform: translateY(-1px);
+    transform: translate3d(0,-1px,0);
+    -webkit-transform: translate3d(0,-1px,0);
   }
 
-  .send-button:disabled {
+  .send-button-ios:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
+    transform: translate3d(0,0,0);
+    -webkit-transform: translate3d(0,0,0);
   }
 }

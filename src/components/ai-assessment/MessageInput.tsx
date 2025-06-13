@@ -1,5 +1,5 @@
 
-import { forwardRef, useCallback, useRef, useEffect } from "react";
+import { forwardRef, useCallback, useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -21,8 +21,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const { isHebrew } = useLanguage();
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
-  const focusTimeoutRef = useRef<NodeJS.Timeout>();
-  const isFocusedRef = useRef(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -35,59 +34,52 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     onSendMessage();
   }, [onSendMessage]);
 
-  const handleFocus = useCallback(() => {
-    console.log('Input focused');
-    isFocusedRef.current = true;
-    clearTimeout(focusTimeoutRef.current);
-  }, []);
-
-  const handleBlur = useCallback((e: React.FocusEvent) => {
-    console.log('Input blur event');
-    // Prevent blur if it's just a layout shift
-    focusTimeoutRef.current = setTimeout(() => {
-      isFocusedRef.current = false;
-    }, 100);
-  }, []);
-
-  const handleTouchStart = useCallback(() => {
-    console.log('Input touched');
-    // Ensure focus on touch for iOS
-    if (textareaRef.current && !isFocusedRef.current) {
-      requestAnimationFrame(() => {
-        textareaRef.current?.focus();
-      });
+  const handleFirstTouch = useCallback(() => {
+    console.log('First touch interaction');
+    if (!hasInteracted && textareaRef.current) {
+      setHasInteracted(true);
+      // Remove readonly attribute on first touch (iOS hack)
+      textareaRef.current.removeAttribute('readonly');
+      textareaRef.current.focus();
     }
+  }, [hasInteracted]);
+
+  const handleFocus = useCallback(() => {
+    console.log('Input focused successfully');
   }, []);
 
-  // Cleanup timeout on unmount
+  // iOS-specific initialization
   useEffect(() => {
-    return () => {
-      clearTimeout(focusTimeoutRef.current);
-    };
-  }, []);
+    if (textareaRef.current && !hasInteracted) {
+      // Start with readonly to prevent iOS keyboard issues
+      textareaRef.current.setAttribute('readonly', 'true');
+    }
+  }, [hasInteracted]);
 
   return (
-    <div className="input-container">
-      <div className="input-wrapper">
+    <div className="input-container-ios">
+      <div className="input-wrapper-ios">
         <Textarea
           ref={textareaRef}
           value={currentMessage}
           onChange={(e) => setCurrentMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           onFocus={handleFocus}
-          onBlur={handleBlur}
-          onTouchStart={handleTouchStart}
+          onTouchStart={handleFirstTouch}
+          onClick={handleFirstTouch}
           placeholder={isHebrew ? "הקלד את התשובה שלך..." : "Type your response..."}
-          className="input-textarea"
+          className="input-textarea-ios"
           style={{
             direction: 'ltr',
             textAlign: 'left',
             fontSize: '16px',
-            touchAction: 'manipulation'
+            touchAction: 'manipulation',
+            transform: 'translate3d(0,0,0)',
+            WebkitTransform: 'translate3d(0,0,0)'
           }}
           dir="ltr"
           lang="en"
-          inputMode="text"
+          inputMode={hasInteracted ? "text" : "none"}
           enterKeyHint="send"
           autoComplete="off"
           autoCorrect="off"
@@ -101,11 +93,13 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
       <Button
         onClick={handleSendClick}
         disabled={!currentMessage.trim() || isLoading}
-        className="send-button"
+        className="send-button-ios"
         style={{
           minHeight: '44px',
           minWidth: '44px',
-          touchAction: 'manipulation'
+          touchAction: 'manipulation',
+          transform: 'translate3d(0,0,0)',
+          WebkitTransform: 'translate3d(0,0,0)'
         }}
       >
         {isLoading ? (

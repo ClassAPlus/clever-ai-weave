@@ -12,14 +12,24 @@ interface MobileAssessmentDialogProps {
 
 export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: MobileAssessmentDialogProps) => {
   const { isHebrew } = useLanguage();
-  const { isCompleted } = contentProps;
+  const { isCompleted, keyboardState } = contentProps;
   
   const content = AssessmentDialogContent(contentProps);
+  
+  // Calculate dynamic height based on keyboard state
+  const containerHeight = keyboardState.isVisible 
+    ? keyboardState.availableHeight
+    : '100vh';
+  
+  // Calculate bottom padding for iOS safe area
+  const bottomPadding = keyboardState.isVisible 
+    ? `${Math.max(0, keyboardState.height)}px`
+    : 'env(safe-area-inset-bottom, 0px)';
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="fixed inset-0 max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
+        className="fixed inset-0 max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 overflow-hidden"
         style={{ 
           position: 'fixed',
           top: 0,
@@ -27,11 +37,11 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           right: 0,
           bottom: 0,
           width: '100vw',
-          height: '350px',
+          height: containerHeight,
           maxWidth: '100vw',
-          maxHeight: '350px',
+          maxHeight: containerHeight,
           transform: 'none',
-          overflow: 'hidden'
+          paddingBottom: bottomPadding
         }}
         aria-describedby="ai-assessment-description"
       >
@@ -46,7 +56,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
 
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header */}
-          <div className="flex-shrink-0 border-b border-gray-100 py-2 bg-white/95 backdrop-blur-sm">
+          <div className="flex-shrink-0 border-b border-gray-100 py-3 bg-white/95 backdrop-blur-sm" style={{ height: '60px' }}>
             <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center px-4">
               {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
             </div>
@@ -56,12 +66,19 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           </div>
 
           {/* Chat Content */}
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div 
+            className="flex-1 min-h-0 overflow-hidden"
+            style={{
+              height: isCompleted 
+                ? `calc(${containerHeight} - 60px)` 
+                : `calc(${containerHeight} - 120px)` // 60px header + 60px input
+            }}
+          >
             <ScrollArea 
               className="h-full w-full" 
               ref={contentProps.scrollAreaRef}
             >
-              <div className="p-2">
+              <div className="p-2 pb-4">
                 {/* Background decoration */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
                 
@@ -71,12 +88,17 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </ScrollArea>
           </div>
 
-          {/* Input - Fixed height */}
+          {/* Input - Fixed at bottom when keyboard is visible */}
           {!isCompleted && (
             <div 
-              className="flex-shrink-0 bg-white border-t border-gray-100"
+              className="flex-shrink-0"
               style={{ 
-                height: '60px'
+                height: '60px',
+                position: keyboardState.isVisible ? 'absolute' : 'relative',
+                bottom: keyboardState.isVisible ? '0' : 'auto',
+                left: keyboardState.isVisible ? '0' : 'auto',
+                right: keyboardState.isVisible ? '0' : 'auto',
+                zIndex: 50
               }}
             >
               <content.MessageInput />

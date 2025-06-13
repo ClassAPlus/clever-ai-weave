@@ -1,3 +1,4 @@
+
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AssessmentChat } from "./AssessmentChat";
 import { MobileSheetHeader } from "./MobileSheetHeader";
@@ -84,7 +85,10 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
         className="w-full border-0 p-0 overflow-hidden"
         style={{ 
           height: containerHeight,
-          maxHeight: containerHeight
+          maxHeight: containerHeight,
+          position: 'fixed',
+          top: '0',
+          bottom: 'auto'
         }}
       >
         <div 

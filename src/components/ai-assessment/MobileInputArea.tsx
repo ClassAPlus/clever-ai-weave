@@ -35,10 +35,11 @@ export const MobileInputArea = ({
     <div 
       className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-t"
       style={{
-        paddingBottom: isIOS ? 'max(env(safe-area-inset-bottom), 16px)' : '16px'
+        paddingBottom: isIOS ? '16px' : '12px',
+        paddingTop: '8px'
       }}
     >
-      <div className="p-4">
+      <div className="px-4 pb-2">
         <MessageInput
           ref={messageInputRef}
           currentMessage={currentMessage}

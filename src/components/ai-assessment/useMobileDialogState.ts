@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 interface UseMobileDialogStateProps {
@@ -27,30 +28,22 @@ export const useMobileDialogState = ({ open, keyboardState }: UseMobileDialogSta
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   
-  // Calculate heights - keep it simple
+  // Always assume keyboard is open on mobile - position UI in the top portion
   let containerHeight: string;
   let messagesHeight: string;
   
-  if (keyboardState.isVisible) {
-    // When keyboard is visible, use available height
-    containerHeight = `${keyboardState.availableHeight}px`;
-    messagesHeight = `${keyboardState.availableHeight - 120}px`;
+  if (isIOS) {
+    // On iOS, assume keyboard takes bottom ~40% of screen, use top 60%
+    containerHeight = '60vh';
+    messagesHeight = 'calc(60vh - 140px)';
   } else {
-    // When keyboard is not visible
-    if (isIOS) {
-      containerHeight = 'calc(100vh - env(safe-area-inset-bottom))';
-      messagesHeight = 'calc(100vh - env(safe-area-inset-bottom) - 160px)';
-    } else {
-      containerHeight = '100vh';
-      messagesHeight = 'calc(100vh - 160px)';
-    }
+    // On Android, assume keyboard takes bottom ~50% of screen, use top 50%
+    containerHeight = '50vh';
+    messagesHeight = 'calc(50vh - 140px)';
   }
 
-  console.log('Mobile Dialog State:', {
+  console.log('Mobile Dialog State (keyboard assumed open):', {
     initialLoad,
-    keyboardVisible: keyboardState.isVisible,
-    keyboardHeight: keyboardState.height,
-    availableHeight: keyboardState.availableHeight,
     containerHeight,
     messagesHeight,
     isIOS

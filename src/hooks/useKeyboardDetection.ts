@@ -21,85 +21,67 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
 
   useEffect(() => {
     const iOS = isIOS();
-    let timeoutId: NodeJS.Timeout;
     
     const updateKeyboardState = () => {
-      // Clear any pending updates
-      clearTimeout(timeoutId);
-      
-      // Debounce the update to prevent rapid changes
-      timeoutId = setTimeout(() => {
+      if (iOS && 'visualViewport' in window && window.visualViewport) {
+        // Use Visual Viewport API for iOS
+        const viewport = window.visualViewport!;
         const currentHeight = window.innerHeight;
-        const initialHeight = window.screen.height;
+        const keyboardHeight = Math.max(0, currentHeight - viewport.height);
+        const isKeyboardVisible = keyboardHeight > 50;
         
-        if (iOS && 'visualViewport' in window && window.visualViewport) {
-          // Use Visual Viewport API for iOS
-          const viewport = window.visualViewport!;
-          const keyboardHeight = Math.max(0, currentHeight - viewport.height);
-          const isKeyboardVisible = keyboardHeight > 50;
-          
-          console.log('iOS Viewport update:', {
-            windowHeight: currentHeight,
-            viewportHeight: viewport.height,
-            keyboardHeight,
-            isKeyboardVisible
-          });
-          
-          setKeyboardState({
-            isVisible: isKeyboardVisible,
-            height: keyboardHeight,
-            availableHeight: viewport.height
-          });
-        } else {
-          // Fallback for other platforms
-          const keyboardHeight = Math.max(0, initialHeight - currentHeight);
-          const isKeyboardVisible = keyboardHeight > 50;
-          
-          console.log('Fallback update:', {
-            initialHeight,
-            currentHeight,
-            keyboardHeight,
-            isKeyboardVisible
-          });
-          
-          setKeyboardState({
-            isVisible: isKeyboardVisible,
-            height: keyboardHeight,
-            availableHeight: currentHeight
-          });
-        }
-      }, 100);
+        console.log('iOS Viewport update:', {
+          windowHeight: currentHeight,
+          viewportHeight: viewport.height,
+          keyboardHeight,
+          isKeyboardVisible
+        });
+        
+        setKeyboardState({
+          isVisible: isKeyboardVisible,
+          height: keyboardHeight,
+          availableHeight: viewport.height
+        });
+      } else {
+        // Fallback for other platforms
+        const currentHeight = window.innerHeight;
+        const keyboardHeight = Math.max(0, window.screen.height - currentHeight);
+        const isKeyboardVisible = keyboardHeight > 50;
+        
+        console.log('Fallback update:', {
+          screenHeight: window.screen.height,
+          currentHeight,
+          keyboardHeight,
+          isKeyboardVisible
+        });
+        
+        setKeyboardState({
+          isVisible: isKeyboardVisible,
+          height: keyboardHeight,
+          availableHeight: currentHeight
+        });
+      }
     };
-
-    // Use ResizeObserver for more reliable detection
-    const resizeObserver = new ResizeObserver(() => {
-      updateKeyboardState();
-    });
-
-    // Observe body element for size changes
-    resizeObserver.observe(document.body);
 
     // Initial update
     updateKeyboardState();
 
     // iOS-specific Visual Viewport listeners
     if (iOS && 'visualViewport' in window && window.visualViewport) {
-      window.visualViewport.addEventListener('resize', updateKeyboardState, { passive: true });
+      const viewport = window.visualViewport;
+      viewport.addEventListener('resize', updateKeyboardState, { passive: true });
+      
+      return () => {
+        viewport.removeEventListener('resize', updateKeyboardState);
+      };
+    } else {
+      // Fallback resize listener for non-iOS
+      window.addEventListener('resize', updateKeyboardState, { passive: true });
+      
+      return () => {
+        window.removeEventListener('resize', updateKeyboardState);
+      };
     }
-
-    // Fallback resize listener
-    window.addEventListener('resize', updateKeyboardState, { passive: true });
-
-    return () => {
-      clearTimeout(timeoutId);
-      resizeObserver.disconnect();
-      
-      if (iOS && 'visualViewport' in window && window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', updateKeyboardState);
-      }
-      
-      window.removeEventListener('resize', updateKeyboardState);
-    };
   }, []);
 
   return keyboardState;

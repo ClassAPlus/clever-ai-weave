@@ -19,7 +19,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="fixed inset-0 max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 overflow-hidden mobile-full-height"
+        className="mobile-dialog-content"
         style={{ 
           position: 'fixed',
           top: 0,
@@ -27,8 +27,16 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           right: 0,
           bottom: 0,
           width: '100vw',
+          height: '100dvh',
           maxWidth: '100vw',
-          transform: 'none'
+          maxHeight: '100dvh',
+          margin: 0,
+          padding: 0,
+          border: 0,
+          borderRadius: 0,
+          background: 'linear-gradient(to bottom right, white, rgb(249, 250, 251), rgba(147, 51, 234, 0.05))',
+          transform: 'none',
+          overflow: 'hidden'
         }}
         aria-describedby="ai-assessment-description"
       >
@@ -41,24 +49,67 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col mobile-full-height keyboard-aware">
+        <div 
+          className="mobile-layout"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            width: '100%'
+          }}
+        >
           {/* Header - Fixed height */}
-          <div className="flex-shrink-0 border-b border-gray-100 py-3 bg-white/95 backdrop-blur-sm">
-            <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center px-4">
+          <div 
+            className="dialog-header"
+            style={{
+              flexShrink: 0,
+              borderBottom: '1px solid rgb(229, 231, 235)',
+              padding: '12px 16px',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(8px)'
+            }}
+          >
+            <div 
+              className="header-title"
+              style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                background: 'linear-gradient(to right, rgb(147, 51, 234), rgb(219, 39, 119), rgb(37, 99, 235))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textAlign: 'center'
+              }}
+            >
               {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
             </div>
-            <p className="text-center text-gray-600 mt-1 text-sm px-4">
+            <p 
+              style={{
+                textAlign: 'center',
+                color: 'rgb(107, 114, 128)',
+                marginTop: '4px',
+                fontSize: '14px'
+              }}
+            >
               {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
             </p>
           </div>
 
           {/* Chat Content - Flexible height */}
-          <div className="flex-1 overflow-hidden min-h-0">
+          <div 
+            className="chat-container"
+            style={{
+              flex: 1,
+              overflow: 'hidden',
+              minHeight: 0
+            }}
+          >
             <ScrollArea 
               className="h-full w-full ios-scroll" 
               ref={contentProps.scrollAreaRef}
+              tabIndex={-1}
+              style={{ outline: 'none' }}
             >
-              <div className="p-4 pb-6">
+              <div style={{ padding: '16px', paddingBottom: '24px' }}>
                 <content.ChatMessages />
                 <content.AssessmentSummary />
               </div>
@@ -66,11 +117,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           </div>
 
           {/* Input - Sticky at bottom */}
-          {!isCompleted && (
-            <div className="flex-shrink-0 bg-white border-t border-gray-100 sticky bottom-0 z-10">
-              <content.MessageInput />
-            </div>
-          )}
+          {!isCompleted && <content.MessageInput />}
         </div>
       </DialogContent>
     </Dialog>

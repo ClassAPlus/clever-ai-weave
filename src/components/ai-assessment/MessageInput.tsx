@@ -1,5 +1,5 @@
 
-import { forwardRef, useCallback } from "react";
+import { forwardRef, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -19,6 +19,10 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   isLoading 
 }, ref) => {
   const { isHebrew } = useLanguage();
+  const internalRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
+  const focusTimeoutRef = useRef<NodeJS.Timeout>();
+  const isFocusedRef = useRef(false);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -31,21 +35,54 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     onSendMessage();
   }, [onSendMessage]);
 
+  const handleFocus = useCallback(() => {
+    console.log('Input focused');
+    isFocusedRef.current = true;
+    clearTimeout(focusTimeoutRef.current);
+  }, []);
+
+  const handleBlur = useCallback((e: React.FocusEvent) => {
+    console.log('Input blur event');
+    // Prevent blur if it's just a layout shift
+    focusTimeoutRef.current = setTimeout(() => {
+      isFocusedRef.current = false;
+    }, 100);
+  }, []);
+
+  const handleTouchStart = useCallback(() => {
+    console.log('Input touched');
+    // Ensure focus on touch for iOS
+    if (textareaRef.current && !isFocusedRef.current) {
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+      });
+    }
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      clearTimeout(focusTimeoutRef.current);
+    };
+  }, []);
+
   return (
-    <div className="w-full flex gap-3 p-4 bg-white safe-area-inset-bottom">
-      <div className="flex-1">
+    <div className="input-container">
+      <div className="input-wrapper">
         <Textarea
-          ref={ref}
+          ref={textareaRef}
           value={currentMessage}
           onChange={(e) => setCurrentMessage(e.target.value)}
           onKeyPress={handleKeyPress}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onTouchStart={handleTouchStart}
           placeholder={isHebrew ? "הקלד את התשובה שלך..." : "Type your response..."}
-          className="w-full min-h-[48px] max-h-[80px] border-2 border-purple-200 bg-white focus:border-purple-400 focus:ring-purple-400/20 rounded-xl resize-none shadow-sm transition-all duration-200"
+          className="input-textarea"
           style={{
             direction: 'ltr',
             textAlign: 'left',
             fontSize: '16px',
-            minHeight: '44px',
             touchAction: 'manipulation'
           }}
           dir="ltr"
@@ -64,7 +101,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
       <Button
         onClick={handleSendClick}
         disabled={!currentMessage.trim() || isLoading}
-        className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white px-4 py-3 h-auto shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group relative overflow-hidden flex-shrink-0 self-end"
+        className="send-button"
         style={{
           minHeight: '44px',
           minWidth: '44px',

@@ -1,5 +1,7 @@
 
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
 
 interface MessageInputProps {
   onSend: (message: string) => Promise<void>;
@@ -49,18 +51,19 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, isSending }) => {
         onKeyDown={handleKeyDown}
         inputMode="text"
         placeholder="Type your message..."
-        className="flex-1 resize-none h-12 px-3 py-2 border rounded-lg focus:outline-none"
+        className="flex-1 resize-none h-12 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
         rows={1}
         style={{ overflow: 'hidden' }}
       />
-      <button
+      <Button
         onClick={handleSend}
-        onMouseDown={e => e.preventDefault()}         // prevent focus loss
+        onMouseDown={e => e.preventDefault()}
         disabled={isSending || !text.trim()}
-        className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50"
+        size="icon"
+        className="ml-2 h-12 w-12 rounded-lg"
       >
-        Send
-      </button>
+        <Send className="h-4 w-4" />
+      </Button>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -97,5 +98,48 @@
 
   body {
     @apply bg-background text-foreground;
+    /* iOS-specific optimizations */
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+
+  /* iOS mobile viewport handling */
+  @supports (height: 100dvh) {
+    .mobile-full-height {
+      height: 100dvh;
+    }
+  }
+
+  @supports not (height: 100dvh) {
+    .mobile-full-height {
+      height: 100vh;
+    }
+  }
+
+  /* iOS keyboard handling */
+  @supports (height: env(keyboard-inset-height)) {
+    .keyboard-aware {
+      padding-bottom: env(keyboard-inset-height);
+    }
+  }
+
+  /* iOS scrolling optimization */
+  .ios-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Prevent zoom on focus */
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  textarea {
+    font-size: 16px !important;
+    transform: translateZ(0);
+    -webkit-appearance: none;
+    border-radius: 0;
   }
 }

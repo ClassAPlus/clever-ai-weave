@@ -12,22 +12,14 @@ interface MobileAssessmentDialogProps {
 
 export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: MobileAssessmentDialogProps) => {
   const { isHebrew } = useLanguage();
-  const { isCompleted, keyboardState } = contentProps;
+  const { isCompleted } = contentProps;
   
   const content = AssessmentDialogContent(contentProps);
-  
-  // Calculate dynamic heights based on keyboard state
-  const headerHeight = 70;
-  const inputHeight = 80;
-  const availableHeight = keyboardState.availableHeight || window.innerHeight;
-  const chatHeight = isCompleted 
-    ? availableHeight - headerHeight 
-    : availableHeight - headerHeight - inputHeight;
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="fixed inset-0 max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 overflow-hidden"
+        className="fixed inset-0 max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 overflow-hidden mobile-full-height"
         style={{ 
           position: 'fixed',
           top: 0,
@@ -35,9 +27,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           right: 0,
           bottom: 0,
           width: '100vw',
-          height: '100vh',
           maxWidth: '100vw',
-          maxHeight: '100vh',
           transform: 'none'
         }}
         aria-describedby="ai-assessment-description"
@@ -51,12 +41,9 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div 
-            className="flex-shrink-0 border-b border-gray-100 py-3 bg-white/95 backdrop-blur-sm" 
-            style={{ height: `${headerHeight}px` }}
-          >
+        <div className="flex flex-col mobile-full-height keyboard-aware">
+          {/* Header - Fixed height */}
+          <div className="flex-shrink-0 border-b border-gray-100 py-3 bg-white/95 backdrop-blur-sm">
             <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center px-4">
               {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
             </div>
@@ -65,15 +52,10 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </p>
           </div>
 
-          {/* Chat Content - Dynamic height based on keyboard state */}
-          <div 
-            className="flex-1 overflow-hidden"
-            style={{
-              height: `${chatHeight}px`
-            }}
-          >
+          {/* Chat Content - Flexible height */}
+          <div className="flex-1 overflow-hidden min-h-0">
             <ScrollArea 
-              className="h-full w-full" 
+              className="h-full w-full ios-scroll" 
               ref={contentProps.scrollAreaRef}
             >
               <div className="p-4 pb-6">
@@ -83,17 +65,9 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </ScrollArea>
           </div>
 
-          {/* Input - Positioned above keyboard when visible */}
+          {/* Input - Sticky at bottom */}
           {!isCompleted && (
-            <div 
-              className="flex-shrink-0 bg-white border-t border-gray-100"
-              style={{ 
-                height: `${inputHeight}px`,
-                bottom: keyboardState.isVisible ? `${keyboardState.height}px` : '0px',
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                position: 'relative'
-              }}
-            >
+            <div className="flex-shrink-0 bg-white border-t border-gray-100 sticky bottom-0 z-10">
               <content.MessageInput />
             </div>
           )}

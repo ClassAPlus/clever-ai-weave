@@ -22,110 +22,112 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
   const [isSending, setIsSending] = useState(false);
-  const sendOperationRef = useRef(false);
+  
+  // Mobile-specific focus management
   const focusLockRef = useRef(false);
-  const messageToSendRef = useRef<string>("");
-
-  // Detect mobile
+  const sendingRef = useRef(false);
+  const focusTimeoutRef = useRef<NodeJS.Timeout>();
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  // Aggressive focus maintenance for mobile
+  // Aggressive mobile focus maintenance
   const maintainMobileFocus = useCallback(() => {
+    if (!isMobile || !textareaRef.current) return;
+    
     const textarea = textareaRef.current;
-    if (!textarea || !isMobile) return;
-
-    console.log('Maintaining mobile focus');
+    console.log('Maintaining mobile focus - forcing focus');
     
-    // Use requestAnimationFrame for better timing
-    const focusAttempt = () => {
-      if (textarea && (sendOperationRef.current || focusLockRef.current)) {
-        textarea.focus({ preventScroll: true });
-        textarea.setSelectionRange(0, 0);
-        
-        // Continue monitoring during send operation
-        if (sendOperationRef.current) {
-          requestAnimationFrame(focusAttempt);
-        }
-      }
-    };
+    // Clear any existing timeout
+    if (focusTimeoutRef.current) {
+      clearTimeout(focusTimeoutRef.current);
+    }
     
-    focusAttempt();
+    // Immediate focus
+    textarea.focus({ preventScroll: true });
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    
+    // Continue focusing if we're in send mode
+    if (sendingRef.current || focusLockRef.current) {
+      focusTimeoutRef.current = setTimeout(() => {
+        maintainMobileFocus();
+      }, 16); // ~60fps
+    }
   }, [isMobile]);
 
-  // Comprehensive blur prevention during send
+  // Enhanced blur prevention
   const handleBlur = useCallback((e: React.FocusEvent<HTMLTextAreaElement>) => {
-    if (sendOperationRef.current || focusLockRef.current) {
+    if (sendingRef.current || focusLockRef.current) {
       console.log('Preventing blur during send operation');
       e.preventDefault();
-      e.stopImmediatePropagation();
       
-      // Immediate refocus
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus({ preventScroll: true });
-        }
-      }, 0);
+      // Immediate refocus without any delay
+      if (textareaRef.current) {
+        textareaRef.current.focus({ preventScroll: true });
+      }
       
       return false;
     }
   }, []);
 
-  // Enhanced send function with focus preservation
+  // Focus event handler to maintain focus during send
+  const handleFocus = useCallback(() => {
+    if (isMobile && (sendingRef.current || focusLockRef.current)) {
+      console.log('Focus restored during send operation');
+    }
+  }, [isMobile]);
+
+  // Enhanced send with persistent focus
   const handleSend = useCallback(() => {
-    if (!currentMessage.trim() || isLoading || isSending || sendOperationRef.current) {
+    if (!currentMessage.trim() || isLoading || isSending || sendingRef.current) {
       return;
     }
 
-    console.log('Starting enhanced send operation');
+    console.log('Starting enhanced mobile send operation');
     
-    // Lock the send operation and focus
-    sendOperationRef.current = true;
+    // Lock everything
+    sendingRef.current = true;
     focusLockRef.current = true;
     setIsSending(true);
     
-    // Store message before clearing
-    messageToSendRef.current = currentMessage;
-    
-    // For mobile: start aggressive focus maintenance immediately
+    // Start aggressive focus maintenance for mobile
     if (isMobile) {
       maintainMobileFocus();
     }
     
-    // Execute the actual send - but delay clearing input
+    // Execute send immediately
     onSendMessage();
     
-    // Clear input after a short delay to allow focus to stabilize
+    // Don't clear the message immediately - wait a bit for focus to stabilize
     setTimeout(() => {
+      console.log('Clearing message after delay');
       setCurrentMessage("");
       
       // Continue focus maintenance after clearing
       if (isMobile) {
-        const textarea = textareaRef.current;
-        if (textarea) {
-          textarea.focus({ preventScroll: true });
-          textarea.setSelectionRange(0, 0);
-        }
+        maintainMobileFocus();
       }
-    }, 50);
-    
-    // Reset states with staggered timing
-    setTimeout(() => {
-      setIsSending(false);
     }, 100);
     
+    // Release locks gradually
     setTimeout(() => {
-      sendOperationRef.current = false;
+      setIsSending(false);
+    }, 200);
+    
+    setTimeout(() => {
+      sendingRef.current = false;
       
       // Final focus restoration
       if (isMobile && textareaRef.current) {
         textareaRef.current.focus({ preventScroll: true });
         textareaRef.current.setSelectionRange(0, 0);
       }
-    }, 150);
+    }, 300);
     
     setTimeout(() => {
       focusLockRef.current = false;
-    }, 200);
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    }, 400);
 
   }, [currentMessage, isLoading, isSending, onSendMessage, setCurrentMessage, isMobile, maintainMobileFocus]);
 
@@ -140,14 +142,14 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     setCurrentMessage(e.target.value);
   };
 
-  // Enhanced button click handler
+  // Mobile-optimized button click
   const handleButtonClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Button clicked - maintaining focus');
+    console.log('Button clicked - executing send');
     
-    // Ensure textarea maintains focus during button interaction
+    // Pre-focus for mobile before send
     if (isMobile && textareaRef.current) {
       textareaRef.current.focus({ preventScroll: true });
     }
@@ -155,20 +157,29 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     handleSend();
   }, [handleSend, isMobile]);
 
-  // Initial focus setup
+  // Cleanup timeouts
   useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea && isMobile) {
+    return () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Initial mobile focus
+  useEffect(() => {
+    if (isMobile && textareaRef.current) {
       setTimeout(() => {
-        textarea.focus({ preventScroll: true });
-        textarea.setSelectionRange(0, 0);
+        if (textareaRef.current) {
+          textareaRef.current.focus({ preventScroll: true });
+        }
       }, 100);
     }
   }, [isMobile]);
 
-  // Focus restoration after loading changes
+  // Focus restoration after loading
   useEffect(() => {
-    if (!isLoading && !isSending && !sendOperationRef.current && isMobile) {
+    if (!isLoading && !isSending && !sendingRef.current && isMobile) {
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus({ preventScroll: true });
@@ -186,6 +197,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
           onBlur={handleBlur}
+          onFocus={handleFocus}
           placeholder={isHebrew ? "הקלד את התשובה שלך..." : "Type your response..."}
           disabled={isLoading}
           rows={2}

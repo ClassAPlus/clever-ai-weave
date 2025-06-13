@@ -33,23 +33,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     onSendMessage();
   }, [onSendMessage]);
 
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    // Prevent multiple rapid events
-    e.preventDefault();
-    e.stopPropagation();
-    
-    console.log('Input pointer down - focusing');
-    
-    // Direct focus without complex state management
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  }, []);
-
-  const handleFocus = useCallback(() => {
-    console.log('Input focused successfully');
-  }, []);
-
   return (
     <div className="input-container-ios">
       <div className="input-wrapper-ios">
@@ -58,8 +41,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           value={currentMessage}
           onChange={(e) => setCurrentMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          onFocus={handleFocus}
-          onPointerDown={handlePointerDown}
           placeholder={isHebrew ? "הקלד את התשובה שלך..." : "Type your response..."}
           className="input-textarea-ios"
           style={{

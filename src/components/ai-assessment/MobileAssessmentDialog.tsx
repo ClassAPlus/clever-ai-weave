@@ -38,7 +38,7 @@ interface MobileAssessmentDialogProps {
 
 export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: MobileAssessmentDialogProps) => {
   const { isHebrew } = useLanguage();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   
   const {
     messages,
@@ -77,47 +77,58 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     messageInputRef
   });
 
+  // Handle iOS safe area and initial positioning
+  useEffect(() => {
+    if (open && messagesContainerRef.current) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          // Scroll to a position that accounts for iOS status bar
+          messagesContainerRef.current.scrollTop = 20;
+        }
+      }, 100);
+    }
+  }, [open]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current && messages.length > 0) {
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+      }, 100);
     }
   }, [messages.length]);
-
-  // Calculate safe area height for mobile keyboards
-  const safeHeight = keyboardState.isVisible 
-    ? `${keyboardState.availableHeight}px` 
-    : '100vh';
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         side="bottom"
-        className="w-full border-0 p-0 h-full max-h-screen"
-        style={{ height: safeHeight, maxHeight: safeHeight }}
+        className="w-full border-0 p-0 h-screen max-h-screen overflow-hidden"
       >
-        <div 
-          className="flex flex-col w-full bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
-          style={{ height: safeHeight }}
-        >
-          {/* Fixed Header */}
-          <div className="flex-shrink-0 p-4 border-b bg-white/95 backdrop-blur-sm">
-            <SheetHeader>
-              <SheetTitle className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
-                {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
-              </SheetTitle>
-              <SheetDescription className="text-gray-600 text-sm">
-                {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
-              </SheetDescription>
-            </SheetHeader>
+        <div className="flex flex-col h-full bg-gradient-to-br from-white via-gray-50 to-purple-50/30">
+          {/* Header with safe area padding */}
+          <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-b pt-safe-top">
+            <div className="p-4">
+              <SheetHeader>
+                <SheetTitle className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
+                  {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
+                </SheetTitle>
+                <SheetDescription className="text-gray-600 text-sm">
+                  {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
+                </SheetDescription>
+              </SheetHeader>
+            </div>
           </div>
 
-          {/* Scrollable Messages Area */}
+          {/* Messages Container */}
           <div 
-            className="flex-1 overflow-y-auto touch-pan-y"
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto overscroll-contain"
             style={{
               WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain'
+              touchAction: 'pan-y'
             }}
           >
             <ChatMessages messages={messages} isLoading={isLoading} />
@@ -133,21 +144,20 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
                 />
               </div>
             )}
-            
-            {/* Scroll anchor */}
-            <div ref={messagesEndRef} className="h-1" />
           </div>
 
-          {/* Fixed Input Area */}
+          {/* Input Area with safe area padding */}
           {!isCompleted && (
-            <div className="flex-shrink-0 p-4 border-t bg-white/95 backdrop-blur-sm safe-area-bottom">
-              <MessageInput
-                ref={messageInputRef}
-                currentMessage={currentMessage}
-                setCurrentMessage={setCurrentMessage}
-                onSendMessage={sendMessage}
-                isLoading={isLoading}
-              />
+            <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-t pb-safe-bottom">
+              <div className="p-4">
+                <MessageInput
+                  ref={messageInputRef}
+                  currentMessage={currentMessage}
+                  setCurrentMessage={setCurrentMessage}
+                  onSendMessage={sendMessage}
+                  isLoading={isLoading}
+                />
+              </div>
             </div>
           )}
         </div>

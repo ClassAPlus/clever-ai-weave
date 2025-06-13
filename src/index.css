@@ -107,28 +107,56 @@
     min-height: 100vh;
   }
 
+  /* iOS Safe Area Support */
+  .pt-safe-top {
+    padding-top: max(env(safe-area-inset-top), 20px);
+  }
+  
+  .pb-safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 20px);
+  }
+  
+  .pl-safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .pr-safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Mobile viewport optimization */
+  @supports (-webkit-touch-callout: none) {
+    .h-screen {
+      height: -webkit-fill-available;
+    }
+  }
+
   /* Mobile keyboard and scrolling optimizations */
   @media (max-width: 768px) {
     html {
       height: 100%;
+      height: -webkit-fill-available;
     }
     
     body {
       height: 100%;
+      height: -webkit-fill-available;
       position: relative;
       overflow: auto;
     }
     
-    /* Ensure proper touch scrolling */
-    .touch-pan-y {
-      touch-action: pan-y;
+    /* Enhanced touch scrolling */
+    .touch-scroll {
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
+      scroll-behavior: smooth;
     }
     
-    /* Safe area for mobile notches and home indicators */
-    .safe-area-bottom {
-      padding-bottom: env(safe-area-inset-bottom);
+    /* Prevent input zoom on iOS */
+    input, textarea, select {
+      font-size: 16px !important;
+      -webkit-appearance: none;
+      border-radius: 8px;
     }
     
     /* Mobile input optimizations */
@@ -139,16 +167,17 @@
       transform-origin: left top;
     }
     
-    /* Prevent input zoom on iOS */
-    input, textarea, select {
-      font-size: 16px !important;
-      -webkit-appearance: none;
-    }
-    
-    /* Fix for mobile viewport units */
-    .h-screen {
-      height: 100vh;
-      height: 100dvh;
+    /* iOS specific viewport fixes */
+    @supports (-webkit-touch-callout: none) {
+      .h-screen {
+        height: 100vh;
+        height: -webkit-fill-available;
+      }
+      
+      .max-h-screen {
+        max-height: 100vh;
+        max-height: -webkit-fill-available;
+      }
     }
   }
 }

@@ -1,3 +1,4 @@
+
 import { MessageInput } from "./MessageInput";
 
 interface MobileInputAreaProps {
@@ -23,8 +24,6 @@ export const MobileInputArea = ({
   sendMessage,
   isLoading,
   messageInputRef,
-  keyboardState,
-  initialLoad,
   isIOS
 }: MobileInputAreaProps) => {
   if (isCompleted) {

@@ -1,3 +1,4 @@
+
 import { forwardRef, useCallback, useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -114,8 +115,14 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     }
   }, [isLoading]);
 
-  // Handle button click to maintain focus
-  const handleButtonClick = useCallback((e: React.MouseEvent) => {
+  // Handle button clicks to maintain focus - separate handlers for different event types
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleSend();
+  }, [handleSend]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
     handleSend();
@@ -148,8 +155,8 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
       </div>
       
       <Button
-        onMouseDown={handleButtonClick}
-        onTouchStart={handleButtonClick}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         disabled={!currentMessage.trim() || isLoading || isSending}
         className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 min-h-[44px] min-w-[44px] flex-shrink-0"
         size="icon"

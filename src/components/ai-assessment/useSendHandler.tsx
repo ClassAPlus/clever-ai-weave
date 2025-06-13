@@ -8,9 +8,6 @@ interface UseSendHandlerProps {
   onSendMessage: () => void;
   setCurrentMessage: (message: string) => void;
   textareaRef: React.RefObject<HTMLTextAreaElement>;
-  startFocusLock: () => void;
-  releaseFocusLock: () => void;
-  isMobile: boolean;
 }
 
 export const useSendHandler = ({
@@ -18,14 +15,12 @@ export const useSendHandler = ({
   isLoading,
   onSendMessage,
   setCurrentMessage,
-  textareaRef,
-  startFocusLock,
-  releaseFocusLock,
-  isMobile
+  textareaRef
 }: UseSendHandlerProps) => {
   const [isSending, setIsSending] = useState(false);
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async (startFocusLock?: () => void, releaseFocusLock?: () => void) => {
     if (!currentMessage.trim() || isLoading || isSending) {
       return;
     }
@@ -33,25 +28,37 @@ export const useSendHandler = ({
     console.log('Starting enhanced mobile send operation');
     
     setIsSending(true);
-    startFocusLock();
     
+    // Start focus lock for mobile
+    if (isMobile && startFocusLock) {
+      startFocusLock();
+    }
+    
+    // Send the message but don't clear immediately
     onSendMessage();
     
+    // Wait for the API call to settle, then clear and restore focus
     setTimeout(() => {
-      console.log('Clearing message after delay');
+      console.log('Clearing message and restoring focus');
       setCurrentMessage("");
       
+      // Restore focus on mobile after clearing
       if (isMobile && textareaRef.current) {
         focusTextarea(textareaRef.current, true);
       }
-    }, 100);
-    
-    setTimeout(() => {
+      
+      // End the sending state
       setIsSending(false);
-    }, 200);
+      
+      // Release focus lock after everything is done
+      if (isMobile && releaseFocusLock) {
+        setTimeout(() => {
+          releaseFocusLock();
+        }, 100);
+      }
+    }, 150);
     
-    releaseFocusLock();
-  }, [currentMessage, isLoading, isSending, onSendMessage, setCurrentMessage, startFocusLock, releaseFocusLock, isMobile, textareaRef]);
+  }, [currentMessage, isLoading, isSending, onSendMessage, setCurrentMessage, isMobile, textareaRef]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -60,7 +67,7 @@ export const useSendHandler = ({
     }
   }, [handleSend]);
 
-  const handleButtonClick = useCallback((e: React.MouseEvent) => {
+  const handleButtonClick = useCallback((e: React.MouseEvent, startFocusLock?: () => void, releaseFocusLock?: () => void) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -70,7 +77,7 @@ export const useSendHandler = ({
       focusTextarea(textareaRef.current);
     }
     
-    handleSend();
+    handleSend(startFocusLock, releaseFocusLock);
   }, [handleSend, isMobile, textareaRef]);
 
   return {

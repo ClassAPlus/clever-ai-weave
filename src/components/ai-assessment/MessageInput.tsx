@@ -24,21 +24,18 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
   
-  const mobileFocus = useMobileFocus({
-    textareaRef,
-    isLoading,
-    isSending: false
-  });
-
   const sendHandler = useSendHandler({
     currentMessage,
     isLoading,
     onSendMessage,
     setCurrentMessage,
+    textareaRef
+  });
+
+  const mobileFocus = useMobileFocus({
     textareaRef,
-    startFocusLock: mobileFocus.startFocusLock,
-    releaseFocusLock: mobileFocus.releaseFocusLock,
-    isMobile: mobileFocus.isMobile
+    isLoading,
+    isSending: sendHandler.isSending
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -72,7 +69,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
       </div>
       
       <Button
-        onClick={sendHandler.handleButtonClick}
+        onClick={(e) => sendHandler.handleButtonClick(e, mobileFocus.startFocusLock, mobileFocus.releaseFocusLock)}
         disabled={!currentMessage.trim() || isLoading || sendHandler.isSending}
         className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 min-h-[44px] min-w-[44px] flex-shrink-0"
         size="icon"

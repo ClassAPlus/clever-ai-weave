@@ -1,5 +1,5 @@
 
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AssessmentChat } from "./AssessmentChat";
 import { MobileSheetHeader } from "./MobileSheetHeader";
 import { MobileMessagesContainer } from "./MobileMessagesContainer";
@@ -73,36 +73,42 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     messageInputRef
   });
 
-  const { initialLoad, isIOS, containerHeight, messagesHeight, translateY } = useMobileDialogState({
+  const { initialLoad, isIOS, containerHeight, messagesHeight } = useMobileDialogState({
     open,
     keyboardState
   });
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent 
-        side="bottom"
-        className="w-full border-0 p-0 overflow-hidden"
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent 
+        className="w-full h-full max-w-none max-h-none border-0 p-0 overflow-hidden"
         style={{ 
-          height: containerHeight,
-          maxHeight: containerHeight,
           position: 'fixed',
+          top: '0',
+          left: '0',
+          right: '0',
           bottom: '0',
-          top: 'auto',
-          transform: translateY,
-          transition: keyboardState.isVisible ? 'transform 0.3s ease-out' : 'none'
+          transform: 'none',
+          borderRadius: '0',
+          margin: '0',
+          height: '100vh',
+          width: '100vw'
         }}
       >
         <div 
-          className="flex flex-col bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
+          className="flex flex-col bg-gradient-to-br from-white via-gray-50 to-purple-50/30 h-full"
           style={{ 
-            height: containerHeight,
-            maxHeight: containerHeight,
+            height: '100vh',
+            maxHeight: '100vh',
             opacity: initialLoad ? 0 : 1,
             transition: 'opacity 0.2s ease-in',
             overflowY: 'hidden',
             WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'contain'
+            overscrollBehavior: 'contain',
+            paddingTop: isIOS ? 'env(safe-area-inset-top)' : '0',
+            paddingBottom: keyboardState.isVisible ? '0' : (isIOS ? 'env(safe-area-inset-bottom)' : '0'),
+            paddingLeft: 'env(safe-area-inset-left)',
+            paddingRight: 'env(safe-area-inset-right)'
           }}
         >
           <MobileSheetHeader />
@@ -131,7 +137,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             setCurrentMessage={setCurrentMessage}
           />
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 };

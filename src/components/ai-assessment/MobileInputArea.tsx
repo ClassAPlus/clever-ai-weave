@@ -20,7 +20,8 @@ export const MobileInputArea = ({
   sendMessage,
   isLoading,
   isIOS,
-  setCurrentMessage
+  setCurrentMessage,
+  keyboardState
 }: MobileInputAreaProps) => {
   if (isCompleted) {
     return null;
@@ -37,8 +38,13 @@ export const MobileInputArea = ({
     <div 
       className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-t"
       style={{
-        paddingBottom: isIOS ? '16px' : '12px',
-        paddingTop: '8px'
+        position: keyboardState.isVisible ? 'fixed' : 'relative',
+        bottom: keyboardState.isVisible ? `${keyboardState.height}px` : '0',
+        left: '0',
+        right: '0',
+        paddingBottom: keyboardState.isVisible ? '0' : (isIOS ? 'env(safe-area-inset-bottom)' : '12px'),
+        paddingTop: '8px',
+        zIndex: 1000
       }}
     >
       <div className="px-4 pb-2">

@@ -43,7 +43,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, isSending }) => {
   };
 
   return (
-    <div className="flex items-center p-2 border-t bg-white" style={{ position: 'relative' }}>
+    <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
       <textarea
         ref={textareaRef}
         value={text}
@@ -51,16 +51,19 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, isSending }) => {
         onKeyDown={handleKeyDown}
         inputMode="text"
         placeholder="Type your message..."
-        className="flex-1 resize-none h-12 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+        className="flex-1 resize-none min-h-[2.5rem] max-h-32 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors bg-gray-50/50 text-gray-900 placeholder:text-gray-500"
         rows={1}
-        style={{ overflow: 'hidden' }}
+        style={{ 
+          overflow: 'hidden',
+          lineHeight: '1.5'
+        }}
       />
       <Button
         onClick={handleSend}
         onMouseDown={e => e.preventDefault()}
         disabled={isSending || !text.trim()}
         size="icon"
-        className="ml-2 h-12 w-12 rounded-lg bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group relative overflow-hidden"
+        className="h-12 w-12 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {/* Animated background on hover */}
         <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

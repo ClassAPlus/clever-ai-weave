@@ -22,16 +22,21 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
   const [isSending, setIsSending] = useState(false);
-  const [shouldMaintainFocus, setShouldMaintainFocus] = useState(false);
   const focusTimeoutRef = useRef<NodeJS.Timeout>();
+  const focusIntervalRef = useRef<NodeJS.Timeout>();
 
-  // Force focus function that's more aggressive
-  const forceFocus = useCallback(() => {
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      // For iOS, click to ensure keyboard stays
+  // Aggressive focus function that handles all mobile scenarios
+  const maintainFocus = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (textarea && document.activeElement !== textarea) {
+      console.log('Restoring focus to textarea');
+      textarea.focus();
+      
+      // For iOS Safari, ensure the keyboard stays visible
       if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-        textareaRef.current.click();
+        textarea.click();
+        // Force cursor to end of text
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
       }
     }
   }, [textareaRef]);
@@ -47,31 +52,48 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
 
   const handleSend = useCallback(() => {
     if (currentMessage.trim() && !isLoading && !isSending) {
+      console.log('Starting send operation, maintaining focus');
       setIsSending(true);
-      setShouldMaintainFocus(true);
       
+      // Store focus before sending
+      const hadFocus = document.activeElement === textareaRef.current;
+      
+      // Call the send function
       onSendMessage();
       
-      // Immediately refocus and maintain focus aggressively
-      setTimeout(() => {
-        forceFocus();
-        setIsSending(false);
+      // Immediately start aggressive focus maintenance
+      if (hadFocus) {
+        // Multiple attempts at different intervals to ensure focus is maintained
+        setTimeout(() => maintainFocus(), 10);
+        setTimeout(() => maintainFocus(), 50);
+        setTimeout(() => maintainFocus(), 100);
+        setTimeout(() => maintainFocus(), 200);
+        setTimeout(() => maintainFocus(), 500);
         
-        // Continue maintaining focus for a longer period
+        // Start continuous focus checking
+        focusIntervalRef.current = setInterval(() => {
+          maintainFocus();
+        }, 100);
+        
+        // Stop continuous checking after message is sent
         setTimeout(() => {
-          setShouldMaintainFocus(false);
-        }, 2000);
-      }, 50);
+          if (focusIntervalRef.current) {
+            clearInterval(focusIntervalRef.current);
+          }
+          setIsSending(false);
+          console.log('Send operation complete, focus maintained');
+        }, 1000);
+      }
     }
-  }, [onSendMessage, currentMessage, isLoading, isSending, forceFocus]);
+  }, [onSendMessage, currentMessage, isLoading, isSending, maintainFocus]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCurrentMessage(e.target.value);
   };
 
-  // Aggressive blur prevention
+  // Prevent blur during critical operations
   const handleBlur = useCallback((e: React.FocusEvent<HTMLTextAreaElement>) => {
-    // Always prevent blur during active chat session
+    console.log('Blur event detected, preventing...');
     e.preventDefault();
     e.stopPropagation();
     
@@ -81,85 +103,44 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     }
     
     focusTimeoutRef.current = setTimeout(() => {
-      forceFocus();
+      maintainFocus();
     }, 10);
     
     return false;
-  }, [forceFocus]);
+  }, [maintainFocus]);
 
-  // Focus loss prevention - more comprehensive
-  const handleFocusOut = useCallback((e: FocusEvent) => {
-    // Prevent any focus loss from the textarea during chat
-    if (e.target === textareaRef.current) {
-      e.preventDefault();
-      setTimeout(() => {
-        forceFocus();
-      }, 10);
-    }
-  }, [forceFocus]);
-
-  // Window blur prevention
-  const handleWindowBlur = useCallback((e: Event) => {
-    e.preventDefault();
-    setTimeout(() => {
-      forceFocus();
-    }, 100);
-  }, [forceFocus]);
-
-  // Set up aggressive focus maintenance
+  // Enhanced focus maintenance on component mount and updates
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
       // Initial focus
-      forceFocus();
+      maintainFocus();
       
-      // Add focusout listener directly to the element
-      textarea.addEventListener('focusout', handleFocusOut);
+      // Prevent any focus loss
+      const handleFocusOut = (e: FocusEvent) => {
+        if (e.target === textarea) {
+          console.log('Focus out detected, preventing...');
+          e.preventDefault();
+          setTimeout(() => maintainFocus(), 10);
+        }
+      };
+      
+      textarea.addEventListener('focusout', handleFocusOut, true);
       
       return () => {
-        textarea.removeEventListener('focusout', handleFocusOut);
+        textarea.removeEventListener('focusout', handleFocusOut, true);
       };
     }
-  }, [handleFocusOut, forceFocus]);
+  }, [maintainFocus]);
 
-  // Window event listeners
+  // Maintain focus after loading state changes
   useEffect(() => {
-    window.addEventListener('blur', handleWindowBlur);
-    
-    return () => {
-      window.removeEventListener('blur', handleWindowBlur);
-    };
-  }, [handleWindowBlur]);
-
-  // Maintain focus during loading state changes
-  useEffect(() => {
-    if (!isLoading) {
-      setTimeout(() => {
-        forceFocus();
-      }, 100);
+    if (!isLoading && !isSending) {
+      setTimeout(() => maintainFocus(), 100);
     }
-  }, [isLoading, forceFocus]);
+  }, [isLoading, isSending, maintainFocus]);
 
-  // Continuous focus maintenance when needed
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    
-    if (shouldMaintainFocus || isSending || isLoading) {
-      intervalId = setInterval(() => {
-        if (textareaRef.current && document.activeElement !== textareaRef.current) {
-          forceFocus();
-        }
-      }, 200);
-    }
-    
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [shouldMaintainFocus, isSending, isLoading, forceFocus]);
-
-  // Handle button clicks to maintain focus - separate handlers for different event types
+  // Button handlers that prevent focus loss
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -172,11 +153,14 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     handleSend();
   }, [handleSend]);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts and intervals on unmount
   useEffect(() => {
     return () => {
       if (focusTimeoutRef.current) {
         clearTimeout(focusTimeoutRef.current);
+      }
+      if (focusIntervalRef.current) {
+        clearInterval(focusIntervalRef.current);
       }
     };
   }, []);

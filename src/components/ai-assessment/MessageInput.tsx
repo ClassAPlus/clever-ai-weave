@@ -34,53 +34,31 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   }, [onSendMessage]);
 
   return (
-    <div className="input-container-ios">
-      <div className="input-wrapper-ios">
+    <div className="absolute bottom-0 left-0 right-0 flex gap-3 p-4 bg-white border-t border-gray-200 z-50" 
+         style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))' }}>
+      <div className="flex-1">
         <Textarea
           ref={textareaRef}
           value={currentMessage}
           onChange={(e) => setCurrentMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder={isHebrew ? "הקלד את התשובה שלך..." : "Type your response..."}
-          className="input-textarea-ios"
-          style={{
-            direction: 'ltr',
-            textAlign: 'left',
-            fontSize: '16px',
-            touchAction: 'manipulation',
-            transform: 'translate3d(0,0,0)',
-            WebkitTransform: 'translate3d(0,0,0)',
-            WebkitUserSelect: 'text'
-          }}
-          dir="ltr"
-          lang="en"
-          inputMode="text"
-          enterKeyHint="send"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
           disabled={isLoading}
           rows={2}
+          className="resize-none"
         />
       </div>
       
       <Button
         onClick={handleSendClick}
         disabled={!currentMessage.trim() || isLoading}
-        className="send-button-ios"
-        style={{
-          minHeight: '44px',
-          minWidth: '44px',
-          touchAction: 'manipulation',
-          transform: 'translate3d(0,0,0)',
-          WebkitTransform: 'translate3d(0,0,0)'
-        }}
+        className="self-end bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700"
+        size="icon"
       >
         {isLoading ? (
           <Sparkles size={18} className="animate-spin" />
         ) : (
-          <Send size={18} className="group-hover:translate-x-0.5 transition-transform duration-200" />
+          <Send size={18} />
         )}
       </Button>
     </div>

@@ -1,5 +1,5 @@
 
-import { forwardRef, useCallback, useRef, useEffect, useState } from "react";
+import { forwardRef, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -21,7 +21,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const { isHebrew } = useLanguage();
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
-  const [hasInteracted, setHasInteracted] = useState(false);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -34,27 +33,22 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     onSendMessage();
   }, [onSendMessage]);
 
-  const handleFirstTouch = useCallback(() => {
-    console.log('First touch interaction');
-    if (!hasInteracted && textareaRef.current) {
-      setHasInteracted(true);
-      // Remove readonly attribute on first touch (iOS hack)
-      textareaRef.current.removeAttribute('readonly');
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Prevent multiple rapid events
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('Input pointer down - focusing');
+    
+    // Direct focus without complex state management
+    if (textareaRef.current) {
       textareaRef.current.focus();
     }
-  }, [hasInteracted]);
+  }, []);
 
   const handleFocus = useCallback(() => {
     console.log('Input focused successfully');
   }, []);
-
-  // iOS-specific initialization
-  useEffect(() => {
-    if (textareaRef.current && !hasInteracted) {
-      // Start with readonly to prevent iOS keyboard issues
-      textareaRef.current.setAttribute('readonly', 'true');
-    }
-  }, [hasInteracted]);
 
   return (
     <div className="input-container-ios">
@@ -65,8 +59,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           onChange={(e) => setCurrentMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           onFocus={handleFocus}
-          onTouchStart={handleFirstTouch}
-          onClick={handleFirstTouch}
+          onPointerDown={handlePointerDown}
           placeholder={isHebrew ? "הקלד את התשובה שלך..." : "Type your response..."}
           className="input-textarea-ios"
           style={{
@@ -75,11 +68,12 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
             fontSize: '16px',
             touchAction: 'manipulation',
             transform: 'translate3d(0,0,0)',
-            WebkitTransform: 'translate3d(0,0,0)'
+            WebkitTransform: 'translate3d(0,0,0)',
+            WebkitUserSelect: 'text'
           }}
           dir="ltr"
           lang="en"
-          inputMode={hasInteracted ? "text" : "none"}
+          inputMode="text"
           enterKeyHint="send"
           autoComplete="off"
           autoCorrect="off"

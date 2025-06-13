@@ -54,12 +54,14 @@ export const AssessmentChat = ({
     }
   }, [messages, isLoading, isCompleted, setStage, scrollAreaRef]);
 
-  // Focus input field after bot responses and when dialog opens
+  // Focus input field after bot responses and when dialog opens, but maintain focus during conversation
   useEffect(() => {
     if (!isLoading && !isCompleted && messageInputRef.current) {
       // Small delay to ensure the message has been rendered
       setTimeout(() => {
-        messageInputRef.current?.focus();
+        if (messageInputRef.current && document.activeElement !== messageInputRef.current) {
+          messageInputRef.current.focus();
+        }
       }, 100);
     }
   }, [messages, isLoading, isCompleted, messageInputRef]);
@@ -125,6 +127,12 @@ export const AssessmentChat = ({
       });
     } finally {
       setIsLoading(false);
+      // Ensure input stays focused after response
+      setTimeout(() => {
+        if (messageInputRef.current && !isCompleted) {
+          messageInputRef.current.focus();
+        }
+      }, 100);
     }
   };
 

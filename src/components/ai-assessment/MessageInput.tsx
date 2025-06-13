@@ -1,4 +1,3 @@
-
 import { forwardRef, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +26,10 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
       e.preventDefault();
       if (currentMessage.trim() && !isLoading) {
         onSendMessage();
+        // Keep focus on input after sending
+        setTimeout(() => {
+          textareaRef.current?.focus();
+        }, 10);
       }
     }
   };
@@ -34,12 +37,25 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const handleSendClick = useCallback(() => {
     if (currentMessage.trim() && !isLoading) {
       onSendMessage();
+      // Keep focus on input after sending
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 10);
     }
-  }, [onSendMessage, currentMessage, isLoading]);
+  }, [onSendMessage, currentMessage, isLoading, textareaRef]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCurrentMessage(e.target.value);
   };
+
+  // Ensure input stays focused when not loading
+  useEffect(() => {
+    if (!isLoading && textareaRef.current && document.activeElement !== textareaRef.current) {
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
+    }
+  }, [isLoading, textareaRef]);
 
   return (
     <div className="flex gap-3 items-end w-full">
@@ -53,6 +69,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           disabled={isLoading}
           rows={2}
           className="resize-none border-gray-300 focus:border-purple-500 focus:ring-purple-500 mobile-input"
+          autoFocus
         />
       </div>
       

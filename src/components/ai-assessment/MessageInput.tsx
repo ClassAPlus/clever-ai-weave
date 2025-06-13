@@ -41,6 +41,11 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           className={`w-full ${
             isMobile ? 'min-h-[50px] max-h-[120px]' : 'min-h-[70px] max-h-[140px]'
           } border-2 border-purple-200 bg-white/90 backdrop-blur-sm focus:border-purple-400 focus:ring-purple-400/20 rounded-xl resize-none shadow-lg transition-all duration-200`}
+          style={{ 
+            direction: 'ltr', 
+            textAlign: 'left',
+            unicodeBidi: 'isolate'
+          }}
           disabled={isLoading}
           autoFocus
           rows={isMobile ? 2 : 3}

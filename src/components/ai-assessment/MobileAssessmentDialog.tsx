@@ -25,16 +25,12 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className={`fixed inset-0 w-screen max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 transform-none translate-x-0 translate-y-0 left-0 ${
-          isIOS && keyboardState.isVisible ? 'top-0' : 'top-0'
-        }`}
+        className={`fixed inset-0 max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 transform-none translate-x-0 translate-y-0 left-0 top-0 overflow-hidden`}
         style={{ 
+          width: '100vw',
           height: `${mobileHeight}px`,
-          ...(isIOS && keyboardState.isVisible && {
-            position: 'fixed',
-            top: '0px',
-            transform: 'none'
-          })
+          maxWidth: '100vw',
+          maxHeight: `${mobileHeight}px`
         }}
         aria-describedby="ai-assessment-description"
       >
@@ -47,7 +43,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col w-screen" style={{ height: `${mobileHeight}px` }}>
+        <div className="flex flex-col" style={{ width: '100vw', height: `${mobileHeight}px` }}>
           {/* Header */}
           <div className="flex-shrink-0 border-b border-gray-100 px-4 py-3 bg-white/95 backdrop-blur-sm w-full">
             <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
@@ -64,7 +60,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
               className="h-full w-full" 
               ref={contentProps.scrollAreaRef}
             >
-              <div className="w-full">
+              <div className="w-full px-2">
                 {/* Background decoration */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
                 
@@ -77,9 +73,9 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           {/* Input */}
           {!isCompleted && (
             <div className={`flex-shrink-0 bg-white border-t border-gray-100 w-full ${
-              isIOS && keyboardState.isVisible ? 'pb-2' : 'pb-4'
+              isIOS && keyboardState.isVisible ? 'pb-1' : 'pb-3'
             }`}>
-              <div className="w-full px-4 py-3">
+              <div className="w-full px-3 py-2">
                 <content.MessageInput />
               </div>
             </div>

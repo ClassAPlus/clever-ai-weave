@@ -1,4 +1,3 @@
-
 import { useState, useEffect, RefObject } from 'react';
 
 interface KeyboardState {
@@ -41,14 +40,18 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       // Account for mobile toolbar/navbar and ensure reasonable minimum height
       const toolbarHeight = 60;
       
-      // More conservative minimum heights to prevent over-jumping, especially on iOS
-      const minVisibleHeight = iOS ? 200 : 350; // Much smaller minimum for iOS
+      // Much more conservative minimum heights for iOS to prevent over-jumping
+      const minVisibleHeight = iOS ? 150 : 300;
       
       let availableHeight;
       
       if (iOS && isKeyboardVisible) {
-        // iOS-specific calculation: simpler approach without offset adjustments
-        availableHeight = Math.max(visualViewportHeight - toolbarHeight, minVisibleHeight);
+        // iOS-specific calculation: much more conservative approach
+        // Use 80% of available viewport height to prevent over-reaching
+        availableHeight = Math.max(
+          Math.min(visualViewportHeight * 0.8, visualViewportHeight - toolbarHeight), 
+          minVisibleHeight
+        );
       } else {
         // Android or keyboard not visible
         availableHeight = isKeyboardVisible 
@@ -65,18 +68,18 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
 
     const debouncedUpdate = () => {
       clearTimeout(updateTimeout);
-      updateTimeout = setTimeout(updateKeyboardState, iOS ? 150 : 100);
+      updateTimeout = setTimeout(updateKeyboardState, iOS ? 200 : 100);
     };
 
     const handleFocus = () => {
-      // iOS needs time for viewport adjustments, but not too much to prevent jumping
-      const delay = iOS ? 200 : 100;
+      // iOS needs time for viewport adjustments, but keep it minimal
+      const delay = iOS ? 150 : 50;
       setTimeout(updateKeyboardState, delay);
     };
 
     const handleBlur = () => {
       // Reset when input loses focus
-      const delay = iOS ? 150 : 100;
+      const delay = iOS ? 100 : 50;
       setTimeout(() => {
         setKeyboardState({
           isVisible: false,

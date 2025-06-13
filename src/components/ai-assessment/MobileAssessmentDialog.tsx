@@ -1,11 +1,10 @@
 
-import { useEffect, useState, useRef } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { ChatMessages } from "./ChatMessages";
-import { AssessmentSummary } from "./AssessmentSummary";
-import { MessageInput } from "./MessageInput";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AssessmentChat } from "./AssessmentChat";
+import { MobileSheetHeader } from "./MobileSheetHeader";
+import { MobileMessagesContainer } from "./MobileMessagesContainer";
+import { MobileInputArea } from "./MobileInputArea";
+import { useMobileDialogState } from "./useMobileDialogState";
 
 interface MobileAssessmentDialogProps {
   open: boolean;
@@ -37,10 +36,6 @@ interface MobileAssessmentDialogProps {
 }
 
 export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: MobileAssessmentDialogProps) => {
-  const { isHebrew } = useLanguage();
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const [initialLoad, setInitialLoad] = useState(true);
-  
   const {
     messages,
     setMessages,
@@ -50,16 +45,16 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     setIsLoading,
     isCompleted,
     setIsCompleted,
-    summary,
     setSummary,
-    stage,
     setStage,
-    showContactButton,
     setShowContactButton,
     scrollAreaRef,
     messageInputRef,
     resetAssessment,
-    keyboardState
+    keyboardState,
+    summary,
+    stage,
+    showContactButton
   } = contentProps;
 
   const { sendMessage, handleContactRequest } = AssessmentChat({
@@ -78,62 +73,9 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     messageInputRef
   });
 
-  // Handle initial load delay for iOS
-  useEffect(() => {
-    if (open) {
-      setInitialLoad(true);
-      // Give iOS time to settle before showing content
-      const timer = setTimeout(() => {
-        setInitialLoad(false);
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [open]);
-
-  // Auto-scroll to bottom when new messages arrive or keyboard state changes
-  useEffect(() => {
-    if (messagesContainerRef.current && messages.length > 0 && !initialLoad) {
-      const scrollToBottom = () => {
-        if (messagesContainerRef.current) {
-          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
-      };
-      
-      scrollToBottom();
-      setTimeout(scrollToBottom, 100);
-      setTimeout(scrollToBottom, 300);
-    }
-  }, [messages.length, keyboardState.isVisible, keyboardState.height, initialLoad]);
-
-  // iOS detection
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  
-  // Calculate dynamic heights with better initial positioning
-  let containerHeight: string;
-  let messagesHeight: string;
-  
-  if (initialLoad && isIOS) {
-    // On initial load for iOS, use a conservative height to avoid keyboard issues
-    containerHeight = 'calc(100vh - 100px)';
-    messagesHeight = 'calc(100vh - 300px)';
-  } else if (keyboardState.isVisible) {
-    // When keyboard is visible, use the available viewport height
-    containerHeight = `${keyboardState.availableHeight}px`;
-    messagesHeight = `${keyboardState.availableHeight - 160}px`;
-  } else {
-    // When keyboard is hidden, use full viewport with safe area
-    containerHeight = isIOS ? 'calc(100vh - env(safe-area-inset-bottom))' : '100vh';
-    messagesHeight = isIOS ? 'calc(100vh - 200px - env(safe-area-inset-bottom))' : 'calc(100vh - 200px)';
-  }
-
-  console.log('Mobile Dialog State:', {
-    initialLoad,
-    keyboardVisible: keyboardState.isVisible,
-    keyboardHeight: keyboardState.height,
-    availableHeight: keyboardState.availableHeight,
-    containerHeight,
-    messagesHeight,
-    isIOS
+  const { initialLoad, isIOS, containerHeight, messagesHeight } = useMobileDialogState({
+    open,
+    keyboardState
   });
 
   return (
@@ -144,7 +86,6 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
         style={{ 
           height: containerHeight,
           maxHeight: containerHeight,
-          // Add initial transform for iOS to prevent keyboard hiding
           transform: initialLoad && isIOS 
             ? 'translateY(-100px)' 
             : keyboardState.isVisible && isIOS 
@@ -160,82 +101,33 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             maxHeight: containerHeight
           }}
         >
-          {/* Header */}
-          <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-b">
-            <div className="p-4 pb-2 pt-6">
-              <SheetHeader>
-                <SheetTitle className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
-                  {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
-                </SheetTitle>
-                <SheetDescription className="text-gray-600 text-sm">
-                  {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
-                </SheetDescription>
-              </SheetHeader>
-            </div>
-          </div>
+          <MobileSheetHeader />
 
-          {/* Messages Container with dynamic height and better iOS handling */}
-          <div 
-            ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto"
-            style={{
-              height: messagesHeight,
-              maxHeight: messagesHeight,
-              WebkitOverflowScrolling: 'touch',
-              touchAction: 'pan-y',
-              overscrollBehavior: 'contain',
-              opacity: initialLoad ? 0 : 1,
-              transition: 'opacity 0.2s ease-in'
-            }}
-          >
-            <div className="pt-4 pb-4">
-              <ChatMessages messages={messages} isLoading={isLoading} />
-              
-              {isCompleted && summary && (
-                <div className="p-4">
-                  <AssessmentSummary 
-                    summary={summary} 
-                    onResetAssessment={resetAssessment} 
-                    onRequestContact={handleContactRequest}
-                    stage={stage}
-                    showContactButton={showContactButton}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+          <MobileMessagesContainer
+            messages={messages}
+            isLoading={isLoading}
+            isCompleted={isCompleted}
+            summary={summary}
+            stage={stage}
+            showContactButton={showContactButton}
+            resetAssessment={resetAssessment}
+            handleContactRequest={handleContactRequest}
+            messagesHeight={messagesHeight}
+            initialLoad={initialLoad}
+            keyboardState={keyboardState}
+          />
 
-          {/* Input Area with better iOS keyboard positioning */}
-          {!isCompleted && (
-            <div 
-              className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-t"
-              style={{
-                paddingBottom: keyboardState.isVisible 
-                  ? '8px' 
-                  : isIOS 
-                    ? 'max(env(safe-area-inset-bottom), 16px)'
-                    : '16px',
-                // Better positioning for iOS initial load
-                position: (keyboardState.isVisible && isIOS) || (initialLoad && isIOS) ? 'fixed' : 'relative',
-                bottom: (keyboardState.isVisible && isIOS) || (initialLoad && isIOS) ? '0' : 'auto',
-                left: (keyboardState.isVisible && isIOS) || (initialLoad && isIOS) ? '0' : 'auto',
-                right: (keyboardState.isVisible && isIOS) || (initialLoad && isIOS) ? '0' : 'auto',
-                zIndex: (keyboardState.isVisible && isIOS) || (initialLoad && isIOS) ? 100 : 'auto',
-                opacity: initialLoad ? 0 : 1,
-                transition: 'opacity 0.2s ease-in'
-              }}
-            >
-              <div className="p-4">
-                <MessageInput
-                  ref={messageInputRef}
-                  currentMessage={currentMessage}
-                  setCurrentMessage={setCurrentMessage}
-                  onSendMessage={sendMessage}
-                  isLoading={isLoading}
-                />
-              </div>
-            </div>
-          )}
+          <MobileInputArea
+            isCompleted={isCompleted}
+            currentMessage={currentMessage}
+            setCurrentMessage={setCurrentMessage}
+            sendMessage={sendMessage}
+            isLoading={isLoading}
+            messageInputRef={messageInputRef}
+            keyboardState={keyboardState}
+            initialLoad={initialLoad}
+            isIOS={isIOS}
+          />
         </div>
       </SheetContent>
     </Sheet>

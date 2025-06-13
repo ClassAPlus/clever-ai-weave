@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ChatMessages } from "./ChatMessages";
@@ -37,6 +38,8 @@ interface MobileAssessmentDialogProps {
 
 export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: MobileAssessmentDialogProps) => {
   const { isHebrew } = useLanguage();
+  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+  
   const {
     messages,
     setMessages,
@@ -54,7 +57,8 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     setShowContactButton,
     scrollAreaRef,
     messageInputRef,
-    resetAssessment
+    resetAssessment,
+    keyboardState
   } = contentProps;
 
   const { sendMessage, handleContactRequest } = AssessmentChat({
@@ -73,46 +77,108 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     messageInputRef
   });
 
+  // Handle viewport height changes for mobile keyboards
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportHeight(window.innerHeight);
+    };
+
+    const handleVisualViewportChange = () => {
+      if (window.visualViewport) {
+        setViewportHeight(window.visualViewport.height);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
+      }
+    };
+  }, []);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollAreaRef.current && messages.length > 0) {
+      setTimeout(() => {
+        scrollAreaRef.current?.scrollTo({
+          top: scrollAreaRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+    }
+  }, [messages.length, scrollAreaRef]);
+
+  const dynamicHeight = keyboardState.isVisible 
+    ? `${keyboardState.availableHeight}px` 
+    : `${viewportHeight}px`;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
-        side="right"
-        className="w-full bg-gradient-to-br from-white via-gray-50 to-purple-50/30 flex flex-col"
+        side="bottom"
+        className="w-full border-0 p-0"
+        style={{ height: dynamicHeight }}
       >
-        <SheetHeader className="flex-shrink-0">
-          <SheetTitle className="text-xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
-            {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
-          </SheetTitle>
-          <SheetDescription className="text-gray-600">
-            {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
-          </SheetDescription>
-        </SheetHeader>
+        <div 
+          className="flex flex-col h-full bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
+          style={{ height: dynamicHeight }}
+        >
+          {/* Header */}
+          <div className="flex-shrink-0 p-4 border-b bg-white/90 backdrop-blur-sm">
+            <SheetHeader>
+              <SheetTitle className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
+                {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
+              </SheetTitle>
+              <SheetDescription className="text-gray-600 text-sm">
+                {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
+              </SheetDescription>
+            </SheetHeader>
+          </div>
 
-        <div className="flex-1 overflow-y-auto" ref={scrollAreaRef}>
-          <ChatMessages messages={messages} isLoading={isLoading} />
-          
-          {isCompleted && summary && (
-            <AssessmentSummary 
-              summary={summary} 
-              onResetAssessment={resetAssessment} 
-              onRequestContact={handleContactRequest}
-              stage={stage}
-              showContactButton={showContactButton}
-            />
+          {/* Messages Area */}
+          <div 
+            ref={scrollAreaRef}
+            className="flex-1 overflow-y-auto overscroll-behavior-contain"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-y'
+            }}
+          >
+            <ChatMessages messages={messages} isLoading={isLoading} />
+            
+            {isCompleted && summary && (
+              <div className="p-4">
+                <AssessmentSummary 
+                  summary={summary} 
+                  onResetAssessment={resetAssessment} 
+                  onRequestContact={handleContactRequest}
+                  stage={stage}
+                  showContactButton={showContactButton}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Input Area */}
+          {!isCompleted && (
+            <div className="flex-shrink-0 p-4 border-t bg-white/95 backdrop-blur-sm">
+              <MessageInput
+                ref={messageInputRef}
+                currentMessage={currentMessage}
+                setCurrentMessage={setCurrentMessage}
+                onSendMessage={sendMessage}
+                isLoading={isLoading}
+              />
+            </div>
           )}
         </div>
-
-        {!isCompleted && (
-          <div className="flex-shrink-0 border-t pt-4 bg-white/80">
-            <MessageInput
-              ref={messageInputRef}
-              currentMessage={currentMessage}
-              setCurrentMessage={setCurrentMessage}
-              onSendMessage={sendMessage}
-              isLoading={isLoading}
-            />
-          </div>
-        )}
       </SheetContent>
     </Sheet>
   );

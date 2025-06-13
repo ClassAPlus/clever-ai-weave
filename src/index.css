@@ -115,4 +115,44 @@
   textarea {
     font-size: 16px !important;
   }
+
+  /* Mobile-specific optimizations */
+  @media (max-width: 768px) {
+    /* Ensure proper viewport handling */
+    html {
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    body {
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+    }
+    
+    /* Prevent scroll bounce on mobile */
+    .overscroll-behavior-contain {
+      overscroll-behavior: contain;
+    }
+    
+    /* Smooth scrolling for touch devices */
+    .webkit-overflow-scrolling {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Fix textarea appearance on mobile */
+    textarea {
+      -webkit-appearance: none;
+      appearance: none;
+      border-radius: 8px;
+      resize: none;
+    }
+    
+    /* Prevent input zoom on iOS */
+    input, textarea, select {
+      font-size: 16px !important;
+      transform-origin: left top;
+    }
+  }
 }

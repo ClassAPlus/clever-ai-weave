@@ -16,6 +16,14 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
   
   const content = AssessmentDialogContent(contentProps);
   
+  // Calculate dynamic heights based on keyboard state
+  const headerHeight = 70;
+  const inputHeight = 80;
+  const availableHeight = keyboardState.availableHeight || window.innerHeight;
+  const chatHeight = isCompleted 
+    ? availableHeight - headerHeight 
+    : availableHeight - headerHeight - inputHeight;
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
@@ -45,7 +53,10 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
 
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex-shrink-0 border-b border-gray-100 py-3 bg-white/95 backdrop-blur-sm" style={{ height: '70px' }}>
+          <div 
+            className="flex-shrink-0 border-b border-gray-100 py-3 bg-white/95 backdrop-blur-sm" 
+            style={{ height: `${headerHeight}px` }}
+          >
             <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center px-4">
               {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
             </div>
@@ -54,13 +65,11 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </p>
           </div>
 
-          {/* Chat Content */}
+          {/* Chat Content - Dynamic height based on keyboard state */}
           <div 
-            className="flex-1 min-h-0 overflow-hidden"
+            className="flex-1 overflow-hidden"
             style={{
-              height: isCompleted 
-                ? 'calc(100vh - 70px)' 
-                : 'calc(100vh - 150px)' // 70px header + 80px input area
+              height: `${chatHeight}px`
             }}
           >
             <ScrollArea 
@@ -74,18 +83,15 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </ScrollArea>
           </div>
 
-          {/* Input - Always visible at bottom */}
+          {/* Input - Positioned above keyboard when visible */}
           {!isCompleted && (
             <div 
               className="flex-shrink-0 bg-white border-t border-gray-100"
               style={{ 
-                height: '80px',
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                zIndex: 100,
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+                height: `${inputHeight}px`,
+                bottom: keyboardState.isVisible ? `${keyboardState.height}px` : '0px',
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                position: 'relative'
               }}
             >
               <content.MessageInput />

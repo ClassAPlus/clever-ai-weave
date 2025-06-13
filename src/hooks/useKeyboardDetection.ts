@@ -27,8 +27,15 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       if ('visualViewport' in window && window.visualViewport) {
         const handleViewportChange = () => {
           const viewport = window.visualViewport!;
-          const keyboardHeight = window.innerHeight - viewport.height;
+          const keyboardHeight = Math.max(0, window.innerHeight - viewport.height);
           const isKeyboardVisible = keyboardHeight > 50;
+          
+          console.log('iOS Viewport change:', {
+            windowHeight: window.innerHeight,
+            viewportHeight: viewport.height,
+            keyboardHeight,
+            isKeyboardVisible
+          });
           
           setKeyboardState({
             isVisible: isKeyboardVisible,
@@ -38,10 +45,12 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
         };
 
         window.visualViewport.addEventListener('resize', handleViewportChange);
+        window.visualViewport.addEventListener('scroll', handleViewportChange);
         handleViewportChange();
 
         return () => {
           window.visualViewport?.removeEventListener('resize', handleViewportChange);
+          window.visualViewport?.removeEventListener('scroll', handleViewportChange);
         };
       } else {
         // Fallback for older iOS versions
@@ -51,6 +60,13 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
           const currentHeight = window.innerHeight;
           const keyboardHeight = Math.max(0, initialHeight - currentHeight);
           const isKeyboardVisible = keyboardHeight > 50;
+          
+          console.log('iOS Fallback resize:', {
+            initialHeight,
+            currentHeight,
+            keyboardHeight,
+            isKeyboardVisible
+          });
           
           setKeyboardState({
             isVisible: isKeyboardVisible,
@@ -67,13 +83,20 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
         };
       }
     } else {
-      // Non-iOS handling
+      // Non-iOS handling (Android, etc.)
       const initialHeight = window.innerHeight;
       
       const updateKeyboardState = () => {
         const currentHeight = window.innerHeight;
         const keyboardHeight = Math.max(0, initialHeight - currentHeight);
         const isKeyboardVisible = keyboardHeight > 50;
+        
+        console.log('Non-iOS resize:', {
+          initialHeight,
+          currentHeight,
+          keyboardHeight,
+          isKeyboardVisible
+        });
         
         setKeyboardState({
           isVisible: isKeyboardVisible,

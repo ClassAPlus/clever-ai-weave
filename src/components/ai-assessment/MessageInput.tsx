@@ -35,10 +35,14 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const mobileFocus = useMobileFocus({
     textareaRef,
     isLoading,
-    isSending: sendHandler.isSending
+    isSending: sendHandler.isSending // Now correctly connected
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // Don't allow changes while we're waiting to clear after send
+    if (sendHandler.pendingClear) {
+      return;
+    }
     setCurrentMessage(e.target.value);
   };
 
@@ -63,7 +67,8 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           style={{
             WebkitUserSelect: 'text',
             WebkitTouchCallout: 'default',
-            touchAction: 'manipulation'
+            touchAction: 'manipulation',
+            opacity: sendHandler.pendingClear ? 0.7 : 1, // Visual feedback during send
           }}
         />
       </div>

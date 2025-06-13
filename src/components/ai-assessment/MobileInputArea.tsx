@@ -27,6 +27,7 @@ export const MobileInputArea = ({
   }
 
   const handleSend = async (message: string) => {
+    console.log('MobileInputArea handleSend called with message:', message);
     // Set the current message so AssessmentChat can use it
     setCurrentMessage(message);
     await sendMessage();

@@ -22,58 +22,29 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const { isHebrew } = useLanguage();
   const isMobile = useIsMobile();
 
-  // Auto-focus and maintain focus for persistent keyboard on mobile
+  // Simple initial focus for mobile, then let iOS handle keyboard naturally
   useEffect(() => {
     if (isMobile && ref && 'current' in ref && ref.current) {
-      // Focus the input to show keyboard initially
-      ref.current.focus();
-      
-      // Prevent blur to maintain keyboard visibility
-      const handleBlur = (e: FocusEvent) => {
-        // Only allow blur if user is actually navigating away
-        setTimeout(() => {
-          if (ref.current && !isLoading) {
-            ref.current.focus();
-          }
-        }, 100);
-      };
-      
-      const inputElement = ref.current;
-      inputElement.addEventListener('blur', handleBlur);
-      
-      return () => {
-        inputElement.removeEventListener('blur', handleBlur);
-      };
+      // Only focus initially, then let user control keyboard
+      setTimeout(() => {
+        ref.current?.focus();
+      }, 300);
     }
-  }, [isMobile, ref, isLoading]);
+  }, [isMobile, ref]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSendMessage();
-      
-      // Re-focus after sending message on mobile
-      if (isMobile && ref && 'current' in ref && ref.current) {
-        setTimeout(() => {
-          ref.current?.focus();
-        }, 100);
-      }
     }
   };
 
   const handleSendClick = () => {
     onSendMessage();
-    
-    // Re-focus after sending message on mobile
-    if (isMobile && ref && 'current' in ref && ref.current) {
-      setTimeout(() => {
-        ref.current?.focus();
-      }, 100);
-    }
   };
 
   return (
-    <div className={`w-full flex ${isMobile ? 'gap-1' : 'gap-2'}`} style={{ boxSizing: 'border-box' }}>
+    <div className="w-full flex gap-2 p-2">
       <div className="flex-1">
         <Textarea
           ref={ref}
@@ -81,15 +52,10 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           onChange={(e) => setCurrentMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder={isHebrew ? "הקלד את התשובה שלך..." : "Type your response..."}
-          className={`w-full ${
-            isMobile ? 'min-h-[50px] max-h-[120px]' : 'min-h-[70px] max-h-[140px]'
-          } border-2 border-purple-200 bg-white/90 backdrop-blur-sm focus:border-purple-400 focus:ring-purple-400/20 rounded-xl resize-none shadow-lg transition-all duration-200`}
+          className="w-full min-h-[50px] max-h-[80px] border-2 border-purple-200 bg-white/90 backdrop-blur-sm focus:border-purple-400 focus:ring-purple-400/20 rounded-xl resize-none shadow-lg transition-all duration-200"
           style={{
             direction: 'ltr',
-            textAlign: 'left',
-            writingMode: 'horizontal-tb',
-            unicodeBidi: 'isolate',
-            boxSizing: 'border-box'
+            textAlign: 'left'
           }}
           dir="ltr"
           lang="en"
@@ -99,17 +65,14 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           autoCapitalize="off"
           spellCheck="false"
           disabled={isLoading}
-          autoFocus={isMobile}
-          rows={isMobile ? 2 : 3}
+          rows={2}
         />
       </div>
       
       <Button
         onClick={handleSendClick}
         disabled={!currentMessage.trim() || isLoading}
-        className={`bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white ${
-          isMobile ? 'px-3 py-2' : 'px-6 py-3'
-        } h-auto shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group relative overflow-hidden flex-shrink-0`}
+        className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white px-4 py-2 h-auto shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group relative overflow-hidden flex-shrink-0"
       >
         {isLoading ? (
           <Sparkles size={18} className="animate-spin" />

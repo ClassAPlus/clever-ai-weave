@@ -16,28 +16,25 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
   const [keyboardState, setKeyboardState] = useState<KeyboardState>({
     isVisible: false,
     height: 0,
-    availableHeight: window.innerHeight * 0.6 // Fixed 60% of screen height
+    availableHeight: 350 // Fixed height for consistency
   });
 
   useEffect(() => {
     const iOS = isIOS();
     
-    // For iOS, use a fixed height approach to prevent jumping
+    // For iOS, use completely fixed dimensions to prevent jumping
     if (iOS) {
-      // Set a fixed container height that works well with keyboard
-      const fixedHeight = Math.min(window.innerHeight * 0.6, 400);
-      
       setKeyboardState({
-        isVisible: true, // Always consider keyboard "visible" on iOS mobile
-        height: window.innerHeight * 0.4, // Assume standard keyboard height
-        availableHeight: fixedHeight
+        isVisible: true,
+        height: 280, // Standard iOS keyboard height
+        availableHeight: 350 // Fixed container height
       });
       
-      return () => {}; // No cleanup needed for fixed approach
+      return () => {}; // No event listeners needed for fixed approach
     }
 
-    // For non-iOS devices, use simpler detection
-    let initialHeight = window.innerHeight;
+    // For non-iOS devices, use simple detection without dynamic adjustments
+    const initialHeight = window.innerHeight;
     
     const updateKeyboardState = () => {
       const currentHeight = window.innerHeight;
@@ -47,46 +44,17 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       setKeyboardState({
         isVisible: isKeyboardVisible,
         height: keyboardHeight,
-        availableHeight: isKeyboardVisible 
-          ? Math.max(currentHeight - 60, 200)
-          : currentHeight - 60
+        availableHeight: isKeyboardVisible ? 350 : currentHeight - 60
       });
     };
 
-    const handleFocus = () => {
-      setTimeout(updateKeyboardState, 100);
-    };
-
-    const handleBlur = () => {
-      setTimeout(() => {
-        setKeyboardState({
-          isVisible: false,
-          height: 0,
-          availableHeight: window.innerHeight - 60
-        });
-      }, 100);
-    };
-
-    // Event listeners for non-iOS devices
     window.addEventListener('resize', updateKeyboardState);
-    
-    const inputElement = inputRef.current;
-    if (inputElement) {
-      inputElement.addEventListener('focus', handleFocus);
-      inputElement.addEventListener('blur', handleBlur);
-    }
-
     updateKeyboardState();
 
     return () => {
       window.removeEventListener('resize', updateKeyboardState);
-      
-      if (inputElement) {
-        inputElement.removeEventListener('focus', handleFocus);
-        inputElement.removeEventListener('blur', handleBlur);
-      }
     };
-  }, [inputRef]);
+  }, []);
 
   return keyboardState;
 };

@@ -21,6 +21,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
   const [isSending, setIsSending] = useState(false);
+  const preventBlurRef = useRef(false);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -34,15 +35,26 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const handleSend = useCallback(() => {
     if (currentMessage.trim() && !isLoading && !isSending) {
       setIsSending(true);
+      preventBlurRef.current = true;
+      
+      // Keep focus during send operation
+      if (textareaRef.current) {
+        textareaRef.current.style.caretColor = 'transparent';
+      }
+      
       onSendMessage();
       
-      // Maintain focus after a brief delay to keep keyboard open
+      // Restore focus and keyboard after message is sent
       setTimeout(() => {
+        preventBlurRef.current = false;
         if (textareaRef.current) {
+          textareaRef.current.style.caretColor = '';
           textareaRef.current.focus();
+          // Force keyboard to stay open on iOS
+          textareaRef.current.click();
         }
         setIsSending(false);
-      }, 100);
+      }, 50);
     }
   }, [onSendMessage, currentMessage, isLoading, isSending, textareaRef]);
 
@@ -50,36 +62,64 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     setCurrentMessage(e.target.value);
   };
 
-  // Maintain focus and prevent blur during send operations
+  // Prevent blur that would close keyboard
   const handleBlur = useCallback((e: React.FocusEvent<HTMLTextAreaElement>) => {
-    // Prevent keyboard close during send operation
-    if (isSending) {
+    // Always prevent blur during send operations or loading
+    if (preventBlurRef.current || isSending || isLoading) {
       e.preventDefault();
-      requestAnimationFrame(() => {
+      e.stopPropagation();
+      // Immediately refocus
+      setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
         }
-      });
+      }, 10);
+      return false;
     }
-  }, [isSending, textareaRef]);
+  }, [isSending, isLoading, textareaRef]);
 
-  // Initial focus on mount
+  // Maintain focus throughout the session
+  useEffect(() => {
+    const handleWindowBlur = (e: Event) => {
+      // Prevent window blur from affecting our input
+      if (preventBlurRef.current || isSending || isLoading) {
+        e.preventDefault();
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+          }
+        }, 100);
+      }
+    };
+
+    window.addEventListener('blur', handleWindowBlur);
+    return () => window.removeEventListener('blur', handleWindowBlur);
+  }, [isSending, isLoading, textareaRef]);
+
+  // Initial focus and maintain focus after loading changes
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
   }, []);
 
-  // Refocus after loading state changes to maintain keyboard
   useEffect(() => {
-    if (!isLoading && textareaRef.current && document.activeElement !== textareaRef.current) {
+    // Refocus after loading state changes
+    if (!isLoading && textareaRef.current) {
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
         }
-      }, 50);
+      }, 100);
     }
   }, [isLoading]);
+
+  // Handle button click to maintain focus
+  const handleButtonClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleSend();
+  }, [handleSend]);
 
   return (
     <div className="flex gap-3 items-end w-full">
@@ -94,17 +134,22 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           disabled={isLoading}
           rows={2}
           inputMode="text"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck="false"
           className="resize-none border-gray-300 focus:border-purple-500 focus:ring-purple-500 mobile-input"
           style={{
             WebkitUserSelect: 'text',
-            WebkitTouchCallout: 'default'
+            WebkitTouchCallout: 'default',
+            touchAction: 'manipulation'
           }}
           autoFocus
         />
       </div>
       
       <Button
-        onClick={handleSend}
+        onMouseDown={handleButtonClick}
+        onTouchStart={handleButtonClick}
         disabled={!currentMessage.trim() || isLoading || isSending}
         className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 min-h-[44px] min-w-[44px] flex-shrink-0"
         size="icon"

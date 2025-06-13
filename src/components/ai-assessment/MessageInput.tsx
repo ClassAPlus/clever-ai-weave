@@ -26,13 +26,7 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (currentMessage.trim() && !isLoading) {
-        // Prevent default blur behavior
-        (e.currentTarget as HTMLTextAreaElement).blur();
         onSendMessage();
-        // Immediately refocus to keep keyboard open
-        requestAnimationFrame(() => {
-          textareaRef.current?.focus();
-        });
       }
     }
   };
@@ -40,26 +34,19 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const handleSendClick = useCallback(() => {
     if (currentMessage.trim() && !isLoading) {
       onSendMessage();
-      // Keep focus after click
-      requestAnimationFrame(() => {
-        textareaRef.current?.focus();
-      });
     }
-  }, [onSendMessage, currentMessage, isLoading, textareaRef]);
+  }, [onSendMessage, currentMessage, isLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCurrentMessage(e.target.value);
   };
 
-  // Maintain focus when component updates but not loading
+  // Simple autofocus on mount
   useEffect(() => {
-    if (!isLoading && textareaRef.current) {
-      // Only focus if no other element is focused or if we're not focused
-      if (document.activeElement === document.body || document.activeElement === null) {
-        textareaRef.current.focus();
-      }
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
-  }, [isLoading]);
+  }, []);
 
   return (
     <div className="flex gap-3 items-end w-full">
@@ -74,16 +61,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           rows={2}
           className="resize-none border-gray-300 focus:border-purple-500 focus:ring-purple-500 mobile-input"
           autoFocus
-          onBlur={(e) => {
-            // Prevent keyboard from closing on blur during send operation
-            if (!isLoading) {
-              setTimeout(() => {
-                if (textareaRef.current && document.activeElement !== textareaRef.current) {
-                  textareaRef.current.focus();
-                }
-              }, 10);
-            }
-          }}
         />
       </div>
       
@@ -92,10 +69,6 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
         disabled={!currentMessage.trim() || isLoading}
         className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 min-h-[44px] min-w-[44px] flex-shrink-0"
         size="icon"
-        onMouseDown={(e) => {
-          // Prevent focus loss when clicking button
-          e.preventDefault();
-        }}
       >
         {isLoading ? (
           <Sparkles size={18} className="animate-spin" />

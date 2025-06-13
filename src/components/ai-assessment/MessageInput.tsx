@@ -40,12 +40,14 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
           placeholder={isHebrew ? "הקלד את התשובה שלך..." : "Type your response..."}
           className={`w-full ${
             isMobile ? 'min-h-[50px] max-h-[120px]' : 'min-h-[70px] max-h-[140px]'
-          } border-2 border-purple-200 bg-white/90 backdrop-blur-sm focus:border-purple-400 focus:ring-purple-400/20 rounded-xl resize-none shadow-lg transition-all duration-200`}
+          } border-2 border-purple-200 bg-white/90 backdrop-blur-sm focus:border-purple-400 focus:ring-purple-400/20 rounded-xl resize-none shadow-lg transition-all duration-200 !direction-ltr !text-left`}
           style={{ 
-            direction: 'ltr', 
-            textAlign: 'left',
-            unicodeBidi: 'isolate'
+            direction: 'ltr !important', 
+            textAlign: 'left !important',
+            unicodeBidi: 'isolate',
+            writingMode: 'horizontal-tb'
           }}
+          dir="ltr"
           disabled={isLoading}
           autoFocus
           rows={isMobile ? 2 : 3}

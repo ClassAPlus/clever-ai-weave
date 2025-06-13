@@ -27,10 +27,12 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
       <DialogContent 
         className={`fixed inset-0 max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 transform-none translate-x-0 translate-y-0 left-0 top-0 overflow-hidden`}
         style={{ 
-          width: '100vw',
+          width: '100dvw',
           height: `${mobileHeight}px`,
-          maxWidth: '100vw',
-          maxHeight: `${mobileHeight}px`
+          maxWidth: '100dvw',
+          maxHeight: `${mobileHeight}px`,
+          overflowX: 'hidden',
+          boxSizing: 'border-box'
         }}
         aria-describedby="ai-assessment-description"
       >
@@ -43,9 +45,9 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col" style={{ width: '100vw', height: `${mobileHeight}px` }}>
+        <div className="flex flex-col overflow-hidden" style={{ width: '100dvw', height: `${mobileHeight}px` }}>
           {/* Header */}
-          <div className="flex-shrink-0 border-b border-gray-100 px-4 py-3 bg-white/95 backdrop-blur-sm w-full">
+          <div className="flex-shrink-0 border-b border-gray-100 px-2 py-3 bg-white/95 backdrop-blur-sm w-full">
             <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
               {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
             </div>
@@ -60,7 +62,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
               className="h-full w-full" 
               ref={contentProps.scrollAreaRef}
             >
-              <div className="w-full px-2">
+              <div className="w-full px-1">
                 {/* Background decoration */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
                 
@@ -73,9 +75,9 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           {/* Input */}
           {!isCompleted && (
             <div className={`flex-shrink-0 bg-white border-t border-gray-100 w-full ${
-              isIOS && keyboardState.isVisible ? 'pb-1' : 'pb-3'
+              isIOS && keyboardState.isVisible ? 'pb-1' : 'pb-2'
             }`}>
-              <div className="w-full px-3 py-2">
+              <div className="w-full px-1 py-2">
                 <content.MessageInput />
               </div>
             </div>

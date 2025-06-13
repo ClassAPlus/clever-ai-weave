@@ -1,3 +1,4 @@
+
 import { useState, useEffect, RefObject } from 'react';
 
 interface KeyboardState {
@@ -15,7 +16,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
   const [keyboardState, setKeyboardState] = useState<KeyboardState>({
     isVisible: false,
     height: 0,
-    availableHeight: window.innerHeight - 60 // Account for mobile toolbar/navbar
+    availableHeight: window.innerHeight - 60
   });
 
   useEffect(() => {
@@ -28,35 +29,25 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       const currentHeight = window.innerHeight;
       const visualViewportHeight = window.visualViewport?.height || currentHeight;
       
-      // Calculate keyboard height using multiple methods for better accuracy
-      const methodA = initialHeight - currentHeight; // Window resize method
-      const methodB = initialVisualViewportHeight - visualViewportHeight; // Visual viewport method
-      const methodC = currentHeight - visualViewportHeight; // Current difference method
+      // Simple keyboard detection
+      const keyboardHeight = window.visualViewport 
+        ? Math.max(0, initialVisualViewportHeight - visualViewportHeight)
+        : Math.max(0, initialHeight - currentHeight);
       
-      // Use the most reliable method (usually visual viewport when available)
-      const keyboardHeight = window.visualViewport ? Math.max(methodB, methodC) : methodA;
-      const isKeyboardVisible = keyboardHeight > 50; // Threshold to avoid false positives
-      
-      // Account for mobile toolbar/navbar and ensure reasonable minimum height
-      const toolbarHeight = 60;
-      
-      // Much more conservative minimum heights for iOS to prevent over-jumping
-      const minVisibleHeight = iOS ? 150 : 300;
+      const isKeyboardVisible = keyboardHeight > 50;
       
       let availableHeight;
       
       if (iOS && isKeyboardVisible) {
-        // iOS-specific calculation: much more conservative approach
-        // Use 80% of available viewport height to prevent over-reaching
-        availableHeight = Math.max(
-          Math.min(visualViewportHeight * 0.8, visualViewportHeight - toolbarHeight), 
-          minVisibleHeight
-        );
+        // Much simpler iOS calculation - just use 60% of visual viewport
+        availableHeight = Math.max(Math.floor(visualViewportHeight * 0.6), 120);
+        // Cap the height to prevent over-jumping
+        availableHeight = Math.min(availableHeight, 400);
       } else {
-        // Android or keyboard not visible
+        // Standard calculation for Android or no keyboard
         availableHeight = isKeyboardVisible 
-          ? Math.max(visualViewportHeight - toolbarHeight, minVisibleHeight)
-          : currentHeight - toolbarHeight;
+          ? Math.max(visualViewportHeight - 60, 200)
+          : currentHeight - 60;
       }
 
       setKeyboardState({
@@ -68,59 +59,48 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
 
     const debouncedUpdate = () => {
       clearTimeout(updateTimeout);
-      updateTimeout = setTimeout(updateKeyboardState, iOS ? 200 : 100);
+      // Shorter timeout for faster response
+      updateTimeout = setTimeout(updateKeyboardState, iOS ? 50 : 30);
     };
 
     const handleFocus = () => {
-      // iOS needs time for viewport adjustments, but keep it minimal
-      const delay = iOS ? 150 : 50;
+      // Much shorter delay for iOS
+      const delay = iOS ? 50 : 30;
       setTimeout(updateKeyboardState, delay);
     };
 
     const handleBlur = () => {
-      // Reset when input loses focus
-      const delay = iOS ? 100 : 50;
+      const delay = iOS ? 50 : 30;
       setTimeout(() => {
         setKeyboardState({
           isVisible: false,
           height: 0,
-          availableHeight: window.innerHeight - 60 // Account for toolbar
+          availableHeight: window.innerHeight - 60
         });
       }, delay);
     };
 
-    const handleResize = () => {
-      debouncedUpdate();
-    };
-
-    const handleVisualViewportChange = () => {
-      debouncedUpdate();
-    };
-
-    // Set up event listeners
-    window.addEventListener('resize', handleResize);
+    // Event listeners
+    window.addEventListener('resize', debouncedUpdate);
     
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+      window.visualViewport.addEventListener('resize', debouncedUpdate);
     }
 
-    // Input focus/blur events
     const inputElement = inputRef.current;
     if (inputElement) {
       inputElement.addEventListener('focus', handleFocus);
       inputElement.addEventListener('blur', handleBlur);
     }
 
-    // Initial calculation
     updateKeyboardState();
 
-    // Cleanup
     return () => {
       clearTimeout(updateTimeout);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', debouncedUpdate);
       
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
+        window.visualViewport.removeEventListener('resize', debouncedUpdate);
       }
       
       if (inputElement) {

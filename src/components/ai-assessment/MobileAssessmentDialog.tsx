@@ -80,29 +80,44 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
   // Auto-scroll to bottom when new messages arrive or keyboard state changes
   useEffect(() => {
     if (messagesContainerRef.current && messages.length > 0) {
-      setTimeout(() => {
+      const scrollToBottom = () => {
         if (messagesContainerRef.current) {
           messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
         }
-      }, 100);
+      };
+      
+      // Immediate scroll
+      scrollToBottom();
+      
+      // Delayed scroll for keyboard transitions
+      setTimeout(scrollToBottom, 100);
+      setTimeout(scrollToBottom, 300);
     }
-  }, [messages.length, keyboardState.isVisible]);
+  }, [messages.length, keyboardState.isVisible, keyboardState.height]);
 
-  // Calculate dynamic heights based on keyboard state
-  const containerHeight = keyboardState.isVisible 
-    ? `${keyboardState.availableHeight}px` 
-    : '100vh';
-    
-  const messagesHeight = keyboardState.isVisible
-    ? `${keyboardState.availableHeight - 180}px` // Account for header + input
-    : 'calc(100vh - 180px)';
+  // Calculate dynamic heights with more aggressive iOS keyboard handling
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  
+  let containerHeight: string;
+  let messagesHeight: string;
+  
+  if (keyboardState.isVisible) {
+    // When keyboard is visible, use the available viewport height
+    containerHeight = `${keyboardState.availableHeight}px`;
+    messagesHeight = `${keyboardState.availableHeight - 160}px`; // More space for input
+  } else {
+    // When keyboard is hidden, use full viewport with safe area
+    containerHeight = isIOS ? 'calc(100vh - env(safe-area-inset-bottom))' : '100vh';
+    messagesHeight = isIOS ? 'calc(100vh - 200px - env(safe-area-inset-bottom))' : 'calc(100vh - 200px)';
+  }
 
-  console.log('Mobile Dialog Render:', {
+  console.log('Mobile Dialog Heights:', {
     keyboardVisible: keyboardState.isVisible,
     keyboardHeight: keyboardState.height,
     availableHeight: keyboardState.availableHeight,
     containerHeight,
-    messagesHeight
+    messagesHeight,
+    isIOS
   });
 
   return (
@@ -112,7 +127,8 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
         className="w-full border-0 p-0 overflow-hidden"
         style={{ 
           height: containerHeight,
-          maxHeight: containerHeight
+          maxHeight: containerHeight,
+          transform: keyboardState.isVisible && isIOS ? 'translateY(0)' : undefined
         }}
       >
         <div 
@@ -123,8 +139,8 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           }}
         >
           {/* Header */}
-          <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-b pt-safe-top">
-            <div className="p-4 pb-2">
+          <div className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-b">
+            <div className="p-4 pb-2 pt-6">
               <SheetHeader>
                 <SheetTitle className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
                   {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
@@ -136,15 +152,16 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </div>
           </div>
 
-          {/* Messages Container with dynamic height */}
+          {/* Messages Container with dynamic height and better iOS handling */}
           <div 
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto touch-scroll"
+            className="flex-1 overflow-y-auto"
             style={{
               height: messagesHeight,
               maxHeight: messagesHeight,
               WebkitOverflowScrolling: 'touch',
-              touchAction: 'pan-y'
+              touchAction: 'pan-y',
+              overscrollBehavior: 'contain'
             }}
           >
             <div className="pt-4 pb-4">
@@ -164,14 +181,21 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </div>
           </div>
 
-          {/* Input Area with keyboard-aware positioning */}
+          {/* Input Area with better iOS keyboard positioning */}
           {!isCompleted && (
             <div 
               className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-t"
               style={{
                 paddingBottom: keyboardState.isVisible 
-                  ? '16px' 
-                  : 'max(env(safe-area-inset-bottom), 16px)'
+                  ? '8px' 
+                  : isIOS 
+                    ? 'max(env(safe-area-inset-bottom), 16px)'
+                    : '16px',
+                position: keyboardState.isVisible && isIOS ? 'fixed' : 'relative',
+                bottom: keyboardState.isVisible && isIOS ? '0' : 'auto',
+                left: keyboardState.isVisible && isIOS ? '0' : 'auto',
+                right: keyboardState.isVisible && isIOS ? '0' : 'auto',
+                zIndex: keyboardState.isVisible && isIOS ? 100 : 'auto'
               }}
             >
               <div className="p-4">

@@ -47,7 +47,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       // Fallback for other platforms
       const currentHeight = window.innerHeight;
       const originalHeight = window.screen.height;
-      const keyboardHeight = Math.max(0, originalHeight - currentHeight - 100); // Account for browser chrome
+      const keyboardHeight = Math.max(0, originalHeight - currentHeight - 100);
       const isKeyboardVisible = keyboardHeight > 50;
       
       console.log('Fallback Keyboard Detection:', {
@@ -65,11 +65,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     }
   }, []);
 
-  // Debounced update function with faster response
-  const debouncedUpdate = useCallback(() => {
-    setTimeout(updateKeyboardState, 20);
-  }, [updateKeyboardState]);
-
+  // Always use the same number of hooks - no conditional logic
   useEffect(() => {
     const iOS = isIOS();
     
@@ -77,7 +73,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     updateKeyboardState();
 
     if (iOS && 'visualViewport' in window && window.visualViewport) {
-      // Use Visual Viewport API for iOS with immediate updates
+      // Use Visual Viewport API for iOS
       const viewport = window.visualViewport;
       viewport.addEventListener('resize', updateKeyboardState, { passive: true });
       viewport.addEventListener('scroll', updateKeyboardState, { passive: true });
@@ -88,33 +84,33 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       };
     } else {
       // Fallback for non-iOS
-      window.addEventListener('resize', debouncedUpdate, { passive: true });
+      const handleResize = () => setTimeout(updateKeyboardState, 20);
+      window.addEventListener('resize', handleResize, { passive: true });
       
       return () => {
-        window.removeEventListener('resize', debouncedUpdate);
+        window.removeEventListener('resize', handleResize);
       };
     }
-  }, [debouncedUpdate, updateKeyboardState]);
+  }, [updateKeyboardState]);
 
-  // Additional focus/blur detection for better keyboard tracking
+  // Focus/blur detection - always run this effect
   useEffect(() => {
     const handleFocus = () => {
-      setTimeout(updateKeyboardState, 300); // Give time for keyboard to appear
+      setTimeout(updateKeyboardState, 300);
     };
     
     const handleBlur = () => {
-      setTimeout(updateKeyboardState, 300); // Give time for keyboard to disappear
+      setTimeout(updateKeyboardState, 300);
     };
 
-    if (inputRef.current) {
-      inputRef.current.addEventListener('focus', handleFocus);
-      inputRef.current.addEventListener('blur', handleBlur);
+    const currentInput = inputRef.current;
+    if (currentInput) {
+      currentInput.addEventListener('focus', handleFocus);
+      currentInput.addEventListener('blur', handleBlur);
       
       return () => {
-        if (inputRef.current) {
-          inputRef.current.removeEventListener('focus', handleFocus);
-          inputRef.current.removeEventListener('blur', handleBlur);
-        }
+        currentInput.removeEventListener('focus', handleFocus);
+        currentInput.removeEventListener('blur', handleBlur);
       };
     }
   }, [inputRef, updateKeyboardState]);

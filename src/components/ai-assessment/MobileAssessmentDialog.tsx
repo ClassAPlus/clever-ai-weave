@@ -1,4 +1,3 @@
-
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AssessmentChat } from "./AssessmentChat";
 import { MobileSheetHeader } from "./MobileSheetHeader";
@@ -85,12 +84,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
         className="w-full border-0 p-0 overflow-hidden"
         style={{ 
           height: containerHeight,
-          maxHeight: containerHeight,
-          // Immediate positioning for iOS when keyboard is visible
-          transform: keyboardState.isVisible && isIOS ? 'translateY(0)' : undefined,
-          transition: 'height 0.3s ease-out, transform 0.2s ease-out',
-          // Ensure we're positioned above the keyboard immediately
-          bottom: keyboardState.isVisible && isIOS ? '0' : undefined
+          maxHeight: containerHeight
         }}
       >
         <div 
@@ -98,9 +92,8 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           style={{ 
             height: containerHeight,
             maxHeight: containerHeight,
-            // Show immediately if keyboard is visible, otherwise brief fade-in
-            opacity: keyboardState.isVisible ? 1 : (initialLoad ? 0 : 1),
-            transition: keyboardState.isVisible ? 'none' : 'opacity 0.2s ease-in'
+            opacity: initialLoad ? 0 : 1,
+            transition: 'opacity 0.2s ease-in'
           }}
         >
           <MobileSheetHeader />

@@ -9,33 +9,14 @@ interface KeyboardState {
 
 const isIOS = () => {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
-         /Safari/.test(navigator.userAgent);
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 };
 
 export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
-  const [keyboardState, setKeyboardState] = useState<KeyboardState>(() => {
-    // Initialize with immediate detection
-    const iOS = isIOS();
-    if (iOS && 'visualViewport' in window && window.visualViewport) {
-      const viewport = window.visualViewport!;
-      const windowHeight = window.innerHeight;
-      const viewportHeight = viewport.height;
-      const keyboardHeight = Math.max(0, windowHeight - viewportHeight);
-      const isKeyboardVisible = keyboardHeight > 50;
-      
-      return {
-        isVisible: isKeyboardVisible,
-        height: keyboardHeight,
-        availableHeight: viewportHeight
-      };
-    }
-    
-    return {
-      isVisible: false,
-      height: 0,
-      availableHeight: window.innerHeight
-    };
+  const [keyboardState, setKeyboardState] = useState<KeyboardState>({
+    isVisible: false,
+    height: 0,
+    availableHeight: window.innerHeight
   });
 
   const updateKeyboardState = useCallback(() => {
@@ -53,8 +34,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
         windowHeight,
         viewportHeight,
         keyboardHeight,
-        isKeyboardVisible,
-        scale: viewport.scale
+        isKeyboardVisible
       });
       
       setKeyboardState({
@@ -69,13 +49,6 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       const keyboardHeight = Math.max(0, originalHeight - currentHeight - 100);
       const isKeyboardVisible = keyboardHeight > 50;
       
-      console.log('Fallback Keyboard Detection:', {
-        originalHeight,
-        currentHeight,
-        keyboardHeight,
-        isKeyboardVisible
-      });
-      
       setKeyboardState({
         isVisible: isKeyboardVisible,
         height: keyboardHeight,
@@ -87,44 +60,30 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
   useEffect(() => {
     const iOS = isIOS();
     
-    // Immediate update
-    updateKeyboardState();
-
     if (iOS && 'visualViewport' in window && window.visualViewport) {
-      // Use Visual Viewport API for iOS with immediate detection
       const viewport = window.visualViewport;
-      viewport.addEventListener('resize', updateKeyboardState, { passive: true });
-      viewport.addEventListener('scroll', updateKeyboardState, { passive: true });
+      viewport.addEventListener('resize', updateKeyboardState);
       
       return () => {
         viewport.removeEventListener('resize', updateKeyboardState);
-        viewport.removeEventListener('scroll', updateKeyboardState);
       };
     } else {
-      // Fallback for non-iOS
-      const handleResize = () => {
-        updateKeyboardState();
-        setTimeout(updateKeyboardState, 50);
-      };
-      window.addEventListener('resize', handleResize, { passive: true });
+      window.addEventListener('resize', updateKeyboardState);
       
       return () => {
-        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('resize', updateKeyboardState);
       };
     }
   }, [updateKeyboardState]);
 
-  // Focus/blur detection with immediate updates
+  // Focus/blur detection
   useEffect(() => {
     const handleFocus = () => {
-      // Immediate update, then delayed updates for iOS
-      updateKeyboardState();
       setTimeout(updateKeyboardState, 100);
       setTimeout(updateKeyboardState, 300);
     };
     
     const handleBlur = () => {
-      updateKeyboardState();
       setTimeout(updateKeyboardState, 100);
     };
 

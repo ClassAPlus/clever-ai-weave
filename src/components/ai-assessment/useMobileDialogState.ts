@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 
 interface UseMobileDialogStateProps {
@@ -13,39 +12,38 @@ interface UseMobileDialogStateProps {
 export const useMobileDialogState = ({ open, keyboardState }: UseMobileDialogStateProps) => {
   const [initialLoad, setInitialLoad] = useState(true);
 
-  // Handle initial load delay for iOS - very short delay
+  // Handle initial load delay
   useEffect(() => {
     if (open) {
       setInitialLoad(true);
       const timer = setTimeout(() => {
         setInitialLoad(false);
-      }, 50); // Very short delay to allow keyboard detection
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, [open]);
 
-  // iOS detection with better coverage
+  // Simple iOS detection
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
-               /Safari/.test(navigator.userAgent);
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   
-  // Calculate dynamic heights - prioritize keyboard state
+  // Calculate heights - keep it simple
   let containerHeight: string;
   let messagesHeight: string;
   
   if (keyboardState.isVisible) {
-    // Keyboard is visible - use available height immediately
-    const safeHeight = Math.max(300, keyboardState.availableHeight);
-    containerHeight = `${safeHeight}px`;
-    messagesHeight = `${safeHeight - 140}px`; // Account for header and input
-  } else if (isIOS) {
-    // iOS without keyboard - use safe positioning
-    containerHeight = 'calc(100vh - env(safe-area-inset-bottom) - 100px)';
-    messagesHeight = 'calc(100vh - env(safe-area-inset-bottom) - 280px)';
+    // When keyboard is visible, use available height
+    containerHeight = `${keyboardState.availableHeight}px`;
+    messagesHeight = `${keyboardState.availableHeight - 120}px`;
   } else {
-    // Non-iOS
-    containerHeight = '100vh';
-    messagesHeight = 'calc(100vh - 200px)';
+    // When keyboard is not visible
+    if (isIOS) {
+      containerHeight = 'calc(100vh - env(safe-area-inset-bottom))';
+      messagesHeight = 'calc(100vh - env(safe-area-inset-bottom) - 160px)';
+    } else {
+      containerHeight = '100vh';
+      messagesHeight = 'calc(100vh - 160px)';
+    }
   }
 
   console.log('Mobile Dialog State:', {

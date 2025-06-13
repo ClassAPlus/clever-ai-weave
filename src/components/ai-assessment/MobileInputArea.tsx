@@ -35,18 +35,7 @@ export const MobileInputArea = ({
     <div 
       className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-t"
       style={{
-        paddingBottom: keyboardState.isVisible 
-          ? '8px' 
-          : isIOS 
-            ? 'max(env(safe-area-inset-bottom), 16px)'
-            : '16px',
-        position: keyboardState.isVisible && isIOS ? 'absolute' : 'relative',
-        bottom: keyboardState.isVisible && isIOS ? '0' : 'auto',
-        left: keyboardState.isVisible && isIOS ? '0' : 'auto',
-        right: keyboardState.isVisible && isIOS ? '0' : 'auto',
-        zIndex: keyboardState.isVisible && isIOS ? 100 : 'auto',
-        opacity: keyboardState.isVisible ? 1 : (initialLoad ? 0 : 1),
-        transition: keyboardState.isVisible ? 'none' : 'opacity 0.2s ease-in'
+        paddingBottom: isIOS ? 'max(env(safe-area-inset-bottom), 16px)' : '16px'
       }}
     >
       <div className="p-4">

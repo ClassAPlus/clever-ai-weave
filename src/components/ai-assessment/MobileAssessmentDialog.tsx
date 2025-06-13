@@ -1,4 +1,3 @@
-
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AssessmentChat } from "./AssessmentChat";
 import { MobileSheetHeader } from "./MobileSheetHeader";
@@ -123,11 +122,8 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
 
           <MobileInputArea
             isCompleted={isCompleted}
-            currentMessage={currentMessage}
-            setCurrentMessage={setCurrentMessage}
             sendMessage={sendMessage}
             isLoading={isLoading}
-            messageInputRef={messageInputRef}
             keyboardState={keyboardState}
             initialLoad={initialLoad}
             isIOS={isIOS}

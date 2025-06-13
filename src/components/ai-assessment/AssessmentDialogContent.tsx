@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessages } from "./ChatMessages";
 import { AssessmentSummary } from "./AssessmentSummary";
-import { MessageInput } from "./MessageInput";
+import MessageInput from "./MessageInput";
 import { AssessmentChat } from "./AssessmentChat";
 
 interface AssessmentDialogContentProps {

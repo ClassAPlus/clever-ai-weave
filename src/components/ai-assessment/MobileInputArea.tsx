@@ -5,7 +5,7 @@ interface MobileInputAreaProps {
   isCompleted: boolean;
   currentMessage: string;
   setCurrentMessage: (message: string) => void;
-  sendMessage: () => void;
+  sendMessage: () => Promise<void>; // Changed from () => void to () => Promise<void>
   isLoading: boolean;
   messageInputRef: React.RefObject<HTMLTextAreaElement>;
   keyboardState: {

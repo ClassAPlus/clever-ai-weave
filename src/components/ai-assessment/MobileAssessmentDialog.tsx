@@ -1,4 +1,3 @@
-
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AssessmentChat } from "./AssessmentChat";
 import { MobileSheetHeader } from "./MobileSheetHeader";
@@ -86,19 +85,16 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
         style={{ 
           height: containerHeight,
           maxHeight: containerHeight,
-          transform: initialLoad && isIOS 
-            ? 'translateY(-100px)' 
-            : keyboardState.isVisible && isIOS 
-              ? 'translateY(0)' 
-              : undefined,
-          transition: 'transform 0.2s ease-out'
+          transform: keyboardState.isVisible && isIOS ? 'translateY(0)' : undefined,
+          transition: 'height 0.2s ease-out, transform 0.2s ease-out'
         }}
       >
         <div 
           className="flex flex-col bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
           style={{ 
             height: containerHeight,
-            maxHeight: containerHeight
+            maxHeight: containerHeight,
+            opacity: 1
           }}
         >
           <MobileSheetHeader />

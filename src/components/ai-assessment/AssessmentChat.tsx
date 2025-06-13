@@ -54,14 +54,19 @@ export const AssessmentChat = ({
     }
   }, [messages, isLoading, isCompleted, setStage, scrollAreaRef]);
 
-  const sendMessage = async () => {
-    if (!currentMessage.trim() || isLoading) {
-      console.log('SendMessage called but conditions not met:', { currentMessage: currentMessage.trim(), isLoading });
+  const sendMessage = async (messageToSend?: string) => {
+    const userMessage = messageToSend || currentMessage;
+    
+    if (!userMessage.trim() || isLoading) {
+      console.log('SendMessage called but conditions not met:', { 
+        messageToSend, 
+        currentMessage: currentMessage.trim(), 
+        isLoading 
+      });
       return;
     }
 
-    console.log('SendMessage proceeding with message:', currentMessage);
-    const userMessage = currentMessage;
+    console.log('SendMessage proceeding with message:', userMessage);
     setIsLoading(true);
 
     // Add user message to chat

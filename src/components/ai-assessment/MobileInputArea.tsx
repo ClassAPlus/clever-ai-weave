@@ -3,7 +3,7 @@ import MessageInput from "./MessageInput";
 
 interface MobileInputAreaProps {
   isCompleted: boolean;
-  sendMessage: () => Promise<void>;
+  sendMessage: (messageToSend?: string) => Promise<void>;
   isLoading: boolean;
   keyboardState: {
     isVisible: boolean;
@@ -29,9 +29,8 @@ export const MobileInputArea = ({
 
   const handleSend = async (message: string) => {
     console.log('MobileInputArea handleSend called with message:', message);
-    // Set the current message so AssessmentChat can use it
-    setCurrentMessage(message);
-    await sendMessage();
+    // Pass the message directly to sendMessage instead of setting state
+    await sendMessage(message);
   };
 
   return (

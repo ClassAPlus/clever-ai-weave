@@ -81,9 +81,8 @@ export const AssessmentDialogContent = ({
 
   const handleSend = async (message: string) => {
     console.log('AssessmentDialogContent handleSend called with message:', message);
-    // Set the current message so AssessmentChat can use it
-    setCurrentMessage(message);
-    await sendMessage();
+    // Pass the message directly to sendMessage instead of setting state
+    await sendMessage(message);
   };
 
   return {

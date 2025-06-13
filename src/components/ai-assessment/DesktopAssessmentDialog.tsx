@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { AssessmentDialogContent } from "./AssessmentDialogContent";
-import MessageInput from "./MessageInput";
 
 interface DesktopAssessmentDialogProps {
   open: boolean;
@@ -13,16 +12,9 @@ interface DesktopAssessmentDialogProps {
 
 export const DesktopAssessmentDialog = ({ open, onOpenChange, contentProps }: DesktopAssessmentDialogProps) => {
   const { isHebrew } = useLanguage();
-  const { isCompleted, summary, setCurrentMessage } = contentProps;
+  const { isCompleted, summary } = contentProps;
   
   const content = AssessmentDialogContent(contentProps);
-
-  const handleSend = async (message: string) => {
-    console.log('DesktopAssessmentDialog handleSend called with message:', message);
-    // Set the current message so AssessmentChat can use it
-    setCurrentMessage(message);
-    await content.sendMessage();
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -56,14 +48,7 @@ export const DesktopAssessmentDialog = ({ open, onOpenChange, contentProps }: De
             </div>
           </ScrollArea>
 
-          {!isCompleted && (
-            <div className="flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent border-t border-gray-100 pt-4">
-              <MessageInput
-                onSend={handleSend}
-                isSending={contentProps.isLoading}
-              />
-            </div>
-          )}
+          <content.MessageInput />
         </div>
       </DialogContent>
     </Dialog>

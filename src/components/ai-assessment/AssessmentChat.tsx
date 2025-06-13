@@ -55,14 +55,21 @@ export const AssessmentChat = ({
   }, [messages, isLoading, isCompleted, setStage, scrollAreaRef]);
 
   const sendMessage = async () => {
-    if (!currentMessage.trim() || isLoading) return;
+    if (!currentMessage.trim() || isLoading) {
+      console.log('SendMessage called but conditions not met:', { currentMessage: currentMessage.trim(), isLoading });
+      return;
+    }
 
+    console.log('SendMessage proceeding with message:', currentMessage);
     const userMessage = currentMessage;
     setIsLoading(true);
 
     // Add user message to chat
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
+
+    // Clear the current message after adding it to the chat
+    setCurrentMessage('');
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-assessment', {

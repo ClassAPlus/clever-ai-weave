@@ -80,7 +80,8 @@ export const AssessmentDialogContent = ({
   }, [messages.length, keyboardState.isVisible]);
 
   const handleSend = async (message: string) => {
-    // Update the current message state for the AssessmentChat logic
+    console.log('AssessmentDialogContent handleSend called with message:', message);
+    // Set the current message so AssessmentChat can use it
     setCurrentMessage(message);
     await sendMessage();
   };
@@ -99,10 +100,12 @@ export const AssessmentDialogContent = ({
       />
     ) : null,
     MessageInput: () => !isCompleted ? (
-      <MessageInput
-        onSend={handleSend}
-        isSending={isLoading}
-      />
+      <div className="flex-shrink-0 bg-gradient-to-t from-white via-white to-transparent border-t border-gray-100 pt-4">
+        <MessageInput
+          onSend={handleSend}
+          isSending={isLoading}
+        />
+      </div>
     ) : null
   };
 };

@@ -23,6 +23,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     let initialHeight = window.innerHeight;
     let initialVisualViewportHeight = window.visualViewport?.height || window.innerHeight;
     const iOS = isIOS();
+    let updateTimeout: NodeJS.Timeout;
 
     const updateKeyboardState = () => {
       const currentHeight = window.innerHeight;
@@ -40,18 +41,14 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       // Account for mobile toolbar/navbar and ensure reasonable minimum height
       const toolbarHeight = 60;
       
-      // iOS-specific adjustments: more conservative minimum heights to prevent over-jumping
-      const minVisibleHeight = iOS ? 250 : 400; // Much smaller minimum for iOS
+      // More conservative minimum heights to prevent over-jumping, especially on iOS
+      const minVisibleHeight = iOS ? 200 : 350; // Much smaller minimum for iOS
       
       let availableHeight;
       
       if (iOS && isKeyboardVisible) {
-        // iOS-specific calculation: use visual viewport with conservative adjustments
-        const iOSOffset = window.visualViewport?.offsetTop || 0;
-        availableHeight = Math.max(
-          visualViewportHeight - toolbarHeight - iOSOffset, 
-          minVisibleHeight
-        );
+        // iOS-specific calculation: simpler approach without offset adjustments
+        availableHeight = Math.max(visualViewportHeight - toolbarHeight, minVisibleHeight);
       } else {
         // Android or keyboard not visible
         availableHeight = isKeyboardVisible 
@@ -66,16 +63,20 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       });
     };
 
+    const debouncedUpdate = () => {
+      clearTimeout(updateTimeout);
+      updateTimeout = setTimeout(updateKeyboardState, iOS ? 150 : 100);
+    };
+
     const handleFocus = () => {
-      // iOS needs more time for viewport adjustments
-      const delay = iOS ? 250 : 150;
+      // iOS needs time for viewport adjustments, but not too much to prevent jumping
+      const delay = iOS ? 200 : 100;
       setTimeout(updateKeyboardState, delay);
-      setTimeout(updateKeyboardState, delay + 150); // Double check
     };
 
     const handleBlur = () => {
       // Reset when input loses focus
-      const delay = iOS ? 200 : 150;
+      const delay = iOS ? 150 : 100;
       setTimeout(() => {
         setKeyboardState({
           isVisible: false,
@@ -86,21 +87,11 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     };
 
     const handleResize = () => {
-      // iOS needs debounced updates to prevent excessive recalculations
-      if (iOS) {
-        setTimeout(updateKeyboardState, 100);
-      } else {
-        updateKeyboardState();
-      }
+      debouncedUpdate();
     };
 
     const handleVisualViewportChange = () => {
-      // iOS-specific handling for visual viewport changes
-      if (iOS) {
-        setTimeout(updateKeyboardState, 150);
-      } else {
-        updateKeyboardState();
-      }
+      debouncedUpdate();
     };
 
     // Set up event listeners
@@ -122,6 +113,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
 
     // Cleanup
     return () => {
+      clearTimeout(updateTimeout);
       window.removeEventListener('resize', handleResize);
       
       if (window.visualViewport) {

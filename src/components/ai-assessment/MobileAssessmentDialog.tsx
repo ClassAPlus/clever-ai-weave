@@ -73,7 +73,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     messageInputRef
   });
 
-  const { initialLoad, isIOS, containerHeight, messagesHeight } = useMobileDialogState({
+  const { initialLoad, isIOS, containerHeight, messagesHeight, translateY } = useMobileDialogState({
     open,
     keyboardState
   });
@@ -87,8 +87,10 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           height: containerHeight,
           maxHeight: containerHeight,
           position: 'fixed',
-          top: '0',
-          bottom: 'auto'
+          bottom: '0',
+          top: 'auto',
+          transform: translateY,
+          transition: keyboardState.isVisible ? 'transform 0.3s ease-out' : 'none'
         }}
       >
         <div 
@@ -97,7 +99,10 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             height: containerHeight,
             maxHeight: containerHeight,
             opacity: initialLoad ? 0 : 1,
-            transition: 'opacity 0.2s ease-in'
+            transition: 'opacity 0.2s ease-in',
+            overflowY: 'hidden',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain'
           }}
         >
           <MobileSheetHeader />

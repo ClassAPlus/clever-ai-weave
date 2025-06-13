@@ -28,24 +28,32 @@ export const useMobileDialogState = ({ open, keyboardState }: UseMobileDialogSta
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   
-  // Always assume keyboard is open on mobile - position UI in the top portion
+  // Use actual keyboard detection for positioning
   let containerHeight: string;
   let messagesHeight: string;
+  let translateY: string;
   
-  if (isIOS) {
-    // On iOS, assume keyboard takes bottom ~40% of screen, use top 60%
+  if (keyboardState.isVisible && keyboardState.height > 0) {
+    // Position directly above keyboard using detected height
+    const safeAreaBottom = isIOS ? 20 : 0; // Account for home indicator
+    const bottomOffset = keyboardState.height + safeAreaBottom;
     containerHeight = '60vh';
     messagesHeight = 'calc(60vh - 140px)';
+    translateY = `-${bottomOffset}px`;
   } else {
-    // On Android, assume keyboard takes bottom ~50% of screen, use top 50%
-    containerHeight = '50vh';
-    messagesHeight = 'calc(50vh - 140px)';
+    // Fallback positioning when keyboard not detected
+    containerHeight = isIOS ? '60vh' : '50vh';
+    messagesHeight = isIOS ? 'calc(60vh - 140px)' : 'calc(50vh - 140px)';
+    translateY = isIOS ? '-40vh' : '-50vh';
   }
 
-  console.log('Mobile Dialog State (keyboard assumed open):', {
+  console.log('Mobile Dialog State (using keyboard detection):', {
     initialLoad,
     containerHeight,
     messagesHeight,
+    translateY,
+    keyboardVisible: keyboardState.isVisible,
+    keyboardHeight: keyboardState.height,
     isIOS
   });
 
@@ -53,6 +61,7 @@ export const useMobileDialogState = ({ open, keyboardState }: UseMobileDialogSta
     initialLoad,
     isIOS,
     containerHeight,
-    messagesHeight
+    messagesHeight,
+    translateY
   };
 };

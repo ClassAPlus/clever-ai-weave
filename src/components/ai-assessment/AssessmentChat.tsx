@@ -68,9 +68,6 @@ export const AssessmentChat = ({
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
 
-    // Clear the current message after adding it to the chat
-    setCurrentMessage('');
-
     try {
       const { data, error } = await supabase.functions.invoke('ai-assessment', {
         body: {
@@ -121,6 +118,8 @@ export const AssessmentChat = ({
       });
     } finally {
       setIsLoading(false);
+      // Clear the current message only after the API call is complete
+      setCurrentMessage('');
     }
   };
 

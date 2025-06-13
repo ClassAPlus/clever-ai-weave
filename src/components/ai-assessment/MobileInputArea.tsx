@@ -46,25 +46,36 @@ export const MobileInputArea = ({
       return {};
     }
     
-    // For Android, always use fixed positioning when keyboard might be visible
-    // Use viewport height to calculate better positioning
+    // For Android, when keyboard is visible, position at the top of visible viewport
     const viewportHeight = window.visualViewport?.height || window.innerHeight;
     const screenHeight = window.innerHeight;
     
-    if (keyboardState.isVisible || viewportHeight < screenHeight * 0.75) {
-      // Position the input at the bottom of the visible area
+    if (keyboardState.isVisible && keyboardState.height > 0) {
+      // Position the input at the bottom of the available viewport height
+      const bottomPosition = screenHeight - viewportHeight + 10; // 10px margin from bottom of visible area
+      
       return {
-        position: 'fixed',
-        bottom: '20px', // Small margin from bottom of visible area
+        position: 'fixed' as const,
+        bottom: `${bottomPosition}px`,
         left: '0',
         right: '0',
         zIndex: 1001,
         transform: 'translateZ(0)' // Force hardware acceleration
       };
+    } else if (viewportHeight < screenHeight * 0.75) {
+      // Fallback when visual viewport indicates keyboard presence
+      return {
+        position: 'fixed' as const,
+        bottom: '10px',
+        left: '0',
+        right: '0',
+        zIndex: 1001,
+        transform: 'translateZ(0)'
+      };
     }
     
     return {
-      position: 'relative',
+      position: 'relative' as const,
       bottom: '0'
     };
   };
@@ -74,7 +85,7 @@ export const MobileInputArea = ({
     if (!isIOS) return {};
     
     return {
-      position: keyboardState.isVisible ? 'fixed' : 'relative',
+      position: keyboardState.isVisible ? 'fixed' as const : 'relative' as const,
       bottom: keyboardState.isVisible ? `${keyboardState.height}px` : '0',
       left: '0',
       right: '0',
@@ -85,7 +96,7 @@ export const MobileInputArea = ({
 
   // Default positioning for desktop/other platforms
   const getDefaultPosition = (): React.CSSProperties => ({
-    position: 'relative',
+    position: 'relative' as const,
     bottom: '0',
     paddingBottom: '12px'
   });

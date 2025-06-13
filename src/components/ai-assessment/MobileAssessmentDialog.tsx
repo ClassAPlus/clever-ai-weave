@@ -45,13 +45,13 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col overflow-hidden" style={{ width: '100dvw', height: `${mobileHeight}px` }}>
+        <div className="flex flex-col overflow-hidden" style={{ width: '100dvw', height: `${mobileHeight}px`, boxSizing: 'border-box' }}>
           {/* Header */}
-          <div className="flex-shrink-0 border-b border-gray-100 px-2 py-3 bg-white/95 backdrop-blur-sm w-full">
-            <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center">
+          <div className="flex-shrink-0 border-b border-gray-100 py-3 bg-white/95 backdrop-blur-sm w-full" style={{ boxSizing: 'border-box' }}>
+            <div className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent text-center px-2">
               {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
             </div>
-            <p className="text-center text-gray-600 mt-1 text-sm">
+            <p className="text-center text-gray-600 mt-1 text-sm px-2">
               {isHebrew ? "גלה איך לוקל אדג׳ יכול לשדרג את העסק שלך" : "Discover how LocalEdgeAI can transform your business"}
             </p>
           </div>
@@ -62,7 +62,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
               className="h-full w-full" 
               ref={contentProps.scrollAreaRef}
             >
-              <div className="w-full px-1">
+              <div className="w-full" style={{ boxSizing: 'border-box' }}>
                 {/* Background decoration */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-100/20 via-transparent to-pink-100/20 pointer-events-none rounded-lg"></div>
                 
@@ -75,9 +75,9 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
           {/* Input */}
           {!isCompleted && (
             <div className={`flex-shrink-0 bg-white border-t border-gray-100 w-full ${
-              isIOS && keyboardState.isVisible ? 'pb-1' : 'pb-2'
-            }`}>
-              <div className="w-full px-1 py-2">
+              isIOS && keyboardState.isVisible ? 'py-1' : 'py-2'
+            }`} style={{ boxSizing: 'border-box' }}>
+              <div className="w-full px-2" style={{ boxSizing: 'border-box' }}>
                 <content.MessageInput />
               </div>
             </div>

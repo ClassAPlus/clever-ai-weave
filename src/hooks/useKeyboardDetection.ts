@@ -39,10 +39,10 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       let availableHeight;
       
       if (iOS && isKeyboardVisible) {
-        // Much simpler iOS calculation - just use 60% of visual viewport
-        availableHeight = Math.max(Math.floor(visualViewportHeight * 0.6), 120);
-        // Cap the height to prevent over-jumping
-        availableHeight = Math.min(availableHeight, 400);
+        // Improved iOS calculation - use 45% of visual viewport with better min/max
+        availableHeight = Math.max(Math.floor(visualViewportHeight * 0.45), 180);
+        // Better cap to prevent over-jumping
+        availableHeight = Math.min(availableHeight, 320);
       } else {
         // Standard calculation for Android or no keyboard
         availableHeight = isKeyboardVisible 
@@ -64,13 +64,13 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     };
 
     const handleFocus = () => {
-      // Much shorter delay for iOS
-      const delay = iOS ? 50 : 30;
+      // Shorter delay for iOS with smoother transition
+      const delay = iOS ? 100 : 50;
       setTimeout(updateKeyboardState, delay);
     };
 
     const handleBlur = () => {
-      const delay = iOS ? 50 : 30;
+      const delay = iOS ? 100 : 50;
       setTimeout(() => {
         setKeyboardState({
           isVisible: false,

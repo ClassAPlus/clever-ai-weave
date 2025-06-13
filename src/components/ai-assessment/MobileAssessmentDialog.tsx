@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ChatMessages } from "./ChatMessages";
@@ -38,7 +38,7 @@ interface MobileAssessmentDialogProps {
 
 export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: MobileAssessmentDialogProps) => {
   const { isHebrew } = useLanguage();
-  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const {
     messages,
@@ -77,61 +77,31 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     messageInputRef
   });
 
-  // Handle viewport height changes for mobile keyboards
-  useEffect(() => {
-    const handleResize = () => {
-      setViewportHeight(window.innerHeight);
-    };
-
-    const handleVisualViewportChange = () => {
-      if (window.visualViewport) {
-        setViewportHeight(window.visualViewport.height);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
-    }
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
-      }
-    };
-  }, []);
-
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollAreaRef.current && messages.length > 0) {
-      setTimeout(() => {
-        scrollAreaRef.current?.scrollTo({
-          top: scrollAreaRef.current.scrollHeight,
-          behavior: 'smooth'
-        });
-      }, 100);
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages.length, scrollAreaRef]);
+  }, [messages.length]);
 
-  const dynamicHeight = keyboardState.isVisible 
+  // Calculate safe area height for mobile keyboards
+  const safeHeight = keyboardState.isVisible 
     ? `${keyboardState.availableHeight}px` 
-    : `${viewportHeight}px`;
+    : '100vh';
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
         side="bottom"
-        className="w-full border-0 p-0"
-        style={{ height: dynamicHeight }}
+        className="w-full border-0 p-0 h-full max-h-screen"
+        style={{ height: safeHeight, maxHeight: safeHeight }}
       >
         <div 
-          className="flex flex-col h-full bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
-          style={{ height: dynamicHeight }}
+          className="flex flex-col w-full bg-gradient-to-br from-white via-gray-50 to-purple-50/30"
+          style={{ height: safeHeight }}
         >
-          {/* Header */}
-          <div className="flex-shrink-0 p-4 border-b bg-white/90 backdrop-blur-sm">
+          {/* Fixed Header */}
+          <div className="flex-shrink-0 p-4 border-b bg-white/95 backdrop-blur-sm">
             <SheetHeader>
               <SheetTitle className="text-lg font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
                 {isHebrew ? "🤖 הערכת בינה מלאכותית חינמית של לוקל אדג׳" : "🤖 Free LocalEdgeAI Assessment"}
@@ -142,13 +112,12 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             </SheetHeader>
           </div>
 
-          {/* Messages Area */}
+          {/* Scrollable Messages Area */}
           <div 
-            ref={scrollAreaRef}
-            className="flex-1 overflow-y-auto overscroll-behavior-contain"
+            className="flex-1 overflow-y-auto touch-pan-y"
             style={{
               WebkitOverflowScrolling: 'touch',
-              touchAction: 'pan-y'
+              overscrollBehavior: 'contain'
             }}
           >
             <ChatMessages messages={messages} isLoading={isLoading} />
@@ -164,11 +133,14 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
                 />
               </div>
             )}
+            
+            {/* Scroll anchor */}
+            <div ref={messagesEndRef} className="h-1" />
           </div>
 
-          {/* Input Area */}
+          {/* Fixed Input Area */}
           {!isCompleted && (
-            <div className="flex-shrink-0 p-4 border-t bg-white/95 backdrop-blur-sm">
+            <div className="flex-shrink-0 p-4 border-t bg-white/95 backdrop-blur-sm safe-area-bottom">
               <MessageInput
                 ref={messageInputRef}
                 currentMessage={currentMessage}

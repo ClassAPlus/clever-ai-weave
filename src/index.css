@@ -101,58 +101,54 @@
     -webkit-text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    touch-action: manipulation;
   }
 
   #root {
     min-height: 100vh;
   }
 
-  /* Prevent zoom on focus for iOS */
-  input[type="text"],
-  input[type="email"], 
-  input[type="tel"],
-  textarea {
-    font-size: 16px !important;
-  }
-
-  /* Mobile-specific optimizations */
+  /* Mobile keyboard and scrolling optimizations */
   @media (max-width: 768px) {
-    /* Ensure proper viewport handling */
     html {
       height: 100%;
-      overflow: hidden;
     }
     
     body {
       height: 100%;
-      overflow: hidden;
-      position: fixed;
-      width: 100%;
+      position: relative;
+      overflow: auto;
     }
     
-    /* Prevent scroll bounce on mobile */
-    .overscroll-behavior-contain {
+    /* Ensure proper touch scrolling */
+    .touch-pan-y {
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
     }
     
-    /* Smooth scrolling for touch devices */
-    .webkit-overflow-scrolling {
-      -webkit-overflow-scrolling: touch;
+    /* Safe area for mobile notches and home indicators */
+    .safe-area-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
     }
     
-    /* Fix textarea appearance on mobile */
-    textarea {
+    /* Mobile input optimizations */
+    .mobile-input {
+      font-size: 16px !important;
       -webkit-appearance: none;
-      appearance: none;
       border-radius: 8px;
-      resize: none;
+      transform-origin: left top;
     }
     
     /* Prevent input zoom on iOS */
     input, textarea, select {
       font-size: 16px !important;
-      transform-origin: left top;
+      -webkit-appearance: none;
+    }
+    
+    /* Fix for mobile viewport units */
+    .h-screen {
+      height: 100vh;
+      height: 100dvh;
     }
   }
 }

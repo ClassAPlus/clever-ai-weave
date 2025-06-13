@@ -12,6 +12,10 @@ const isIOS = () => {
          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 };
 
+const isAndroid = () => {
+  return /Android/i.test(navigator.userAgent);
+};
+
 export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
   const [keyboardState, setKeyboardState] = useState<KeyboardState>({
     isVisible: false,
@@ -21,6 +25,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
 
   const updateKeyboardState = useCallback(() => {
     const iOS = isIOS();
+    const android = isAndroid();
     
     if (iOS && 'visualViewport' in window && window.visualViewport) {
       // Use Visual Viewport API for iOS
@@ -42,6 +47,29 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
         height: keyboardHeight,
         availableHeight: viewportHeight
       });
+    } else if (android) {
+      // Android-specific detection using window height changes
+      const currentHeight = window.innerHeight;
+      const screenHeight = window.screen.height;
+      
+      // Android keyboard detection: significant height reduction
+      const heightDifference = screenHeight - currentHeight;
+      const keyboardHeight = Math.max(0, heightDifference - 100); // Account for browser UI
+      const isKeyboardVisible = keyboardHeight > 100; // More conservative threshold for Android
+      
+      console.log('Android Keyboard Detection:', {
+        screenHeight,
+        currentHeight,
+        heightDifference,
+        keyboardHeight,
+        isKeyboardVisible
+      });
+      
+      setKeyboardState({
+        isVisible: isKeyboardVisible,
+        height: keyboardHeight,
+        availableHeight: currentHeight
+      });
     } else {
       // Fallback for other platforms
       const currentHeight = window.innerHeight;
@@ -59,6 +87,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
 
   useEffect(() => {
     const iOS = isIOS();
+    const android = isAndroid();
     
     if (iOS && 'visualViewport' in window && window.visualViewport) {
       const viewport = window.visualViewport;
@@ -68,6 +97,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
         viewport.removeEventListener('resize', updateKeyboardState);
       };
     } else {
+      // For Android and other platforms, use window resize
       window.addEventListener('resize', updateKeyboardState);
       
       return () => {
@@ -76,11 +106,15 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     }
   }, [updateKeyboardState]);
 
-  // Focus/blur detection
+  // Focus/blur detection with platform-specific handling
   useEffect(() => {
+    const android = isAndroid();
+    
     const handleFocus = () => {
-      setTimeout(updateKeyboardState, 100);
-      setTimeout(updateKeyboardState, 300);
+      // Android may need more time to adjust layout
+      const delay = android ? 300 : 100;
+      setTimeout(updateKeyboardState, delay);
+      setTimeout(updateKeyboardState, delay + 200);
     };
     
     const handleBlur = () => {

@@ -10,6 +10,10 @@ interface UseMobileDialogStateProps {
   };
 }
 
+const isAndroid = () => {
+  return /Android/i.test(navigator.userAgent);
+};
+
 export const useMobileDialogState = ({ open, keyboardState }: UseMobileDialogStateProps) => {
   const [initialLoad, setInitialLoad] = useState(true);
 
@@ -24,9 +28,10 @@ export const useMobileDialogState = ({ open, keyboardState }: UseMobileDialogSta
     }
   }, [open]);
 
-  // Simple iOS detection
+  // Platform detection
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const android = isAndroid();
   
   // Full-screen approach - always use full viewport
   const containerHeight = '100vh';
@@ -35,26 +40,46 @@ export const useMobileDialogState = ({ open, keyboardState }: UseMobileDialogSta
   let messagesHeight: string;
   
   if (keyboardState.isVisible && keyboardState.height > 0) {
-    // When keyboard is visible, adjust messages height to account for it
-    const headerHeight = 80; // Approximate header height
-    const inputHeight = 70; // Approximate input area height
-    const safeAreaTop = isIOS ? 44 : 24; // Status bar height
-    const availableHeight = keyboardState.availableHeight - headerHeight - inputHeight - safeAreaTop;
-    messagesHeight = `${availableHeight}px`;
+    if (android) {
+      // Android: Use full available height minus header and input, keyboard is handled differently
+      const headerHeight = 80;
+      const inputHeight = 70;
+      const safeAreaTop = 24;
+      const availableHeight = window.innerHeight - headerHeight - inputHeight - safeAreaTop;
+      messagesHeight = `${availableHeight}px`;
+    } else if (isIOS) {
+      // iOS: Account for visual viewport changes
+      const headerHeight = 80;
+      const inputHeight = 70;
+      const safeAreaTop = 44;
+      const availableHeight = keyboardState.availableHeight - headerHeight - inputHeight - safeAreaTop;
+      messagesHeight = `${availableHeight}px`;
+    } else {
+      // Desktop/other: fallback
+      messagesHeight = `calc(100vh - 150px)`;
+    }
   } else {
     // When keyboard is hidden, use calc to subtract header and input heights
-    const safeAreaBottom = isIOS ? 34 : 0; // Home indicator height
-    messagesHeight = `calc(100vh - 150px - ${safeAreaBottom}px)`;
+    if (android) {
+      messagesHeight = `calc(100vh - 150px)`;
+    } else if (isIOS) {
+      const safeAreaBottom = 34; // Home indicator height
+      messagesHeight = `calc(100vh - 150px - ${safeAreaBottom}px)`;
+    } else {
+      messagesHeight = `calc(100vh - 150px)`;
+    }
   }
 
-  console.log('Mobile Dialog State (full-screen):', {
+  console.log('Mobile Dialog State:', {
     initialLoad,
     containerHeight,
     messagesHeight,
     keyboardVisible: keyboardState.isVisible,
     keyboardHeight: keyboardState.height,
     availableHeight: keyboardState.availableHeight,
-    isIOS
+    isIOS,
+    android,
+    platform: android ? 'Android' : isIOS ? 'iOS' : 'Other'
   });
 
   return {

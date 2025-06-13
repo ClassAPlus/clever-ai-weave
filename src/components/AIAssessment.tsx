@@ -66,14 +66,27 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
     }
   }, [messages.length, keyboardState.isVisible]);
 
+  // iOS detection for specific styling
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
   if (isMobile) {
     const mobileHeight = keyboardState.isVisible ? keyboardState.availableHeight : window.innerHeight;
     
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent 
-          className="fixed inset-0 w-screen max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 transform-none translate-x-0 translate-y-0 left-0 top-0"
-          style={{ height: `${mobileHeight}px` }}
+          className={`fixed inset-0 w-screen max-w-none max-h-none p-0 m-0 rounded-none border-0 bg-gradient-to-br from-white via-gray-50 to-purple-50/30 transform-none translate-x-0 translate-y-0 left-0 ${
+            isIOS && keyboardState.isVisible ? 'top-0' : 'top-0'
+          }`}
+          style={{ 
+            height: `${mobileHeight}px`,
+            ...(isIOS && keyboardState.isVisible && {
+              position: 'fixed',
+              top: '0px',
+              transform: 'none'
+            })
+          }}
           aria-describedby="ai-assessment-description"
         >
           <DialogHeader className="sr-only">
@@ -123,8 +136,10 @@ export const AIAssessment = ({ open, onOpenChange }: AIAssessmentProps) => {
 
             {/* Input */}
             {!isCompleted && (
-              <div className="flex-shrink-0 bg-white border-t border-gray-100 w-full">
-                <div className="w-full px-4 py-3 pb-4">
+              <div className={`flex-shrink-0 bg-white border-t border-gray-100 w-full ${
+                isIOS && keyboardState.isVisible ? 'pb-2' : 'pb-4'
+              }`}>
+                <div className="w-full px-4 py-3">
                   <MessageInput
                     ref={messageInputRef}
                     currentMessage={currentMessage}

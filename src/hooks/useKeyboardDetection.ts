@@ -7,6 +7,11 @@ interface KeyboardState {
   availableHeight: number;
 }
 
+const isIOS = () => {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
 export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
   const [keyboardState, setKeyboardState] = useState<KeyboardState>({
     isVisible: false,
@@ -17,6 +22,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
   useEffect(() => {
     let initialHeight = window.innerHeight;
     let initialVisualViewportHeight = window.visualViewport?.height || window.innerHeight;
+    const iOS = isIOS();
 
     const updateKeyboardState = () => {
       const currentHeight = window.innerHeight;
@@ -33,11 +39,25 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
       
       // Account for mobile toolbar/navbar and ensure reasonable minimum height
       const toolbarHeight = 60;
-      const minVisibleHeight = 400; // Minimum height to keep UI usable
       
-      const availableHeight = isKeyboardVisible 
-        ? Math.max(visualViewportHeight - toolbarHeight, minVisibleHeight) // Ensure minimum usable height
-        : currentHeight - toolbarHeight;
+      // iOS-specific adjustments: more conservative minimum heights to prevent over-jumping
+      const minVisibleHeight = iOS ? 250 : 400; // Much smaller minimum for iOS
+      
+      let availableHeight;
+      
+      if (iOS && isKeyboardVisible) {
+        // iOS-specific calculation: use visual viewport with conservative adjustments
+        const iOSOffset = window.visualViewport?.offsetTop || 0;
+        availableHeight = Math.max(
+          visualViewportHeight - toolbarHeight - iOSOffset, 
+          minVisibleHeight
+        );
+      } else {
+        // Android or keyboard not visible
+        availableHeight = isKeyboardVisible 
+          ? Math.max(visualViewportHeight - toolbarHeight, minVisibleHeight)
+          : currentHeight - toolbarHeight;
+      }
 
       setKeyboardState({
         isVisible: isKeyboardVisible,
@@ -47,28 +67,40 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     };
 
     const handleFocus = () => {
-      // Small delay to allow the keyboard to appear
-      setTimeout(updateKeyboardState, 150);
-      setTimeout(updateKeyboardState, 300); // Double check
+      // iOS needs more time for viewport adjustments
+      const delay = iOS ? 250 : 150;
+      setTimeout(updateKeyboardState, delay);
+      setTimeout(updateKeyboardState, delay + 150); // Double check
     };
 
     const handleBlur = () => {
       // Reset when input loses focus
+      const delay = iOS ? 200 : 150;
       setTimeout(() => {
         setKeyboardState({
           isVisible: false,
           height: 0,
           availableHeight: window.innerHeight - 60 // Account for toolbar
         });
-      }, 150);
+      }, delay);
     };
 
     const handleResize = () => {
-      updateKeyboardState();
+      // iOS needs debounced updates to prevent excessive recalculations
+      if (iOS) {
+        setTimeout(updateKeyboardState, 100);
+      } else {
+        updateKeyboardState();
+      }
     };
 
     const handleVisualViewportChange = () => {
-      updateKeyboardState();
+      // iOS-specific handling for visual viewport changes
+      if (iOS) {
+        setTimeout(updateKeyboardState, 150);
+      } else {
+        updateKeyboardState();
+      }
     };
 
     // Set up event listeners

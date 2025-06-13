@@ -1,4 +1,5 @@
 
+import React from 'react';
 import MessageInput from "./MessageInput";
 
 interface MobileInputAreaProps {
@@ -40,14 +41,14 @@ export const MobileInputArea = ({
   const android = isAndroid();
 
   // Android-specific positioning when keyboard is visible
-  const getAndroidPosition = () => {
+  const getAndroidPosition = (): React.CSSProperties => {
     if (!android || !keyboardState.isVisible) {
       return {};
     }
     
     // On Android, position the input above the keyboard
     return {
-      position: 'fixed' as const,
+      position: 'fixed',
       bottom: `${keyboardState.height + 10}px`, // Add 10px margin above keyboard
       left: '0',
       right: '0',
@@ -56,7 +57,7 @@ export const MobileInputArea = ({
   };
 
   // iOS positioning (existing logic)
-  const getIOSPosition = () => {
+  const getIOSPosition = (): React.CSSProperties => {
     if (!isIOS) return {};
     
     return {
@@ -70,8 +71,8 @@ export const MobileInputArea = ({
   };
 
   // Default positioning for desktop/other platforms
-  const getDefaultPosition = () => ({
-    position: 'relative' as const,
+  const getDefaultPosition = (): React.CSSProperties => ({
+    position: 'relative',
     bottom: '0',
     paddingBottom: '12px'
   });

@@ -12,21 +12,23 @@ interface MobileInputAreaProps {
   };
   initialLoad: boolean;
   isIOS: boolean;
+  setCurrentMessage: (message: string) => void;
 }
 
 export const MobileInputArea = ({
   isCompleted,
   sendMessage,
   isLoading,
-  isIOS
+  isIOS,
+  setCurrentMessage
 }: MobileInputAreaProps) => {
   if (isCompleted) {
     return null;
   }
 
   const handleSend = async (message: string) => {
-    // We need to create a wrapper that handles the message internally
-    // since the simplified MessageInput manages its own text state
+    // Set the current message so AssessmentChat can use it
+    setCurrentMessage(message);
     await sendMessage();
   };
 

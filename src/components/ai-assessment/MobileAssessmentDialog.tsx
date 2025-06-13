@@ -1,3 +1,4 @@
+
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AssessmentChat } from "./AssessmentChat";
 import { MobileSheetHeader } from "./MobileSheetHeader";
@@ -127,6 +128,7 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             keyboardState={keyboardState}
             initialLoad={initialLoad}
             isIOS={isIOS}
+            setCurrentMessage={setCurrentMessage}
           />
         </div>
       </SheetContent>

@@ -48,28 +48,49 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
         availableHeight: viewportHeight
       });
     } else if (android) {
-      // Android-specific detection using window height changes
-      const currentHeight = window.innerHeight;
-      const screenHeight = window.screen.height;
+      // Improved Android detection using visual viewport when available
+      const viewport = window.visualViewport;
+      const windowHeight = window.innerHeight;
       
-      // Android keyboard detection: significant height reduction
-      const heightDifference = screenHeight - currentHeight;
-      const keyboardHeight = Math.max(0, heightDifference - 100); // Account for browser UI
-      const isKeyboardVisible = keyboardHeight > 100; // More conservative threshold for Android
-      
-      console.log('Android Keyboard Detection:', {
-        screenHeight,
-        currentHeight,
-        heightDifference,
-        keyboardHeight,
-        isKeyboardVisible
-      });
-      
-      setKeyboardState({
-        isVisible: isKeyboardVisible,
-        height: keyboardHeight,
-        availableHeight: currentHeight
-      });
+      if (viewport) {
+        // Use visual viewport if available (modern Android browsers)
+        const viewportHeight = viewport.height;
+        const keyboardHeight = Math.max(0, windowHeight - viewportHeight);
+        const isKeyboardVisible = keyboardHeight > 150; // More reliable threshold
+        
+        console.log('Android Keyboard Detection (Visual Viewport):', {
+          windowHeight,
+          viewportHeight,
+          keyboardHeight,
+          isKeyboardVisible
+        });
+        
+        setKeyboardState({
+          isVisible: isKeyboardVisible,
+          height: keyboardHeight,
+          availableHeight: viewportHeight
+        });
+      } else {
+        // Fallback for older Android browsers
+        const screenHeight = window.screen.height;
+        const heightDifference = screenHeight - windowHeight;
+        const keyboardHeight = Math.max(0, heightDifference - 150); // Account for browser UI
+        const isKeyboardVisible = keyboardHeight > 200;
+        
+        console.log('Android Keyboard Detection (Fallback):', {
+          screenHeight,
+          windowHeight,
+          heightDifference,
+          keyboardHeight,
+          isKeyboardVisible
+        });
+        
+        setKeyboardState({
+          isVisible: isKeyboardVisible,
+          height: keyboardHeight,
+          availableHeight: windowHeight
+        });
+      }
     } else {
       // Fallback for other platforms
       const currentHeight = window.innerHeight;
@@ -89,7 +110,7 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     const iOS = isIOS();
     const android = isAndroid();
     
-    if (iOS && 'visualViewport' in window && window.visualViewport) {
+    if ((iOS || android) && 'visualViewport' in window && window.visualViewport) {
       const viewport = window.visualViewport;
       viewport.addEventListener('resize', updateKeyboardState);
       
@@ -112,13 +133,13 @@ export const useKeyboardDetection = (inputRef: RefObject<HTMLElement>) => {
     
     const handleFocus = () => {
       // Android may need more time to adjust layout
-      const delay = android ? 300 : 100;
+      const delay = android ? 400 : 100;
       setTimeout(updateKeyboardState, delay);
-      setTimeout(updateKeyboardState, delay + 200);
+      setTimeout(updateKeyboardState, delay + 300);
     };
     
     const handleBlur = () => {
-      setTimeout(updateKeyboardState, 100);
+      setTimeout(updateKeyboardState, 200);
     };
 
     const currentInput = inputRef.current;

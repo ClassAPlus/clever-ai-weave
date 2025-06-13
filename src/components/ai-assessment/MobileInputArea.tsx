@@ -42,17 +42,30 @@ export const MobileInputArea = ({
 
   // Android-specific positioning when keyboard is visible
   const getAndroidPosition = (): React.CSSProperties => {
-    if (!android || !keyboardState.isVisible) {
+    if (!android) {
       return {};
     }
     
-    // On Android, position the input above the keyboard
+    // For Android, always use fixed positioning when keyboard might be visible
+    // Use viewport height to calculate better positioning
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    const screenHeight = window.innerHeight;
+    
+    if (keyboardState.isVisible || viewportHeight < screenHeight * 0.75) {
+      // Position the input at the bottom of the visible area
+      return {
+        position: 'fixed',
+        bottom: '20px', // Small margin from bottom of visible area
+        left: '0',
+        right: '0',
+        zIndex: 1001,
+        transform: 'translateZ(0)' // Force hardware acceleration
+      };
+    }
+    
     return {
-      position: 'fixed',
-      bottom: `${keyboardState.height + 10}px`, // Add 10px margin above keyboard
-      left: '0',
-      right: '0',
-      zIndex: 1001
+      position: 'relative',
+      bottom: '0'
     };
   };
 

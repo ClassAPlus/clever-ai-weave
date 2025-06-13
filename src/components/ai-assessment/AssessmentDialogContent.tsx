@@ -79,6 +79,12 @@ export const AssessmentDialogContent = ({
     }
   }, [messages.length, keyboardState.isVisible]);
 
+  const handleSend = async (message: string) => {
+    // Update the current message state for the AssessmentChat logic
+    setCurrentMessage(message);
+    await sendMessage();
+  };
+
   return {
     sendMessage,
     handleContactRequest,
@@ -94,11 +100,8 @@ export const AssessmentDialogContent = ({
     ) : null,
     MessageInput: () => !isCompleted ? (
       <MessageInput
-        ref={messageInputRef}
-        currentMessage={currentMessage}
-        setCurrentMessage={setCurrentMessage}
-        onSendMessage={sendMessage}
-        isLoading={isLoading}
+        onSend={handleSend}
+        isSending={isLoading}
       />
     ) : null
   };

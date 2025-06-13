@@ -1,13 +1,10 @@
 
-import { MessageInput } from "./MessageInput";
+import MessageInput from "./MessageInput";
 
 interface MobileInputAreaProps {
   isCompleted: boolean;
-  currentMessage: string;
-  setCurrentMessage: (message: string) => void;
-  sendMessage: () => Promise<void>; // Changed from () => void to () => Promise<void>
+  sendMessage: () => Promise<void>;
   isLoading: boolean;
-  messageInputRef: React.RefObject<HTMLTextAreaElement>;
   keyboardState: {
     isVisible: boolean;
     height: number;
@@ -19,16 +16,19 @@ interface MobileInputAreaProps {
 
 export const MobileInputArea = ({
   isCompleted,
-  currentMessage,
-  setCurrentMessage,
   sendMessage,
   isLoading,
-  messageInputRef,
   isIOS
 }: MobileInputAreaProps) => {
   if (isCompleted) {
     return null;
   }
+
+  const handleSend = async (message: string) => {
+    // We need to create a wrapper that handles the message internally
+    // since the simplified MessageInput manages its own text state
+    await sendMessage();
+  };
 
   return (
     <div 
@@ -40,11 +40,8 @@ export const MobileInputArea = ({
     >
       <div className="px-4 pb-2">
         <MessageInput
-          ref={messageInputRef}
-          currentMessage={currentMessage}
-          setCurrentMessage={setCurrentMessage}
-          onSendMessage={sendMessage}
-          isLoading={isLoading}
+          onSend={handleSend}
+          isSending={isLoading}
         />
       </div>
     </div>

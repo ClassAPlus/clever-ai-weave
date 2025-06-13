@@ -1,3 +1,4 @@
+
 import { forwardRef, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,12 +22,12 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, MessageInputProps>((
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (currentMessage.trim() && !isLoading) {
         // Prevent default blur behavior
-        e.currentTarget.blur();
+        (e.currentTarget as HTMLTextAreaElement).blur();
         onSendMessage();
         // Immediately refocus to keep keyboard open
         requestAnimationFrame(() => {

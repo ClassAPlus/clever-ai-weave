@@ -34,10 +34,9 @@ export const MobileMessagesContainer = ({
   keyboardState
 }: MobileMessagesContainerProps) => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  // Add a bottom anchor for reliable scrolling
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
 
-  // Stronger auto-scroll to bottom logic
+  // Adjusted: ensure reliable scroll-to-bottom even during iOS keyboard transitions and summary rendering
   useEffect(() => {
     const scrollToBottom = () => {
       bottomAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -46,13 +45,13 @@ export const MobileMessagesContainer = ({
       }
     };
 
-    if (
-      messages.length > 0 &&
-      !initialLoad
-    ) {
-      scrollToBottom();
-      setTimeout(scrollToBottom, 100);
-      setTimeout(scrollToBottom, 300);
+    // Extra: for iOS, often need a further delay after keyboard close
+    scrollToBottom();
+    setTimeout(scrollToBottom, 100);
+    setTimeout(scrollToBottom, 300);
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+      setTimeout(scrollToBottom, 500);
+      setTimeout(scrollToBottom, 700);
     }
   }, [
     messages.length,
@@ -62,6 +61,13 @@ export const MobileMessagesContainer = ({
     isCompleted,
     summary
   ]);
+
+  // Add extra bottom padding if input or summary is present (to prevent last message cut-off by input or summary on iOS)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const extraBottomPadding = isIOS
+    ? (keyboardState.isVisible && keyboardState.height > 0 ? 24 : 90)
+    : 24;
 
   return (
     <div 
@@ -76,7 +82,7 @@ export const MobileMessagesContainer = ({
         transition: 'opacity 0.2s ease-in'
       }}
     >
-      <div className="pt-4 pb-4 flex flex-col">
+      <div className="pt-4 pb-4 flex flex-col" style={{ paddingBottom: `${extraBottomPadding}px` }}>
         <ChatMessages messages={messages} isLoading={isLoading} />
         {isCompleted && summary && (
           <div className="mt-4 flex-shrink-0 flex flex-col">

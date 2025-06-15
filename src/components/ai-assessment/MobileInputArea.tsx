@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import MessageInput from "./MessageInput";
 
@@ -98,17 +97,24 @@ export const MobileInputArea = ({
     };
   };
 
-  // iOS positioning (existing logic)
+  // iOS: use transform for smooth transitions and restore from jumpy bottom style
   const getIOSPosition = (): React.CSSProperties => {
     if (!isIOS) return {};
 
+    // When keyboard is open, fix the input above keyboard. Otherwise, stick to bottom.
+    // Use transform to avoid layout jumps.
+    const isKeyboardOpen = keyboardState.isVisible && keyboardState.height > 0;
+    const safeAreaBottom = 34; // general iOS inset
     return {
-      position: keyboardState.isVisible ? 'fixed' as const : 'relative' as const,
-      bottom: keyboardState.isVisible ? `${keyboardState.height}px` : '0',
-      left: '0',
-      right: '0',
-      paddingBottom: keyboardState.isVisible ? '0' : 'env(safe-area-inset-bottom)',
-      zIndex: 1000
+      position: 'fixed' as const,
+      left: 0,
+      right: 0,
+      bottom: isKeyboardOpen
+        ? `${keyboardState.height}px`
+        : `env(safe-area-inset-bottom, ${safeAreaBottom}px)`,
+      zIndex: 1000,
+      paddingBottom: isKeyboardOpen ? '0' : 'env(safe-area-inset-bottom, 34px)',
+      transition: 'bottom 0.25s cubic-bezier(.4,0,.6,1), padding-bottom 0.25s cubic-bezier(.4,0,.6,1)'
     };
   };
 

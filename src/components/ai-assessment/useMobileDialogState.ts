@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 
 interface UseMobileDialogStateProps {
@@ -49,19 +48,33 @@ export const useMobileDialogState = ({ open, keyboardState }: UseMobileDialogSta
       const availableHeight = (window.visualViewport?.height || window.innerHeight) - headerHeight - safeAreaTop;
       messagesHeight = `${availableHeight}px`;
     } else if (isIOS) {
-      // iOS: Account for visual viewport changes
+      // iOS: add extra padding to avoid cutoff by input, especially summary/footer
+      // This helps when the keyboard is transitioning or about to close/open
       const headerHeight = 80;
       const safeAreaTop = 44;
-      // Only subtract header, since input will float over keyboard
-      const availableHeight = keyboardState.availableHeight - headerHeight - safeAreaTop;
+      const safeAreaBottom = 34; // typical iOS bottom inset
+      const inputArea = 84; // estimate for input+extra buffer
+      // use maximum between keyboardState.availableHeight and visualViewport, in case of transition/jump
+      const viewportHeight = Math.max(
+        keyboardState.availableHeight,
+        window.visualViewport?.height || 0
+      );
+      const buffer = 24;
+      // When keyboard is visible, remove header/top/bottom, keep input floating above keyboard
+      const availableHeight = viewportHeight - headerHeight - safeAreaTop - buffer;
       messagesHeight = `${availableHeight}px`;
     } else {
       // Desktop/other: fallback
       messagesHeight = `calc(100vh - 150px)`;
     }
   } else {
-    // When keyboard is hidden, use full area (don't over-subtract at bottom)
-    messagesHeight = `calc(100vh - 120px)`; // smaller subtraction for header/input, more space for summary
+    // When keyboard is hidden, ensure there's enough space for possible summary and input
+    // Add good buffer for iOS summary to never be cut off (esp. with safe area bottom)
+    if (isIOS) {
+      messagesHeight = "calc(100vh - 180px)";
+    } else {
+      messagesHeight = "calc(100vh - 120px)";
+    }
   }
 
   // Make sure messagesHeight is never negative/silly

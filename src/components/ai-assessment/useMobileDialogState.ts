@@ -41,34 +41,36 @@ export const useMobileDialogState = ({ open, keyboardState }: UseMobileDialogSta
   
   if (keyboardState.isVisible && keyboardState.height > 0) {
     if (android) {
-      // Android: Use full available height minus header and input, keyboard is handled differently
+      // Android: Use window.visualViewport.height when keyboard is visible,
+      // minus header, but don't subtract input/footer since input is out of view.
       const headerHeight = 80;
-      const inputHeight = 70;
       const safeAreaTop = 24;
-      const availableHeight = window.innerHeight - headerHeight - inputHeight - safeAreaTop;
+      // Let messagesHeight fill visible area except for the header.
+      const availableHeight = (window.visualViewport?.height || window.innerHeight) - headerHeight - safeAreaTop;
       messagesHeight = `${availableHeight}px`;
     } else if (isIOS) {
       // iOS: Account for visual viewport changes
       const headerHeight = 80;
-      const inputHeight = 70;
       const safeAreaTop = 44;
-      const availableHeight = keyboardState.availableHeight - headerHeight - inputHeight - safeAreaTop;
+      // Only subtract header, since input will float over keyboard
+      const availableHeight = keyboardState.availableHeight - headerHeight - safeAreaTop;
       messagesHeight = `${availableHeight}px`;
     } else {
       // Desktop/other: fallback
       messagesHeight = `calc(100vh - 150px)`;
     }
   } else {
-    // When keyboard is hidden, use calc to subtract header and input heights
-    if (android) {
-      messagesHeight = `calc(100vh - 150px)`;
-    } else if (isIOS) {
-      const safeAreaBottom = 34; // Home indicator height
-      messagesHeight = `calc(100vh - 150px - ${safeAreaBottom}px)`;
-    } else {
-      messagesHeight = `calc(100vh - 150px)`;
-    }
+    // When keyboard is hidden, use full area (don't over-subtract at bottom)
+    messagesHeight = `calc(100vh - 120px)`; // smaller subtraction for header/input, more space for summary
   }
+
+  // Make sure messagesHeight is never negative/silly
+  try {
+    const px = Number(messagesHeight.replace("px", ""));
+    if (!isNaN(px) && px < 120) {
+      messagesHeight = "120px";
+    }
+  } catch {}
 
   console.log('Mobile Dialog State:', {
     initialLoad,

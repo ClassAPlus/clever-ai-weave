@@ -56,8 +56,8 @@ export const MobileMessagesContainer = ({
       ref={messagesContainerRef}
       className="flex-1 overflow-y-auto"
       style={{
+        // Remove maxHeight: messagesHeight to allow summary to always be visible
         height: messagesHeight,
-        maxHeight: messagesHeight,
         WebkitOverflowScrolling: 'touch',
         touchAction: 'pan-y',
         overscrollBehavior: 'contain',
@@ -65,11 +65,11 @@ export const MobileMessagesContainer = ({
         transition: 'opacity 0.2s ease-in'
       }}
     >
-      <div className="pt-4 pb-4">
+      <div className="pt-4 pb-4 flex flex-col min-h-full">
         <ChatMessages messages={messages} isLoading={isLoading} />
         
         {isCompleted && summary && (
-          <div className="p-4">
+          <div className="mt-4 flex-shrink-0 flex flex-col">
             <AssessmentSummary 
               summary={summary} 
               onResetAssessment={resetAssessment} 

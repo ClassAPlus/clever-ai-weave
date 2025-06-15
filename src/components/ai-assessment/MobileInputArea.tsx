@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import MessageInput from "./MessageInput";
 
 interface MobileInputAreaProps {
@@ -32,48 +32,66 @@ export const MobileInputArea = ({
     return null;
   }
 
+  const inputWrapperRef = useRef<HTMLDivElement>(null);
+  const android = isAndroid();
+
+  // Android-specific logic: always scroll input into view when keyboard opens
+  useEffect(() => {
+    if (android && keyboardState.isVisible && inputWrapperRef.current) {
+      // Timeout allows visualViewport and layout to update before attempting scroll
+      setTimeout(() => {
+        try {
+          inputWrapperRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+        } catch (err) {
+          // Fail very gracefully for unsupported browsers
+        }
+      }, 180);
+    }
+  }, [android, keyboardState.isVisible]);
+
   const handleSend = async (message: string) => {
     console.log('MobileInputArea handleSend called with message:', message);
-    // Pass the message directly to sendMessage instead of setting state
     await sendMessage(message);
   };
-
-  const android = isAndroid();
 
   // Android-specific positioning when keyboard is visible
   const getAndroidPosition = (): React.CSSProperties => {
     if (!android) {
       return {};
     }
-    
-    // For Android, when keyboard is visible, position at the top of visible viewport
+    // Calculate the margin from the bottom of the viewport to ensure the full input (with send button) is visible.
     const viewportHeight = window.visualViewport?.height || window.innerHeight;
     const screenHeight = window.innerHeight;
-    
+
     if (keyboardState.isVisible && keyboardState.height > 0) {
-      // Position the input at the bottom of the available viewport height
-      const bottomPosition = screenHeight - viewportHeight + 10; // 10px margin from bottom of visible area
-      
+      // Estimate input height, add larger safety margin (e.g., 70px for input + 24px buffer)
+      const inputHeight = 70;
+      const safePadding = 24;
+      const bottomPosition = screenHeight - viewportHeight + safePadding + inputHeight;
+
       return {
         position: 'fixed' as const,
+        left: 0,
+        right: 0,
         bottom: `${bottomPosition}px`,
-        left: '0',
-        right: '0',
         zIndex: 1001,
-        transform: 'translateZ(0)' // Force hardware acceleration
+        minHeight: `${inputHeight + safePadding}px`,
+        transform: 'translateZ(0)',
+        willChange: 'transform'
       };
     } else if (viewportHeight < screenHeight * 0.75) {
-      // Fallback when visual viewport indicates keyboard presence
+      // Fallback logic
       return {
         position: 'fixed' as const,
-        bottom: '10px',
+        bottom: '84px', // 70px input + 14px safety margin
         left: '0',
         right: '0',
         zIndex: 1001,
+        minHeight: '84px',
         transform: 'translateZ(0)'
       };
     }
-    
+
     return {
       position: 'relative' as const,
       bottom: '0'
@@ -83,7 +101,7 @@ export const MobileInputArea = ({
   // iOS positioning (existing logic)
   const getIOSPosition = (): React.CSSProperties => {
     if (!isIOS) return {};
-    
+
     return {
       position: keyboardState.isVisible ? 'fixed' as const : 'relative' as const,
       bottom: keyboardState.isVisible ? `${keyboardState.height}px` : '0',
@@ -104,7 +122,8 @@ export const MobileInputArea = ({
   const positionStyle = android ? getAndroidPosition() : (isIOS ? getIOSPosition() : getDefaultPosition());
 
   return (
-    <div 
+    <div
+      ref={inputWrapperRef}
       className="flex-shrink-0 bg-white/95 backdrop-blur-sm border-t"
       style={{
         ...positionStyle,

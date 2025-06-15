@@ -40,22 +40,19 @@ export const MobileMessagesContainer = ({
   // Stronger auto-scroll to bottom logic
   useEffect(() => {
     const scrollToBottom = () => {
-      // Try the anchor method, which is most robust
       bottomAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-      // Fallback: scroll entire container if needed
       if (messagesContainerRef.current) {
         messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
       }
     };
 
-    // Scroll on new message, keyboard toggle, summary appear, or initialLoad toggling off
     if (
       messages.length > 0 &&
       !initialLoad
     ) {
       scrollToBottom();
-      setTimeout(scrollToBottom, 100); // Sometimes DOM not ready
-      setTimeout(scrollToBottom, 300); // Extra fallback for mobile rendering quirks
+      setTimeout(scrollToBottom, 100);
+      setTimeout(scrollToBottom, 300);
     }
   }, [
     messages.length,
@@ -69,7 +66,7 @@ export const MobileMessagesContainer = ({
   return (
     <div 
       ref={messagesContainerRef}
-      className="flex-1 overflow-y-auto"
+      className="overflow-y-auto"
       style={{
         height: messagesHeight,
         WebkitOverflowScrolling: 'touch',
@@ -79,7 +76,7 @@ export const MobileMessagesContainer = ({
         transition: 'opacity 0.2s ease-in'
       }}
     >
-      <div className="pt-4 pb-4 flex flex-col min-h-full">
+      <div className="pt-4 pb-4 flex flex-col">
         <ChatMessages messages={messages} isLoading={isLoading} />
         {isCompleted && summary && (
           <div className="mt-4 flex-shrink-0 flex flex-col">
@@ -93,7 +90,7 @@ export const MobileMessagesContainer = ({
           </div>
         )}
         {/* ANCHOR: Always keep this div at the end for smooth scroll */}
-        <div ref={bottomAnchorRef} style={{ minHeight: 1 }} />
+        <div ref={bottomAnchorRef} />
       </div>
     </div>
   );

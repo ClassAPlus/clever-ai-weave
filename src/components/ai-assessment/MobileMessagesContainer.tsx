@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from "react";
 import { ChatMessages } from "./ChatMessages";
 import { AssessmentSummary } from "./AssessmentSummary";
@@ -36,56 +37,130 @@ export const MobileMessagesContainer = ({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
 
-  // Adjusted: ensure reliable scroll-to-bottom even during iOS keyboard transitions and summary rendering
+  // Enhanced scroll-to-bottom with better mobile handling
   useEffect(() => {
-    const scrollToBottom = () => {
-      bottomAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-      if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    const scrollToBottom = (force = false) => {
+      try {
+        // Scroll the bottom anchor into view first
+        if (bottomAnchorRef.current) {
+          bottomAnchorRef.current.scrollIntoView({ 
+            behavior: force ? "auto" : "smooth", 
+            block: "end",
+            inline: "nearest"
+          });
+        }
+        
+        // Also ensure the container is scrolled to bottom
+        if (messagesContainerRef.current) {
+          const container = messagesContainerRef.current;
+          const targetScrollTop = container.scrollHeight - container.clientHeight;
+          
+          if (force) {
+            container.scrollTop = targetScrollTop;
+          } else {
+            container.scrollTo({
+              top: targetScrollTop,
+              behavior: 'smooth'
+            });
+          }
+        }
+      } catch (error) {
+        console.log('Scroll error (non-critical):', error);
       }
     };
 
-    // Extra: for iOS, often need a further delay after keyboard close
-    scrollToBottom();
-    setTimeout(scrollToBottom, 100);
-    setTimeout(scrollToBottom, 300);
+    // Initial scroll immediately for new messages
+    scrollToBottom(true);
+    
+    // Follow-up smooth scrolls with delays for different scenarios
+    const timeouts = [100, 300];
+    
+    // Add extra delays for iOS due to potential keyboard transitions
     if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-      setTimeout(scrollToBottom, 500);
-      setTimeout(scrollToBottom, 700);
+      timeouts.push(500, 700, 1000);
     }
+    
+    // Add extra delay when summary is being rendered
+    if (isCompleted && summary) {
+      timeouts.push(1200, 1500);
+    }
+
+    const timeoutIds = timeouts.map(delay => 
+      setTimeout(() => scrollToBottom(), delay)
+    );
+
+    return () => {
+      timeoutIds.forEach(id => clearTimeout(id));
+    };
   }, [
     messages.length,
     keyboardState.isVisible,
     keyboardState.height,
     initialLoad,
     isCompleted,
-    summary
+    summary,
+    stage
   ]);
 
-  // Add extra bottom padding if input or summary is present (to prevent last message cut-off by input or summary on iOS)
+  // Additional effect to handle stage transitions
+  useEffect(() => {
+    if (stage === 'assessment_complete' && summary) {
+      console.log('Assessment summary rendered - ensuring visibility');
+      setTimeout(() => {
+        if (bottomAnchorRef.current) {
+          bottomAnchorRef.current.scrollIntoView({ 
+            behavior: "smooth", 
+            block: "end" 
+          });
+        }
+      }, 800);
+    }
+  }, [stage, summary]);
+
+  // Detect iOS with better accuracy
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const extraBottomPadding = isIOS
-    ? (keyboardState.isVisible && keyboardState.height > 0 ? 24 : 90)
-    : 24;
+
+  // Enhanced bottom padding calculation
+  const getBottomPadding = () => {
+    if (isCompleted && (stage === 'assessment_complete' || stage === 'contact_collected')) {
+      // Extra padding when showing summary/results
+      return isIOS ? 120 : 80;
+    }
+    
+    if (keyboardState.isVisible && keyboardState.height > 0) {
+      // Less padding when keyboard is visible (input is above keyboard)
+      return isIOS ? 24 : 16;
+    }
+    
+    // Default padding for normal chat
+    return isIOS ? 90 : 60;
+  };
 
   return (
     <div 
       ref={messagesContainerRef}
-      className="overflow-y-auto"
+      className="overflow-y-auto transition-all duration-300 ease-in-out"
       style={{
         height: messagesHeight,
         WebkitOverflowScrolling: 'touch',
         touchAction: 'pan-y',
         overscrollBehavior: 'contain',
         opacity: initialLoad ? 0 : 1,
-        transition: 'opacity 0.2s ease-in'
+        transition: 'opacity 0.2s ease-in, height 0.3s ease-in-out'
       }}
     >
-      <div className="pt-4 pb-4 flex flex-col" style={{ paddingBottom: `${extraBottomPadding}px` }}>
+      <div 
+        className="pt-4 pb-4 flex flex-col transition-all duration-300 ease-in-out" 
+        style={{ 
+          paddingBottom: `${getBottomPadding()}px`,
+          minHeight: '100%'
+        }}
+      >
         <ChatMessages messages={messages} isLoading={isLoading} />
+        
         {isCompleted && summary && (
-          <div className="mt-4 flex-shrink-0 flex flex-col">
+          <div className="mt-4 flex-shrink-0 flex flex-col transition-all duration-500 ease-in-out">
             <AssessmentSummary 
               summary={summary} 
               onResetAssessment={resetAssessment} 
@@ -95,8 +170,13 @@ export const MobileMessagesContainer = ({
             />
           </div>
         )}
-        {/* ANCHOR: Always keep this div at the end for smooth scroll */}
-        <div ref={bottomAnchorRef} />
+        
+        {/* Enhanced anchor with better positioning */}
+        <div 
+          ref={bottomAnchorRef} 
+          className="h-1 w-full flex-shrink-0"
+          style={{ marginTop: '8px' }}
+        />
       </div>
     </div>
   );

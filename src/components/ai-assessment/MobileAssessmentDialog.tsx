@@ -5,6 +5,7 @@ import { MobileSheetHeader } from "./MobileSheetHeader";
 import { MobileMessagesContainer } from "./MobileMessagesContainer";
 import { MobileInputArea } from "./MobileInputArea";
 import { useMobileDialogState } from "./useMobileDialogState";
+import { useEffect } from "react";
 
 interface MobileAssessmentDialogProps {
   open: boolean;
@@ -78,6 +79,57 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
     keyboardState
   });
 
+  // Enhanced state monitoring for mobile
+  useEffect(() => {
+    console.log('Mobile Dialog State Change:', {
+      open,
+      isCompleted,
+      stage,
+      showContactButton,
+      messagesCount: messages.length,
+      isLoading,
+      keyboardVisible: keyboardState.isVisible,
+      keyboardHeight: keyboardState.height
+    });
+  }, [open, isCompleted, stage, showContactButton, messages.length, isLoading, keyboardState]);
+
+  // Handle stage transitions with proper mobile layout adjustments
+  useEffect(() => {
+    if (stage === 'assessment_complete' && summary) {
+      console.log('Assessment completed - adjusting mobile layout');
+      // Small delay to ensure proper layout adjustment
+      setTimeout(() => {
+        if (window.scrollTo) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, [stage, summary]);
+
+  const enhancedHandleContactRequest = () => {
+    console.log('Enhanced contact request handler called');
+    handleContactRequest();
+    
+    // Additional mobile-specific handling
+    setTimeout(() => {
+      if (messageInputRef.current) {
+        messageInputRef.current.focus();
+      }
+    }, 300);
+  };
+
+  const enhancedResetAssessment = () => {
+    console.log('Enhanced reset assessment called');
+    resetAssessment();
+    
+    // Additional mobile-specific reset handling
+    setTimeout(() => {
+      if (window.scrollTo) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
@@ -96,12 +148,12 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
         }}
       >
         <div 
-          className="flex flex-col bg-gradient-to-br from-white via-gray-50 to-purple-50/30 h-full"
+          className="flex flex-col bg-gradient-to-br from-white via-gray-50 to-purple-50/30 h-full transition-all duration-300 ease-in-out"
           style={{ 
             height: '100vh',
             maxHeight: '100vh',
             opacity: initialLoad ? 0 : 1,
-            transition: 'opacity 0.2s ease-in',
+            transition: 'opacity 0.2s ease-in, height 0.3s ease-in-out',
             overflowY: 'hidden',
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'contain',
@@ -120,8 +172,8 @@ export const MobileAssessmentDialog = ({ open, onOpenChange, contentProps }: Mob
             summary={summary}
             stage={stage}
             showContactButton={showContactButton}
-            resetAssessment={resetAssessment}
-            handleContactRequest={handleContactRequest}
+            resetAssessment={enhancedResetAssessment}
+            handleContactRequest={enhancedHandleContactRequest}
             messagesHeight={messagesHeight}
             initialLoad={initialLoad}
             keyboardState={keyboardState}

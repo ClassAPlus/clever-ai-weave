@@ -67,13 +67,31 @@ export const AssessmentChat = ({
     }
 
     console.log('SendMessage proceeding with message:', userMessage);
+    
+    // Clear the current message immediately
+    setCurrentMessage('');
     setIsLoading(true);
 
     // Add user message to chat
     const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
     setMessages(newMessages);
 
+    // Add timeout for API calls
+    const timeoutId = setTimeout(() => {
+      console.error('API call timeout');
+      setIsLoading(false);
+      toast({
+        title: isHebrew ? "תם הזמן" : "Timeout",
+        description: isHebrew 
+          ? "הבקשה ארכה יותר מדי זמן. אנא נסה שוב."
+          : "The request took too long. Please try again.",
+        variant: "destructive",
+      });
+    }, 30000); // 30 second timeout
+
     try {
+      console.log('Calling edge function with messages:', newMessages);
+      
       const { data, error } = await supabase.functions.invoke('ai-assessment', {
         body: {
           history: newMessages,
@@ -81,7 +99,12 @@ export const AssessmentChat = ({
         }
       });
 
-      if (error) throw error;
+      clearTimeout(timeoutId);
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Unknown error occurred');
+      }
 
       console.log('Edge function response:', data);
 
@@ -110,25 +133,50 @@ export const AssessmentChat = ({
       } else if (data.reply) {
         // Continue conversation
         setMessages([...newMessages, { role: 'assistant', content: data.reply }]);
+      } else {
+        throw new Error('Invalid response format from server');
       }
 
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Error sending message:', error);
+      
+      // Enhanced error handling with specific error messages
+      let errorMessage = isHebrew 
+        ? "אירעה שגיאה בשליחת ההודעה. אנא נסה שוב."
+        : "An error occurred sending the message. Please try again.";
+
+      if (error.message?.includes('timeout') || error.message?.includes('fetch')) {
+        errorMessage = isHebrew 
+          ? "בעיית חיבור לשרת. אנא בדוק את החיבור לאינטרנט ונסה שוב."
+          : "Connection issue. Please check your internet connection and try again.";
+      } else if (error.message?.includes('failed')) {
+        errorMessage = isHebrew 
+          ? "השרת אינו זמין כרגע. אנא נסה שוב בעוד כמה רגעים."
+          : "Server is currently unavailable. Please try again in a few moments.";
+      }
+
       toast({
         title: isHebrew ? "שגיאה" : "Error",
-        description: isHebrew 
-          ? "אירעה שגיאה בשליחת ההודעה. אנא נסה שוב."
-          : "An error occurred sending the message. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
+
+      // Add error message to chat to maintain context
+      setMessages([...newMessages, { 
+        role: 'assistant', 
+        content: isHebrew 
+          ? "מצטער, נתקלתי בבעיה טכנית. אנא נסה לשלוח את ההודעה שוב."
+          : "Sorry, I encountered a technical issue. Please try sending your message again."
+      }]);
     } finally {
       setIsLoading(false);
-      // Clear the current message only after the API call is complete
-      setCurrentMessage('');
     }
   };
 
   const handleContactRequest = () => {
+    console.log('Contact request initiated');
+    
     // Add a message to start collecting contact information
     const contactMessage = isHebrew 
       ? "נהדר! אשמח לעזור לך עם פתרונות בינה מלאכותית מותאמים אישית. כדי שהצוות שלנו יוכל ליצור איתך קשר, אני צריך כמה פרטים. מה השם הפרטי והמשפחה שלך?"
@@ -137,6 +185,9 @@ export const AssessmentChat = ({
     setMessages((prev: Message[]) => [...prev, { role: 'assistant', content: contactMessage }]);
     setShowContactButton(false);
     setIsCompleted(false); // Allow continuing the conversation
+    setStage('initial'); // Reset stage to allow message input
+    
+    console.log('Contact request setup complete');
   };
 
   return {

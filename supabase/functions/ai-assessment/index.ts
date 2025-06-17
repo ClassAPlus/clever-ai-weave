@@ -31,20 +31,30 @@ serve(async (req) => {
       if (bizInfo) {
         console.log('Extracted business info:', bizInfo);
         
-        // Save bizInfo to Supabase
-        await saveAssessment(bizInfo);
+        // Validate and sanitize business info before saving
+        const sanitizedBizInfo = sanitizeBusinessInfo(bizInfo);
+        console.log('Sanitized business info:', sanitizedBizInfo);
+        
+        // Save bizInfo to Supabase with error handling
+        try {
+          await saveAssessment(sanitizedBizInfo);
+          console.log('Assessment saved successfully');
+        } catch (saveError) {
+          console.error('Error saving assessment:', saveError);
+          // Continue with response even if save fails
+        }
 
         // Generate LocalEdgeAI-focused recommendations with correct language
-        const summaryText = await generateSummary(bizInfo, isHebrew);
+        const summaryText = await generateSummary(sanitizedBizInfo, isHebrew);
 
         return new Response(JSON.stringify({
-          bizInfo,
+          bizInfo: sanitizedBizInfo,
           summary: summaryText,
           completed: true,
           stage: 'assessment_complete',
           message: isHebrew 
-            ? `תודה, ${bizInfo.userName.split(' ')[0]}! הנה המלצות לוקל אדג׳ מותאמות אישית עבורך.`
-            : `Thank you, ${bizInfo.userName.split(' ')[0]}! Here are your personalized LocalEdgeAI recommendations.`
+            ? `תודה, ${sanitizedBizInfo.userName.split(' ')[0]}! הנה המלצות לוקל אדג׳ מותאמות אישית עבורך.`
+            : `Thank you, ${sanitizedBizInfo.userName.split(' ')[0]}! Here are your personalized LocalEdgeAI recommendations.`
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -64,20 +74,30 @@ serve(async (req) => {
       const bizInfo: BusinessInfo = JSON.parse(message.function_call.arguments);
       console.log('Collected business info:', bizInfo);
 
-      // Save bizInfo to Supabase
-      await saveAssessment(bizInfo);
+      // Validate and sanitize business info before saving
+      const sanitizedBizInfo = sanitizeBusinessInfo(bizInfo);
+      console.log('Sanitized business info:', sanitizedBizInfo);
+
+      // Save bizInfo to Supabase with error handling
+      try {
+        await saveAssessment(sanitizedBizInfo);
+        console.log('Assessment saved successfully');
+      } catch (saveError) {
+        console.error('Error saving assessment:', saveError);
+        // Continue with response even if save fails
+      }
 
       // Generate LocalEdgeAI-focused recommendations with correct language
-      const summaryText = await generateSummary(bizInfo, isHebrew);
+      const summaryText = await generateSummary(sanitizedBizInfo, isHebrew);
 
       return new Response(JSON.stringify({
-        bizInfo,
+        bizInfo: sanitizedBizInfo,
         summary: summaryText,
         completed: true,
         stage: 'assessment_complete',
         message: isHebrew 
-          ? `תודה, ${bizInfo.userName.split(' ')[0]}! הנה המלצות לוקל אדג׳ מותאמות אישית עבורך.`
-          : `Thank you, ${bizInfo.userName.split(' ')[0]}! Here are your personalized LocalEdgeAI recommendations.`
+          ? `תודה, ${sanitizedBizInfo.userName.split(' ')[0]}! הנה המלצות לוקל אדג׳ מותאמות אישית עבורך.`
+          : `Thank you, ${sanitizedBizInfo.userName.split(' ')[0]}! Here are your personalized LocalEdgeAI recommendations.`
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -91,8 +111,14 @@ serve(async (req) => {
       // Get business name and user name from previous messages
       const { businessName, userName } = extractBusinessAndUserInfo(history);
       
-      // Save contact request to Supabase
-      await saveContactRequest(contactInfo, businessName, userName);
+      // Save contact request to Supabase with error handling
+      try {
+        await saveContactRequest(contactInfo, businessName, userName);
+        console.log('Contact request saved successfully');
+      } catch (saveError) {
+        console.error('Error saving contact request:', saveError);
+        // Continue with response even if save fails
+      }
 
       return new Response(JSON.stringify({
         contactInfo,
@@ -125,6 +151,44 @@ serve(async (req) => {
     });
   }
 });
+
+// New function to sanitize and validate business info
+function sanitizeBusinessInfo(bizInfo: BusinessInfo): BusinessInfo {
+  // Sanitize employees field - convert non-numeric responses to a default number
+  let sanitizedEmployees = bizInfo.employees;
+  
+  // Check if employees field is not a valid number
+  const employeeNumber = parseInt(bizInfo.employees);
+  if (isNaN(employeeNumber) || employeeNumber < 1) {
+    // If the response contains common non-numeric answers, map them to reasonable numbers
+    const employeesLower = bizInfo.employees.toLowerCase();
+    if (employeesLower.includes('solo') || employeesLower.includes('just me') || employeesLower.includes('one') || employeesLower.includes('myself')) {
+      sanitizedEmployees = '1';
+    } else if (employeesLower.includes('small') || employeesLower.includes('few') || employeesLower.includes('couple')) {
+      sanitizedEmployees = '5';
+    } else if (employeesLower.includes('medium') || employeesLower.includes('dozen')) {
+      sanitizedEmployees = '15';
+    } else if (employeesLower.includes('large') || employeesLower.includes('many') || employeesLower.includes('lots')) {
+      sanitizedEmployees = '50';
+    } else {
+      // Default fallback for any other non-numeric response
+      sanitizedEmployees = '1';
+    }
+    
+    console.log(`Sanitized employees from "${bizInfo.employees}" to "${sanitizedEmployees}"`);
+  }
+
+  return {
+    ...bizInfo,
+    employees: sanitizedEmployees,
+    // Ensure other fields are properly sanitized
+    userName: bizInfo.userName?.trim() || 'Unknown User',
+    businessName: bizInfo.businessName?.trim() || 'Unknown Business',
+    industry: bizInfo.industry?.trim() || 'Unknown Industry',
+    goals: bizInfo.goals?.trim() || 'Unknown Goals',
+    painPoints: Array.isArray(bizInfo.painPoints) ? bizInfo.painPoints : [bizInfo.painPoints || 'Unknown']
+  };
+}
 
 function checkForCompleteBusinessInfo(history: any[]): boolean {
   const conversation = history.map(msg => msg.content.toLowerCase()).join(' ');

@@ -54,7 +54,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, isSending }) => {
             onKeyDown={handleKeyDown}
             inputMode="text"
             placeholder="Type your message..."
-            className="w-full resize-none min-h-[2.5rem] max-h-32 px-4 py-3 border border-gray-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400/40 focus:border-purple-400/60 transition-all duration-200 bg-gray-50/50 text-gray-900 placeholder:text-gray-500 font-medium"
+            className="w-full resize-none min-h-[2.5rem] max-h-32 px-0 py-0 border-0 focus:outline-none bg-transparent text-gray-900 placeholder:text-gray-500 font-medium"
             rows={1}
             style={{ 
               overflow: 'hidden',

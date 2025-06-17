@@ -44,9 +44,8 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, isSending }) => {
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-3 p-4 bg-white/90 backdrop-blur-sm rounded-2xl border border-gray-200/80 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-gray-300/80 group">
-        
-        <div className="flex-1">
+      <div className="flex items-end gap-3">
+        <div className="flex-1 bg-white/90 backdrop-blur-sm rounded-2xl border border-gray-200/80 shadow-lg transition-all duration-300 hover:shadow-xl hover:border-gray-300/80">
           <textarea
             ref={textareaRef}
             value={text}
@@ -54,7 +53,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, isSending }) => {
             onKeyDown={handleKeyDown}
             inputMode="text"
             placeholder="Type your message..."
-            className="w-full resize-none min-h-[2.5rem] max-h-32 px-0 py-0 border-0 focus:outline-none bg-transparent text-gray-900 placeholder:text-gray-500 font-medium"
+            className="w-full resize-none min-h-[2.5rem] max-h-32 px-4 py-3 border-0 focus:outline-none bg-transparent text-gray-900 placeholder:text-gray-500 font-medium rounded-2xl"
             rows={1}
             style={{ 
               overflow: 'hidden',
@@ -68,7 +67,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, isSending }) => {
           onMouseDown={e => e.preventDefault()}
           disabled={isSending || !text.trim()}
           size="icon"
-          className="h-12 w-12 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 relative overflow-hidden"
+          className="h-12 w-12 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 relative overflow-hidden flex-shrink-0"
         >
           {/* Enhanced shine animation */}
           <div className="absolute inset-0 -top-0 -left-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-12 animate-shine"></div>

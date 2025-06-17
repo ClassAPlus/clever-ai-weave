@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from "react";
 import { ChatMessages } from "./ChatMessages";
 import { AssessmentSummary } from "./AssessmentSummary";
@@ -36,12 +35,23 @@ export const MobileMessagesContainer = ({
 }: MobileMessagesContainerProps) => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomAnchorRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
 
   // Enhanced scroll-to-bottom with better mobile handling
   useEffect(() => {
     const scrollToBottom = (force = false) => {
       try {
-        // Scroll the bottom anchor into view first
+        // If we have completed assessment with summary, scroll to top of recommendations
+        if (isCompleted && summary && summaryRef.current) {
+          summaryRef.current.scrollIntoView({ 
+            behavior: force ? "auto" : "smooth", 
+            block: "start",
+            inline: "nearest"
+          });
+          return;
+        }
+        
+        // Otherwise, scroll the bottom anchor into view
         if (bottomAnchorRef.current) {
           bottomAnchorRef.current.scrollIntoView({ 
             behavior: force ? "auto" : "smooth", 
@@ -50,8 +60,8 @@ export const MobileMessagesContainer = ({
           });
         }
         
-        // Also ensure the container is scrolled to bottom
-        if (messagesContainerRef.current) {
+        // Also ensure the container is scrolled to bottom for regular chat
+        if (messagesContainerRef.current && !isCompleted) {
           const container = messagesContainerRef.current;
           const targetScrollTop = container.scrollHeight - container.clientHeight;
           
@@ -102,15 +112,15 @@ export const MobileMessagesContainer = ({
     stage
   ]);
 
-  // Additional effect to handle stage transitions
+  // Additional effect to handle stage transitions - scroll to top of recommendations
   useEffect(() => {
-    if (stage === 'assessment_complete' && summary) {
-      console.log('Assessment summary rendered - ensuring visibility');
+    if (stage === 'assessment_complete' && summary && summaryRef.current) {
+      console.log('Assessment summary rendered - scrolling to top of recommendations');
       setTimeout(() => {
-        if (bottomAnchorRef.current) {
-          bottomAnchorRef.current.scrollIntoView({ 
+        if (summaryRef.current) {
+          summaryRef.current.scrollIntoView({ 
             behavior: "smooth", 
-            block: "end" 
+            block: "start" 
           });
         }
       }, 800);
@@ -160,7 +170,10 @@ export const MobileMessagesContainer = ({
         <ChatMessages messages={messages} isLoading={isLoading} />
         
         {isCompleted && summary && (
-          <div className="mt-4 flex-shrink-0 flex flex-col transition-all duration-500 ease-in-out">
+          <div 
+            ref={summaryRef}
+            className="mt-4 flex-shrink-0 flex flex-col transition-all duration-500 ease-in-out"
+          >
             <AssessmentSummary 
               summary={summary} 
               onResetAssessment={resetAssessment} 
@@ -171,12 +184,14 @@ export const MobileMessagesContainer = ({
           </div>
         )}
         
-        {/* Enhanced anchor with better positioning */}
-        <div 
-          ref={bottomAnchorRef} 
-          className="h-1 w-full flex-shrink-0"
-          style={{ marginTop: '8px' }}
-        />
+        {/* Enhanced anchor with better positioning - only for non-completed states */}
+        {!isCompleted && (
+          <div 
+            ref={bottomAnchorRef} 
+            className="h-1 w-full flex-shrink-0"
+            style={{ marginTop: '8px' }}
+          />
+        )}
       </div>
     </div>
   );

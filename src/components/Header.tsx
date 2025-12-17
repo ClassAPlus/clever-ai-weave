@@ -108,6 +108,9 @@ export const Header = () => {
             <Link to="/contact" className="text-gray-300 hover:text-white transition-colors">
               {isHebrew ? "צור קשר" : "Contact"}
             </Link>
+            <Link to="/dashboard" className="text-gray-300 hover:text-white transition-colors">
+              {isHebrew ? "לוח בקרה" : "Dashboard"}
+            </Link>
           </nav>
           
           <div className="flex items-center space-x-4">
@@ -175,7 +178,14 @@ export const Header = () => {
                   >
                     {isHebrew ? "צור קשר" : "Contact"}
                   </Link>
-                  <Button 
+                  <Link 
+                    to="/dashboard" 
+                    className="text-gray-300 hover:text-white transition-colors py-2 px-4 rounded-md hover:bg-gray-800"
+                    onClick={() => setShowMobileMenu(false)}
+                  >
+                    {isHebrew ? "לוח בקרה" : "Dashboard"}
+                  </Link>
+                  <Button
                     onClick={() => handleMobileNavClick(() => setShowContactSheet(true))}
                     variant="outline" 
                     className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white mt-4"

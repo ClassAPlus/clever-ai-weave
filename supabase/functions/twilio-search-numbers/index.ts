@@ -39,43 +39,65 @@ serve(async (req) => {
 
     console.log(`Searching for available numbers in ${countryCode}, area code: ${areaCode}`);
 
-    // Build query parameters
-    const params = new URLSearchParams();
-    if (areaCode) params.append("AreaCode", areaCode);
-    if (contains) params.append("Contains", contains);
-    params.append("VoiceEnabled", "true");
-    params.append("SmsEnabled", "true");
-    params.append("PageSize", limit.toString());
+    // Helper function to search Twilio
+    const searchTwilio = async (numberType: string, useAreaCode: boolean) => {
+      const params = new URLSearchParams();
+      if (useAreaCode && areaCode) params.append("AreaCode", areaCode);
+      if (contains) params.append("Contains", contains);
+      params.append("VoiceEnabled", "true");
+      params.append("SmsEnabled", "true");
+      params.append("PageSize", limit.toString());
 
-    // Twilio API endpoint for available phone numbers
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/AvailablePhoneNumbers/${countryCode}/Local.json?${params.toString()}`;
+      const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/AvailablePhoneNumbers/${countryCode}/${numberType}.json?${params.toString()}`;
+      console.log(`Twilio API URL: ${url}`);
 
-    console.log(`Twilio API URL: ${url}`);
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
+          "Content-Type": "application/json",
+        },
+      });
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
-        "Content-Type": "application/json",
-      },
-    });
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.log(`${numberType} search failed:`, errorData.message);
+        return [];
+      }
 
-    const data = await response.json();
+      const data = await response.json();
+      return data.available_phone_numbers || [];
+    };
 
-    if (!response.ok) {
-      console.error("Twilio API error:", data);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: data.message || "Failed to search numbers",
-          code: data.code 
-        }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Try different search strategies
+    let numbers: any[] = [];
+    
+    // 1. Try Local numbers with area code
+    if (areaCode) {
+      numbers = await searchTwilio("Local", true);
+      console.log(`Local with area code: ${numbers.length} numbers`);
+    }
+    
+    // 2. Try Mobile numbers with area code
+    if (numbers.length === 0 && areaCode) {
+      numbers = await searchTwilio("Mobile", true);
+      console.log(`Mobile with area code: ${numbers.length} numbers`);
+    }
+    
+    // 3. Try Local without area code
+    if (numbers.length === 0) {
+      numbers = await searchTwilio("Local", false);
+      console.log(`Local without area code: ${numbers.length} numbers`);
+    }
+    
+    // 4. Try Mobile without area code
+    if (numbers.length === 0) {
+      numbers = await searchTwilio("Mobile", false);
+      console.log(`Mobile without area code: ${numbers.length} numbers`);
     }
 
     // Format the available numbers
-    const availableNumbers = (data.available_phone_numbers || []).map((num: any) => ({
+    const availableNumbers = numbers.map((num: any) => ({
       phone_number: num.phone_number,
       friendly_name: num.friendly_name,
       locality: num.locality || "",
@@ -89,7 +111,7 @@ serve(async (req) => {
       },
     }));
 
-    console.log(`Found ${availableNumbers.length} available numbers`);
+    console.log(`Found ${availableNumbers.length} available numbers total`);
 
     return new Response(
       JSON.stringify({

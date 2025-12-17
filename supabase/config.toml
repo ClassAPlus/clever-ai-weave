@@ -11,3 +11,12 @@ verify_jwt = true
 
 [functions.twilio-release-number]
 verify_jwt = true
+
+[functions.voice-incoming]
+verify_jwt = false
+
+[functions.voice-dial-result]
+verify_jwt = false
+
+[functions.sms-incoming]
+verify_jwt = false

@@ -14,6 +14,73 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          business_id: string
+          confirmation_code: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          notes: string | null
+          scheduled_at: string
+          service_type: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_id: string
+          confirmation_code?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          scheduled_at: string
+          service_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string
+          confirmation_code?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          scheduled_at?: string
+          service_type?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessments: {
         Row: {
           business_name: string
@@ -52,6 +119,132 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      businesses: {
+        Row: {
+          ai_instructions: string | null
+          ai_language: string | null
+          business_hours: Json | null
+          created_at: string | null
+          forward_to_phones: string[]
+          id: string
+          name: string
+          owner_email: string | null
+          owner_notification_channels: string[] | null
+          owner_phone: string | null
+          owner_user_id: string | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          services: string[] | null
+          subscription_plan: string | null
+          subscription_status: string | null
+          timezone: string | null
+          twilio_phone_number: string | null
+          twilio_phone_number_sid: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_instructions?: string | null
+          ai_language?: string | null
+          business_hours?: Json | null
+          created_at?: string | null
+          forward_to_phones?: string[]
+          id?: string
+          name: string
+          owner_email?: string | null
+          owner_notification_channels?: string[] | null
+          owner_phone?: string | null
+          owner_user_id?: string | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          services?: string[] | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
+          timezone?: string | null
+          twilio_phone_number?: string | null
+          twilio_phone_number_sid?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_instructions?: string | null
+          ai_language?: string | null
+          business_hours?: Json | null
+          created_at?: string | null
+          forward_to_phones?: string[]
+          id?: string
+          name?: string
+          owner_email?: string | null
+          owner_notification_channels?: string[] | null
+          owner_phone?: string | null
+          owner_user_id?: string | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          services?: string[] | null
+          subscription_plan?: string | null
+          subscription_status?: string | null
+          timezone?: string | null
+          twilio_phone_number?: string | null
+          twilio_phone_number_sid?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      calls: {
+        Row: {
+          business_id: string
+          call_status: string
+          caller_phone: string
+          contact_id: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          id: string
+          textback_sent: boolean | null
+          textback_sent_at: string | null
+          twilio_call_sid: string | null
+          was_answered: boolean | null
+        }
+        Insert: {
+          business_id: string
+          call_status: string
+          caller_phone: string
+          contact_id?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          textback_sent?: boolean | null
+          textback_sent_at?: string | null
+          twilio_call_sid?: string | null
+          was_answered?: boolean | null
+        }
+        Update: {
+          business_id?: string
+          call_status?: string
+          caller_phone?: string
+          contact_id?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          textback_sent?: boolean | null
+          textback_sent_at?: string | null
+          twilio_call_sid?: string | null
+          was_answered?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calls_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_submissions: {
         Row: {
@@ -109,6 +302,272 @@ export type Database = {
           urgency_description?: string | null
         }
         Relationships: []
+      }
+      contacts: {
+        Row: {
+          business_id: string
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string | null
+          opted_out: boolean | null
+          opted_out_at: string | null
+          phone_number: string
+          updated_at: string | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          opted_out?: boolean | null
+          opted_out_at?: string | null
+          phone_number: string
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          opted_out?: boolean | null
+          opted_out_at?: string | null
+          phone_number?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          business_id: string
+          call_id: string | null
+          contact_id: string
+          created_at: string | null
+          id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_id: string
+          call_id?: string | null
+          contact_id: string
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string
+          call_id?: string | null
+          contact_id?: string
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inquiries: {
+        Row: {
+          business_id: string
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          owner_notified: boolean | null
+          owner_notified_at: string | null
+          priority: string | null
+          status: string | null
+          summary: string
+          updated_at: string | null
+        }
+        Insert: {
+          business_id: string
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          owner_notified?: boolean | null
+          owner_notified_at?: string | null
+          priority?: string | null
+          status?: string | null
+          summary: string
+          updated_at?: string | null
+        }
+        Update: {
+          business_id?: string
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          owner_notified?: boolean | null
+          owner_notified_at?: string | null
+          priority?: string | null
+          status?: string | null
+          summary?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inquiries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inquiries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inquiries_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          ai_generated: boolean | null
+          content: string
+          conversation_id: string
+          created_at: string | null
+          direction: string
+          id: string
+          twilio_message_sid: string | null
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          direction: string
+          id?: string
+          twilio_message_sid?: string | null
+        }
+        Update: {
+          ai_generated?: boolean | null
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          direction?: string
+          id?: string
+          twilio_message_sid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      owner_notifications: {
+        Row: {
+          business_id: string
+          channel: string
+          content: string
+          created_at: string | null
+          delivered: boolean | null
+          id: string
+          notification_type: string
+          related_appointment_id: string | null
+          related_call_id: string | null
+          related_inquiry_id: string | null
+        }
+        Insert: {
+          business_id: string
+          channel: string
+          content: string
+          created_at?: string | null
+          delivered?: boolean | null
+          id?: string
+          notification_type: string
+          related_appointment_id?: string | null
+          related_call_id?: string | null
+          related_inquiry_id?: string | null
+        }
+        Update: {
+          business_id?: string
+          channel?: string
+          content?: string
+          created_at?: string | null
+          delivered?: boolean | null
+          id?: string
+          notification_type?: string
+          related_appointment_id?: string | null
+          related_call_id?: string | null
+          related_inquiry_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_notifications_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_notifications_related_appointment_id_fkey"
+            columns: ["related_appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_notifications_related_call_id_fkey"
+            columns: ["related_call_id"]
+            isOneToOne: false
+            referencedRelation: "calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_notifications_related_inquiry_id_fkey"
+            columns: ["related_inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "inquiries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

@@ -295,20 +295,6 @@ export default function Onboarding() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="forwardPhone" className="text-gray-300">
-                    Forward calls to (your phone number)
-                  </Label>
-                  <Input
-                    id="forwardPhone"
-                    value={forwardPhone}
-                    onChange={(e) => setForwardPhone(e.target.value)}
-                    placeholder="+972501234567"
-                    className="bg-gray-700 border-gray-600 text-white"
-                  />
-                  <p className="text-xs text-gray-500">We'll try to reach you first before AI takes over</p>
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="ownerEmail" className="text-gray-300">Owner Email</Label>
@@ -488,6 +474,20 @@ export default function Onboarding() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="forwardPhone" className="text-gray-300">
+                  Forward calls to (your phone number)
+                </Label>
+                <Input
+                  id="forwardPhone"
+                  value={forwardPhone}
+                  onChange={(e) => setForwardPhone(e.target.value)}
+                  placeholder="+972501234567"
+                  className="bg-gray-700 border-gray-600 text-white"
+                />
+                <p className="text-xs text-gray-500">We'll try to reach you first before AI takes over</p>
+              </div>
+
               <div className="space-y-2">
                 <Label className="text-gray-300">Area Code</Label>
                 <Select value={selectedAreaCode} onValueChange={setSelectedAreaCode}>

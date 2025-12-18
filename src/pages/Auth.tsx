@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Phone, Bot, Shield } from "lucide-react";
+import { Loader2, Phone, Bot, Shield, ArrowLeft } from "lucide-react";
 
 export default function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
@@ -122,7 +122,15 @@ export default function Auth() {
       {/* Right side - Auth forms */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <Card className="w-full max-w-md bg-gray-800/50 border-gray-700">
-          <CardHeader className="text-center">
+          <CardHeader className="text-center relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/")}
+              className="absolute left-4 top-4 text-gray-400 hover:text-white hover:bg-gray-700"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
             <CardTitle className="text-2xl text-white">Welcome</CardTitle>
             <CardDescription className="text-gray-400">
               Sign in to your account or create a new one

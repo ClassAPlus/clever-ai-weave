@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Phone, Bot, Shield, ArrowLeft, MessageSquare } from "lucide-react";
+import { Loader2, Phone, Bot, Shield, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
 
 export default function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
@@ -17,6 +17,8 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [signUpEmail, setSignUpEmail] = useState("");
 
   useEffect(() => {
     if (user && !loading) {
@@ -116,11 +118,8 @@ export default function Auth() {
         description,
       });
     } else {
-      toast({
-        title: "Account created!",
-        description: `We sent a confirmation email to ${email}. Please check your inbox (and spam folder) and click the link to activate your account.`,
-        duration: 10000,
-      });
+      setSignUpEmail(email);
+      setSignUpSuccess(true);
     }
     
     setIsSubmitting(false);
@@ -192,113 +191,149 @@ export default function Auth() {
 
       {/* Right side - Auth forms */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <Card className="w-full max-w-md bg-gray-800/50 border-gray-700">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-white">Welcome</CardTitle>
-            <CardDescription className="text-gray-400">
-              Sign in to your account or create a new one
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-gray-700/50">
-                <TabsTrigger value="signin" className="data-[state=active]:bg-purple-600">
-                  Sign In
-                </TabsTrigger>
-                <TabsTrigger value="signup" className="data-[state=active]:bg-purple-600">
-                  Sign Up
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email" className="text-gray-300">Email</Label>
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="bg-gray-700 border-gray-600 text-white"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password" className="text-gray-300">Password</Label>
-                    <Input
-                      id="signin-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="bg-gray-700 border-gray-600 text-white"
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      "Sign In"
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-gray-300">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="bg-gray-700 border-gray-600 text-white"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-gray-300">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="bg-gray-700 border-gray-600 text-white"
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      "Create Account"
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        {signUpSuccess ? (
+          <Card className="w-full max-w-md bg-gray-800/50 border-gray-700">
+            <CardContent className="pt-8 pb-8">
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="p-4 bg-green-500/20 rounded-full">
+                  <CheckCircle2 className="h-12 w-12 text-green-400" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-white">Account Created!</h2>
+                  <p className="text-gray-400">
+                    We sent a confirmation email to
+                  </p>
+                  <p className="text-purple-400 font-medium">{signUpEmail}</p>
+                </div>
+                <div className="flex items-center gap-2 bg-gray-700/50 rounded-lg p-4 mt-4">
+                  <Mail className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                  <p className="text-sm text-gray-300 text-left">
+                    Please check your inbox (and spam folder) and click the link to activate your account.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="mt-4 border-gray-600 text-gray-300 hover:bg-gray-700"
+                  onClick={() => {
+                    setSignUpSuccess(false);
+                    setEmail("");
+                    setPassword("");
+                  }}
+                >
+                  Back to Sign In
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="w-full max-w-md bg-gray-800/50 border-gray-700">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl text-white">Welcome</CardTitle>
+              <CardDescription className="text-gray-400">
+                Sign in to your account or create a new one
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="signin" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-gray-700/50">
+                  <TabsTrigger value="signin" className="data-[state=active]:bg-purple-600">
+                    Sign In
+                  </TabsTrigger>
+                  <TabsTrigger value="signup" className="data-[state=active]:bg-purple-600">
+                    Sign Up
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="signin">
+                  <form onSubmit={handleSignIn} className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-email" className="text-gray-300">Email</Label>
+                      <Input
+                        id="signin-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-password" className="text-gray-300">Password</Label>
+                      <Input
+                        id="signin-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        "Sign In"
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+                
+                <TabsContent value="signup">
+                  <form onSubmit={handleSignUp} className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email" className="text-gray-300">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password" className="text-gray-300">Password</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        "Create Account"
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

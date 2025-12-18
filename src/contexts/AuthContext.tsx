@@ -9,6 +9,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  resendConfirmation: (email: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -65,8 +66,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const resendConfirmation = async (email: string) => {
+    const redirectUrl = `${window.location.origin}/onboarding`;
+    
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: redirectUrl,
+      },
+    });
+    
+    return { error: error as Error | null };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, resendConfirmation }}>
       {children}
     </AuthContext.Provider>
   );

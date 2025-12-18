@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Phone, Bot, Shield, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
+import { Loader2, Phone, Bot, Shield, ArrowLeft, Mail, CheckCircle2, RefreshCw } from "lucide-react";
 
 export default function Auth() {
-  const { user, signIn, signUp, loading } = useAuth();
+  const { user, signIn, signUp, loading, resendConfirmation } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -19,6 +19,7 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [signUpEmail, setSignUpEmail] = useState("");
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     if (user && !loading) {
@@ -211,17 +212,55 @@ export default function Auth() {
                     Please check your inbox (and spam folder) and click the link to activate your account.
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  className="mt-4 border-gray-600 text-gray-300 hover:bg-gray-700"
-                  onClick={() => {
-                    setSignUpSuccess(false);
-                    setEmail("");
-                    setPassword("");
-                  }}
-                >
-                  Back to Sign In
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-3 mt-4 w-full">
+                  <Button
+                    variant="outline"
+                    className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+                    onClick={async () => {
+                      setIsResending(true);
+                      const { error } = await resendConfirmation(signUpEmail);
+                      if (error) {
+                        toast({
+                          variant: "destructive",
+                          title: "Failed to resend",
+                          description: error.message.includes("rate") 
+                            ? "Please wait a minute before requesting another email."
+                            : error.message,
+                        });
+                      } else {
+                        toast({
+                          title: "Email sent!",
+                          description: "We've sent another confirmation email.",
+                        });
+                      }
+                      setIsResending(false);
+                    }}
+                    disabled={isResending}
+                  >
+                    {isResending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Resend Email
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="flex-1 text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                    onClick={() => {
+                      setSignUpSuccess(false);
+                      setEmail("");
+                      setPassword("");
+                    }}
+                  >
+                    Back to Sign In
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

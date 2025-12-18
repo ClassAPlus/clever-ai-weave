@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Phone, Bot, Shield, ArrowLeft } from "lucide-react";
+import { Loader2, Phone, Bot, Shield, ArrowLeft, MessageSquare } from "lucide-react";
 
 export default function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
@@ -92,7 +92,7 @@ export default function Auth() {
             AI Missed Call System
           </h1>
           <p className="text-xl text-gray-300 mb-8">
-            Never lose a customer again. Our AI handles missed calls with intelligent SMS conversations.
+            Never lose a customer again. Our AI handles missed calls with intelligent voice and SMS responses.
           </p>
           
           <div className="space-y-6">
@@ -111,8 +111,8 @@ export default function Auth() {
                 <Bot className="h-6 w-6 text-purple-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-white">AI-Powered Responses</h3>
-                <p className="text-gray-400">Hebrew & English conversations tailored to your business</p>
+                <h3 className="font-semibold text-white">AI Voice & SMS</h3>
+                <p className="text-gray-400">Automated voice responses and SMS conversations in Hebrew & English</p>
               </div>
             </div>
             

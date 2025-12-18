@@ -24,6 +24,60 @@ export default function Auth() {
     }
   }, [user, loading, navigate]);
 
+  const getSignInErrorMessage = (error: Error): { title: string; description: string } => {
+    const message = error.message.toLowerCase();
+    
+    if (message.includes("invalid login credentials") || message.includes("invalid_credentials")) {
+      return {
+        title: "Invalid credentials",
+        description: "The email or password you entered is incorrect. Please try again.",
+      };
+    }
+    if (message.includes("email not confirmed")) {
+      return {
+        title: "Email not verified",
+        description: "Please check your inbox and click the confirmation link we sent you.",
+      };
+    }
+    if (message.includes("too many requests")) {
+      return {
+        title: "Too many attempts",
+        description: "Please wait a few minutes before trying again.",
+      };
+    }
+    return {
+      title: "Sign in failed",
+      description: error.message,
+    };
+  };
+
+  const getSignUpErrorMessage = (error: Error): { title: string; description: string } => {
+    const message = error.message.toLowerCase();
+    
+    if (message.includes("already registered") || message.includes("already been registered")) {
+      return {
+        title: "Email already exists",
+        description: "This email is already registered. Try signing in instead, or use a different email.",
+      };
+    }
+    if (message.includes("password") && message.includes("6")) {
+      return {
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+      };
+    }
+    if (message.includes("invalid email")) {
+      return {
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
+      };
+    }
+    return {
+      title: "Sign up failed",
+      description: error.message,
+    };
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -31,12 +85,17 @@ export default function Auth() {
     const { error } = await signIn(email, password);
     
     if (error) {
+      const { title, description } = getSignInErrorMessage(error);
       toast({
         variant: "destructive",
-        title: "Sign in failed",
-        description: error.message,
+        title,
+        description,
       });
     } else {
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully signed in.",
+      });
       navigate("/dashboard");
     }
     
@@ -50,15 +109,17 @@ export default function Auth() {
     const { error } = await signUp(email, password);
     
     if (error) {
+      const { title, description } = getSignUpErrorMessage(error);
       toast({
         variant: "destructive",
-        title: "Sign up failed",
-        description: error.message,
+        title,
+        description,
       });
     } else {
       toast({
-        title: "Check your email",
-        description: "We sent you a confirmation link to complete signup.",
+        title: "Account created!",
+        description: `We sent a confirmation email to ${email}. Please check your inbox (and spam folder) and click the link to activate your account.`,
+        duration: 10000,
       });
     }
     

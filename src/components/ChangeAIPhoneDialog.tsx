@@ -74,15 +74,29 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
       });
 
       if (error) throw error;
+      
+      // Handle case where number was already released (stale UI state)
+      if (!data.success && data.error?.includes("no phone number")) {
+        onUpdate();
+        setStep("search");
+        return;
+      }
+      
       if (!data.success) throw new Error(data.error || "Failed to release number");
 
       toast({
         title: "Number released",
         description: "Your old number has been released.",
       });
-      onUpdate(); // Refresh parent data to sync state
+      onUpdate();
       setStep("search");
     } catch (error: any) {
+      // Also handle "no phone number" error from catch block
+      if (error.message?.includes("no phone number")) {
+        onUpdate();
+        setStep("search");
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Error",

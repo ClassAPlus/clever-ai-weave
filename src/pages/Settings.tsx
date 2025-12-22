@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2, Bot, Clock, Bell, Phone, Save } from "lucide-react";
+import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 
 interface BusinessHours {
@@ -82,6 +82,7 @@ export default function Settings() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSendingTestSms, setIsSendingTestSms] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
 
   // Form state
@@ -225,6 +226,60 @@ export default function Settings() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSendTestSms = async () => {
+    if (!business) return;
+
+    setIsSendingTestSms(true);
+    try {
+      // Generate the greeting based on current settings
+      const isRTL = ["hebrew", "arabic"].includes(primaryLanguage);
+      const businessName = name || (isRTL ? (primaryLanguage === "hebrew" ? "העסק שלנו" : "عملنا") : "our business");
+      
+      const greetings: Record<string, string> = {
+        hebrew: `שלום! ברוכים הבאים ל${businessName}. איך אוכל לעזור לך היום?`,
+        english: `Hello! Welcome to ${businessName}. How can I help you today?`,
+        arabic: `مرحباً! أهلاً بك في ${businessName}. كيف يمكنني مساعدتك اليوم؟`,
+        russian: `Здравствуйте! Добро пожаловать в ${businessName}. Чем могу помочь?`,
+        spanish: `¡Hola! Bienvenido a ${businessName}. ¿Cómo puedo ayudarte hoy?`,
+        french: `Bonjour! Bienvenue chez ${businessName}. Comment puis-je vous aider?`,
+        german: `Hallo! Willkommen bei ${businessName}. Wie kann ich Ihnen helfen?`,
+        portuguese: `Olá! Bem-vindo a ${businessName}. Como posso ajudá-lo hoje?`,
+        italian: `Ciao! Benvenuto da ${businessName}. Come posso aiutarti oggi?`,
+        dutch: `Hallo! Welkom bij ${businessName}. Hoe kan ik u helpen?`,
+        polish: `Cześć! Witamy w ${businessName}. Jak mogę pomóc?`,
+        turkish: `Merhaba! ${businessName} hoş geldiniz. Size nasıl yardımcı olabilirim?`,
+        chinese: `您好！欢迎来到${businessName}。今天我能为您做些什么？`,
+        japanese: `こんにちは！${businessName}へようこそ。本日はどのようなご用件でしょうか？`,
+        korean: `안녕하세요! ${businessName}에 오신 것을 환영합니다. 무엇을 도와드릴까요?`,
+        hindi: `नमस्ते! ${businessName} में आपका स्वागत है। आज मैं आपकी कैसे मदद कर सकता हूं?`,
+        thai: `สวัสดีครับ! ยินดีต้อนรับสู่${businessName} วันนี้ให้ช่วยอะไรได้บ้างครับ?`,
+        vietnamese: `Xin chào! Chào mừng đến với ${businessName}. Tôi có thể giúp gì cho bạn?`,
+      };
+      
+      const greeting = greetings[primaryLanguage] || greetings.english;
+
+      const { data, error } = await supabase.functions.invoke('send-test-sms', {
+        body: { businessId: business.id, greeting }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Test SMS Sent",
+        description: `Greeting sent to ${ownerPhone}`,
+      });
+    } catch (error) {
+      console.error("Error sending test SMS:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to send test SMS",
+        description: error instanceof Error ? error.message : "Please check your phone number and try again",
+      });
+    } finally {
+      setIsSendingTestSms(false);
     }
   };
 
@@ -514,7 +569,7 @@ export default function Settings() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t border-gray-700">
+                <div className="mt-3 pt-3 border-t border-gray-700 flex items-center justify-between">
                   <p className="text-xs text-gray-500">
                     <span className="text-purple-400">Primary:</span> {LANGUAGES.find(l => l.value === primaryLanguage)?.label || primaryLanguage}
                     {aiLanguages.length > 1 && (
@@ -523,6 +578,20 @@ export default function Settings() {
                       </span>
                     )}
                   </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSendTestSms}
+                    disabled={isSendingTestSms || !business?.twilio_phone_number || !ownerPhone}
+                    className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                  >
+                    {isSendingTestSms ? (
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    ) : (
+                      <Send className="h-3 w-3 mr-1" />
+                    )}
+                    Send Test SMS
+                  </Button>
                 </div>
               </div>
             </div>

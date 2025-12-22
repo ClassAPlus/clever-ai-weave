@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.sms-incoming]
 verify_jwt = false
+
+[functions.send-test-sms]
+verify_jwt = true

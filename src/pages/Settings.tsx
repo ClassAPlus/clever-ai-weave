@@ -92,6 +92,7 @@ export default function Settings() {
   const [services, setServices] = useState("");
   const [aiLanguages, setAiLanguages] = useState<string[]>(["hebrew"]);
   const [primaryLanguage, setPrimaryLanguage] = useState("hebrew");
+  const [autoDetectLanguage, setAutoDetectLanguage] = useState(true);
   const [aiInstructions, setAiInstructions] = useState("");
   const [timezone, setTimezone] = useState("Asia/Jerusalem");
   const [quietHoursStart, setQuietHoursStart] = useState("22:00");
@@ -135,16 +136,18 @@ export default function Settings() {
       setOwnerPhone(data.owner_phone || "");
       setForwardPhones(data.forward_to_phones?.join(", ") || "");
       setServices(data.services?.join(", ") || "");
-      // Parse ai_language - format: "primary:lang1,lang2,lang3" or legacy "lang1,lang2"
+      // Parse ai_language - format: "primary:lang1,lang2,lang3:autodetect" or legacy formats
       const languageData = data.ai_language || "hebrew";
-      if (languageData.includes(":")) {
-        const [primary, rest] = languageData.split(":");
-        setPrimaryLanguage(primary);
-        setAiLanguages(rest.split(",").map((l: string) => l.trim()).filter(Boolean));
+      const parts = languageData.split(":");
+      if (parts.length >= 2) {
+        setPrimaryLanguage(parts[0]);
+        setAiLanguages(parts[1].split(",").map((l: string) => l.trim()).filter(Boolean));
+        setAutoDetectLanguage(parts[2] !== "false");
       } else {
         const langs = languageData.split(",").map((l: string) => l.trim()).filter(Boolean);
         setAiLanguages(langs);
         setPrimaryLanguage(langs[0] || "hebrew");
+        setAutoDetectLanguage(true);
       }
       setAiInstructions(data.ai_instructions || "");
       setTimezone(data.timezone || "Asia/Jerusalem");
@@ -197,7 +200,7 @@ export default function Settings() {
           owner_phone: ownerPhone || null,
           forward_to_phones: forwardPhones.split(",").map(p => p.trim()).filter(Boolean),
           services: services.split(",").map(s => s.trim()).filter(Boolean),
-          ai_language: `${primaryLanguage}:${aiLanguages.join(",")}`,
+          ai_language: `${primaryLanguage}:${aiLanguages.join(",")}:${autoDetectLanguage}`,
           ai_instructions: aiInstructions || null,
           timezone,
           quiet_hours_start: quietHoursStart,
@@ -433,6 +436,20 @@ export default function Settings() {
                 </Select>
               </div>
             )}
+            
+            <div className="flex items-center justify-between pt-4 border-t border-gray-700">
+              <div>
+                <Label className="text-gray-300">Auto-Detect Language</Label>
+                <p className="text-xs text-gray-500">
+                  AI will detect and switch to the customer's language automatically
+                </p>
+              </div>
+              <Switch 
+                checked={autoDetectLanguage} 
+                onCheckedChange={setAutoDetectLanguage} 
+              />
+            </div>
+            
             <div className="space-y-2">
               <Label className="text-gray-300">Custom AI Instructions</Label>
               <Textarea

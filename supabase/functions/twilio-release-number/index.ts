@@ -68,10 +68,15 @@ serve(async (req) => {
       );
     }
 
+    // Make release idempotent: if there's no number SID, treat as already released
     if (!business.twilio_phone_number_sid) {
       return new Response(
-        JSON.stringify({ success: false, error: "Business has no phone number to release" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          success: true,
+          message: "No phone number to release",
+          released_number: null,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

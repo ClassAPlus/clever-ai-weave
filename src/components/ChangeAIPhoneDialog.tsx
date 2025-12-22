@@ -62,6 +62,11 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
   };
 
   const releaseCurrentNumber = async () => {
+    if (!currentPhone) {
+      setStep("search");
+      return;
+    }
+    
     setIsReleasing(true);
     try {
       const { data, error } = await supabase.functions.invoke("twilio-release-number", {
@@ -75,6 +80,7 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
         title: "Number released",
         description: "Your old number has been released.",
       });
+      onUpdate(); // Refresh parent data to sync state
       setStep("search");
     } catch (error: any) {
       toast({

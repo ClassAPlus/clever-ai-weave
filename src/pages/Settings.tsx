@@ -312,8 +312,22 @@ export default function Settings() {
                 <SelectContent>
                   <SelectItem value="hebrew">עברית (Hebrew)</SelectItem>
                   <SelectItem value="english">English</SelectItem>
-                  <SelectItem value="russian">Русский (Russian)</SelectItem>
                   <SelectItem value="arabic">العربية (Arabic)</SelectItem>
+                  <SelectItem value="russian">Русский (Russian)</SelectItem>
+                  <SelectItem value="spanish">Español (Spanish)</SelectItem>
+                  <SelectItem value="french">Français (French)</SelectItem>
+                  <SelectItem value="german">Deutsch (German)</SelectItem>
+                  <SelectItem value="portuguese">Português (Portuguese)</SelectItem>
+                  <SelectItem value="italian">Italiano (Italian)</SelectItem>
+                  <SelectItem value="dutch">Nederlands (Dutch)</SelectItem>
+                  <SelectItem value="polish">Polski (Polish)</SelectItem>
+                  <SelectItem value="turkish">Türkçe (Turkish)</SelectItem>
+                  <SelectItem value="chinese">中文 (Chinese)</SelectItem>
+                  <SelectItem value="japanese">日本語 (Japanese)</SelectItem>
+                  <SelectItem value="korean">한국어 (Korean)</SelectItem>
+                  <SelectItem value="hindi">हिन्दी (Hindi)</SelectItem>
+                  <SelectItem value="thai">ไทย (Thai)</SelectItem>
+                  <SelectItem value="vietnamese">Tiếng Việt (Vietnamese)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

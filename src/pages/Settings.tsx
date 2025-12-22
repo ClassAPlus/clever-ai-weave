@@ -472,31 +472,41 @@ export default function Settings() {
                     <Bot className="h-4 w-4 text-purple-400" />
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-300">
-                      {(() => {
-                        const greetings: Record<string, string> = {
-                          hebrew: `שלום! ברוכים הבאים ל${name || "העסק שלנו"}. איך אוכל לעזור לך היום?`,
-                          english: `Hello! Welcome to ${name || "our business"}. How can I help you today?`,
-                          arabic: `مرحباً! أهلاً بك في ${name || "عملنا"}. كيف يمكنني مساعدتك اليوم؟`,
-                          russian: `Здравствуйте! Добро пожаловать в ${name || "наш бизнес"}. Чем могу помочь?`,
-                          spanish: `¡Hola! Bienvenido a ${name || "nuestro negocio"}. ¿Cómo puedo ayudarte hoy?`,
-                          french: `Bonjour! Bienvenue chez ${name || "notre entreprise"}. Comment puis-je vous aider?`,
-                          german: `Hallo! Willkommen bei ${name || "unserem Geschäft"}. Wie kann ich Ihnen helfen?`,
-                          portuguese: `Olá! Bem-vindo a ${name || "nosso negócio"}. Como posso ajudá-lo hoje?`,
-                          italian: `Ciao! Benvenuto da ${name || "la nostra attività"}. Come posso aiutarti oggi?`,
-                          dutch: `Hallo! Welkom bij ${name || "ons bedrijf"}. Hoe kan ik u helpen?`,
-                          polish: `Cześć! Witamy w ${name || "naszej firmie"}. Jak mogę pomóc?`,
-                          turkish: `Merhaba! ${name || "işletmemize"} hoş geldiniz. Size nasıl yardımcı olabilirim?`,
-                          chinese: `您好！欢迎来到${name || "我们的企业"}。今天我能为您做些什么？`,
-                          japanese: `こんにちは！${name || "私たちのビジネス"}へようこそ。本日はどのようなご用件でしょうか？`,
-                          korean: `안녕하세요! ${name || "저희 비즈니스"}에 오신 것을 환영합니다. 무엇을 도와드릴까요?`,
-                          hindi: `नमस्ते! ${name || "हमारे व्यवसाय"} में आपका स्वागत है। आज मैं आपकी कैसे मदद कर सकता हूं?`,
-                          thai: `สวัสดีครับ! ยินดีต้อนรับสู่${name || "ธุรกิจของเรา"} วันนี้ให้ช่วยอะไรได้บ้างครับ?`,
-                          vietnamese: `Xin chào! Chào mừng đến với ${name || "doanh nghiệp của chúng tôi"}. Tôi có thể giúp gì cho bạn?`,
-                        };
-                        return greetings[primaryLanguage] || greetings.english;
-                      })()}
-                    </p>
+                    {(() => {
+                      const isRTL = ["hebrew", "arabic"].includes(primaryLanguage);
+                      const businessName = name || (isRTL ? (primaryLanguage === "hebrew" ? "העסק שלנו" : "عملنا") : "our business");
+                      
+                      const greetings: Record<string, string> = {
+                        hebrew: `שלום! ברוכים הבאים ל${businessName}. איך אוכל לעזור לך היום?`,
+                        english: `Hello! Welcome to ${businessName}. How can I help you today?`,
+                        arabic: `مرحباً! أهلاً بك في ${businessName}. كيف يمكنني مساعدتك اليوم؟`,
+                        russian: `Здравствуйте! Добро пожаловать в ${businessName}. Чем могу помочь?`,
+                        spanish: `¡Hola! Bienvenido a ${businessName}. ¿Cómo puedo ayudarte hoy?`,
+                        french: `Bonjour! Bienvenue chez ${businessName}. Comment puis-je vous aider?`,
+                        german: `Hallo! Willkommen bei ${businessName}. Wie kann ich Ihnen helfen?`,
+                        portuguese: `Olá! Bem-vindo a ${businessName}. Como posso ajudá-lo hoje?`,
+                        italian: `Ciao! Benvenuto da ${businessName}. Come posso aiutarti oggi?`,
+                        dutch: `Hallo! Welkom bij ${businessName}. Hoe kan ik u helpen?`,
+                        polish: `Cześć! Witamy w ${businessName}. Jak mogę pomóc?`,
+                        turkish: `Merhaba! ${businessName} hoş geldiniz. Size nasıl yardımcı olabilirim?`,
+                        chinese: `您好！欢迎来到${businessName}。今天我能为您做些什么？`,
+                        japanese: `こんにちは！${businessName}へようこそ。本日はどのようなご用件でしょうか？`,
+                        korean: `안녕하세요! ${businessName}에 오신 것을 환영합니다. 무엇을 도와드릴까요?`,
+                        hindi: `नमस्ते! ${businessName} में आपका स्वागत है। आज मैं आपकी कैसे मदद कर सकता हूं?`,
+                        thai: `สวัสดีครับ! ยินดีต้อนรับสู่${businessName} วันนี้ให้ช่วยอะไรได้บ้างครับ?`,
+                        vietnamese: `Xin chào! Chào mừng đến với ${businessName}. Tôi có thể giúp gì cho bạn?`,
+                      };
+                      
+                      return (
+                        <p 
+                          className="text-sm text-gray-300" 
+                          dir={isRTL ? "rtl" : "ltr"}
+                          style={{ textAlign: isRTL ? "right" : "left" }}
+                        >
+                          {greetings[primaryLanguage] || greetings.english}
+                        </p>
+                      );
+                    })()}
                     {autoDetectLanguage && aiLanguages.length > 1 && (
                       <p className="text-xs text-gray-500 italic">
                         Will automatically switch to customer&apos;s language when detected

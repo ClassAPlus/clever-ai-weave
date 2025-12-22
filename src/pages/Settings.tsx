@@ -91,6 +91,7 @@ export default function Settings() {
   const [forwardPhones, setForwardPhones] = useState("");
   const [services, setServices] = useState("");
   const [aiLanguages, setAiLanguages] = useState<string[]>(["hebrew"]);
+  const [primaryLanguage, setPrimaryLanguage] = useState("hebrew");
   const [aiInstructions, setAiInstructions] = useState("");
   const [timezone, setTimezone] = useState("Asia/Jerusalem");
   const [quietHoursStart, setQuietHoursStart] = useState("22:00");
@@ -134,9 +135,17 @@ export default function Settings() {
       setOwnerPhone(data.owner_phone || "");
       setForwardPhones(data.forward_to_phones?.join(", ") || "");
       setServices(data.services?.join(", ") || "");
-      // Parse ai_language - could be a single value or comma-separated
+      // Parse ai_language - format: "primary:lang1,lang2,lang3" or legacy "lang1,lang2"
       const languageData = data.ai_language || "hebrew";
-      setAiLanguages(languageData.split(",").map((l: string) => l.trim()).filter(Boolean));
+      if (languageData.includes(":")) {
+        const [primary, rest] = languageData.split(":");
+        setPrimaryLanguage(primary);
+        setAiLanguages(rest.split(",").map((l: string) => l.trim()).filter(Boolean));
+      } else {
+        const langs = languageData.split(",").map((l: string) => l.trim()).filter(Boolean);
+        setAiLanguages(langs);
+        setPrimaryLanguage(langs[0] || "hebrew");
+      }
       setAiInstructions(data.ai_instructions || "");
       setTimezone(data.timezone || "Asia/Jerusalem");
       setQuietHoursStart(data.quiet_hours_start || "22:00");
@@ -188,7 +197,7 @@ export default function Settings() {
           owner_phone: ownerPhone || null,
           forward_to_phones: forwardPhones.split(",").map(p => p.trim()).filter(Boolean),
           services: services.split(",").map(s => s.trim()).filter(Boolean),
-          ai_language: aiLanguages.join(","),
+          ai_language: `${primaryLanguage}:${aiLanguages.join(",")}`,
           ai_instructions: aiInstructions || null,
           timezone,
           quiet_hours_start: quietHoursStart,
@@ -397,6 +406,33 @@ export default function Settings() {
                 </div>
               )}
             </div>
+            
+            {aiLanguages.length > 0 && (
+              <div className="space-y-2 pt-4 border-t border-gray-700">
+                <Label className="text-gray-300">Primary Language</Label>
+                <p className="text-xs text-gray-500 mb-2">
+                  The language AI uses when initiating conversations
+                </p>
+                <Select 
+                  value={primaryLanguage} 
+                  onValueChange={setPrimaryLanguage}
+                >
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {aiLanguages.map(langValue => {
+                      const lang = LANGUAGES.find(l => l.value === langValue);
+                      return (
+                        <SelectItem key={langValue} value={langValue}>
+                          {lang?.label || langValue}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="text-gray-300">Custom AI Instructions</Label>
               <Textarea

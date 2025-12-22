@@ -5,12 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  Loader2, Phone, MessageSquare, Calendar, Bell, Settings, 
+  Loader2, Phone, MessageSquare, Calendar, Bell, Settings as SettingsIcon, 
   LogOut, PhoneMissed, PhoneIncoming, Users, BarChart3, Menu
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { EditPhoneDialog } from "@/components/EditPhoneDialog";
 import { ChangeAIPhoneDialog } from "@/components/ChangeAIPhoneDialog";
+import Settings from "./Settings";
 
 interface Business {
   id: string;
@@ -122,7 +123,7 @@ export default function Dashboard() {
     { icon: MessageSquare, label: "Conversations", path: "/dashboard/conversations" },
     { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
     { icon: Bell, label: "Inquiries", path: "/dashboard/inquiries", badge: stats.inquiries },
-    { icon: Settings, label: "Settings", path: "/dashboard/settings" },
+    { icon: SettingsIcon, label: "Settings", path: "/dashboard/settings" },
   ];
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
@@ -231,131 +232,137 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 lg:ml-0 pt-16 lg:pt-0">
         <div className="p-6 lg:p-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            <p className="text-gray-400">Welcome back, {user?.email}</p>
-          </div>
+          {location.pathname === "/dashboard/settings" ? (
+            <Settings />
+          ) : (
+            <>
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+                <p className="text-gray-400">Welcome back, {user?.email}</p>
+              </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-gray-800/50 border-gray-700">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-500/20 rounded-lg">
-                    <PhoneIncoming className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{stats.totalCalls}</p>
-                    <p className="text-sm text-gray-400">Total Calls</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <Card className="bg-gray-800/50 border-gray-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500/20 rounded-lg">
+                        <PhoneIncoming className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-white">{stats.totalCalls}</p>
+                        <p className="text-sm text-gray-400">Total Calls</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-red-500/20 rounded-lg">
-                    <PhoneMissed className="h-5 w-5 text-red-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{stats.missedCalls}</p>
-                    <p className="text-sm text-gray-400">Missed Calls</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="bg-gray-800/50 border-gray-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-red-500/20 rounded-lg">
+                        <PhoneMissed className="h-5 w-5 text-red-400" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-white">{stats.missedCalls}</p>
+                        <p className="text-sm text-gray-400">Missed Calls</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-500/20 rounded-lg">
-                    <MessageSquare className="h-5 w-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{stats.conversations}</p>
-                    <p className="text-sm text-gray-400">Conversations</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="bg-gray-800/50 border-gray-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-500/20 rounded-lg">
+                        <MessageSquare className="h-5 w-5 text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-white">{stats.conversations}</p>
+                        <p className="text-sm text-gray-400">Conversations</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-500/20 rounded-lg">
-                    <Calendar className="h-5 w-5 text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{stats.appointments}</p>
-                    <p className="text-sm text-gray-400">Appointments</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                <Card className="bg-gray-800/50 border-gray-700">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-500/20 rounded-lg">
+                        <Calendar className="h-5 w-5 text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-white">{stats.appointments}</p>
+                        <p className="text-sm text-gray-400">Appointments</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-          {/* Quick Actions */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            <Card className="bg-gray-800/50 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Bell className="h-5 w-5 text-yellow-400" />
-                  New Inquiries
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  {stats.inquiries > 0 
-                    ? `${stats.inquiries} inquiry needs your attention`
-                    : "No new inquiries"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link to="/dashboard/inquiries">
-                  <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
-                    View Inquiries
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+              {/* Quick Actions */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card className="bg-gray-800/50 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-yellow-400" />
+                      New Inquiries
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">
+                      {stats.inquiries > 0 
+                        ? `${stats.inquiries} inquiry needs your attention`
+                        : "No new inquiries"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link to="/dashboard/inquiries">
+                      <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
+                        View Inquiries
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Users className="h-5 w-5 text-blue-400" />
-                  Recent Activity
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  View your recent calls and conversations
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link to="/dashboard/calls">
-                  <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
-                    View Calls
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
+                <Card className="bg-gray-800/50 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Users className="h-5 w-5 text-blue-400" />
+                      Recent Activity
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">
+                      View your recent calls and conversations
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link to="/dashboard/calls">
+                      <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
+                        View Calls
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              </div>
 
-          {/* Setup reminder if no phone number */}
-          {!business?.twilio_phone_number && (
-            <Card className="mt-6 bg-yellow-500/10 border-yellow-500/30">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-yellow-400" />
-                  <div>
-                    <p className="font-medium text-white">Complete your setup</p>
-                    <p className="text-sm text-gray-400">Add a phone number to start receiving calls</p>
-                  </div>
-                </div>
-                <Link to="/onboarding">
-                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-black">
-                    Add Number
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+              {/* Setup reminder if no phone number */}
+              {!business?.twilio_phone_number && (
+                <Card className="mt-6 bg-yellow-500/10 border-yellow-500/30">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Phone className="h-5 w-5 text-yellow-400" />
+                      <div>
+                        <p className="font-medium text-white">Complete your setup</p>
+                        <p className="text-sm text-gray-400">Add a phone number to start receiving calls</p>
+                      </div>
+                    </div>
+                    <Link to="/onboarding">
+                      <Button className="bg-yellow-500 hover:bg-yellow-600 text-black">
+                        Add Number
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </div>
       </div>

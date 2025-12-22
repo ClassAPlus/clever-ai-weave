@@ -9,11 +9,13 @@ import {
   LogOut, PhoneMissed, PhoneIncoming, Users, BarChart3, Menu
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { EditPhoneDialog } from "@/components/EditPhoneDialog";
 
 interface Business {
   id: string;
   name: string;
   twilio_phone_number: string | null;
+  owner_phone: string | null;
   subscription_status: string;
 }
 
@@ -142,6 +144,19 @@ export default function Dashboard() {
           <Link to="/onboarding" className="text-sm text-yellow-400 hover:underline">
             + Add phone number
           </Link>
+        )}
+        {business && (
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-gray-500">Contact:</span>
+            <span className="text-xs text-gray-300 font-mono">
+              {business.owner_phone || "Not set"}
+            </span>
+            <EditPhoneDialog
+              businessId={business.id}
+              currentPhone={business.owner_phone}
+              onUpdate={fetchBusiness}
+            />
+          </div>
         )}
       </div>
 

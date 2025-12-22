@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Building2, Bot, Clock, Bell, Phone, Save } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
@@ -52,6 +54,27 @@ const TIMEZONES = [
   { value: "Europe/Paris", label: "Central Europe (Paris)" },
 ];
 
+const LANGUAGES = [
+  { value: "hebrew", label: "עברית (Hebrew)" },
+  { value: "english", label: "English" },
+  { value: "arabic", label: "العربية (Arabic)" },
+  { value: "russian", label: "Русский (Russian)" },
+  { value: "spanish", label: "Español (Spanish)" },
+  { value: "french", label: "Français (French)" },
+  { value: "german", label: "Deutsch (German)" },
+  { value: "portuguese", label: "Português (Portuguese)" },
+  { value: "italian", label: "Italiano (Italian)" },
+  { value: "dutch", label: "Nederlands (Dutch)" },
+  { value: "polish", label: "Polski (Polish)" },
+  { value: "turkish", label: "Türkçe (Turkish)" },
+  { value: "chinese", label: "中文 (Chinese)" },
+  { value: "japanese", label: "日本語 (Japanese)" },
+  { value: "korean", label: "한국어 (Korean)" },
+  { value: "hindi", label: "हिन्दी (Hindi)" },
+  { value: "thai", label: "ไทย (Thai)" },
+  { value: "vietnamese", label: "Tiếng Việt (Vietnamese)" },
+];
+
 export default function Settings() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -67,7 +90,7 @@ export default function Settings() {
   const [ownerPhone, setOwnerPhone] = useState("");
   const [forwardPhones, setForwardPhones] = useState("");
   const [services, setServices] = useState("");
-  const [aiLanguage, setAiLanguage] = useState("hebrew");
+  const [aiLanguages, setAiLanguages] = useState<string[]>(["hebrew"]);
   const [aiInstructions, setAiInstructions] = useState("");
   const [timezone, setTimezone] = useState("Asia/Jerusalem");
   const [quietHoursStart, setQuietHoursStart] = useState("22:00");
@@ -111,7 +134,9 @@ export default function Settings() {
       setOwnerPhone(data.owner_phone || "");
       setForwardPhones(data.forward_to_phones?.join(", ") || "");
       setServices(data.services?.join(", ") || "");
-      setAiLanguage(data.ai_language || "hebrew");
+      // Parse ai_language - could be a single value or comma-separated
+      const languageData = data.ai_language || "hebrew";
+      setAiLanguages(languageData.split(",").map((l: string) => l.trim()).filter(Boolean));
       setAiInstructions(data.ai_instructions || "");
       setTimezone(data.timezone || "Asia/Jerusalem");
       setQuietHoursStart(data.quiet_hours_start || "22:00");
@@ -163,7 +188,7 @@ export default function Settings() {
           owner_phone: ownerPhone || null,
           forward_to_phones: forwardPhones.split(",").map(p => p.trim()).filter(Boolean),
           services: services.split(",").map(s => s.trim()).filter(Boolean),
-          ai_language: aiLanguage,
+          ai_language: aiLanguages.join(","),
           ai_instructions: aiInstructions || null,
           timezone,
           quiet_hours_start: quietHoursStart,
@@ -304,32 +329,73 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-gray-300">AI Language</Label>
-              <Select value={aiLanguage} onValueChange={setAiLanguage}>
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hebrew">עברית (Hebrew)</SelectItem>
-                  <SelectItem value="english">English</SelectItem>
-                  <SelectItem value="arabic">العربية (Arabic)</SelectItem>
-                  <SelectItem value="russian">Русский (Russian)</SelectItem>
-                  <SelectItem value="spanish">Español (Spanish)</SelectItem>
-                  <SelectItem value="french">Français (French)</SelectItem>
-                  <SelectItem value="german">Deutsch (German)</SelectItem>
-                  <SelectItem value="portuguese">Português (Portuguese)</SelectItem>
-                  <SelectItem value="italian">Italiano (Italian)</SelectItem>
-                  <SelectItem value="dutch">Nederlands (Dutch)</SelectItem>
-                  <SelectItem value="polish">Polski (Polish)</SelectItem>
-                  <SelectItem value="turkish">Türkçe (Turkish)</SelectItem>
-                  <SelectItem value="chinese">中文 (Chinese)</SelectItem>
-                  <SelectItem value="japanese">日本語 (Japanese)</SelectItem>
-                  <SelectItem value="korean">한국어 (Korean)</SelectItem>
-                  <SelectItem value="hindi">हिन्दी (Hindi)</SelectItem>
-                  <SelectItem value="thai">ไทย (Thai)</SelectItem>
-                  <SelectItem value="vietnamese">Tiếng Việt (Vietnamese)</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label className="text-gray-300">AI Languages</Label>
+              <p className="text-xs text-gray-500 mb-2">
+                Select the languages your AI should understand and respond in
+              </p>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                  >
+                    {aiLanguages.length === 0 
+                      ? "Select languages..." 
+                      : aiLanguages.length === 1
+                        ? LANGUAGES.find(l => l.value === aiLanguages[0])?.label || aiLanguages[0]
+                        : `${aiLanguages.length} languages selected`
+                    }
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 max-h-80 overflow-y-auto bg-gray-800 border-gray-700">
+                  <div className="space-y-2">
+                    {LANGUAGES.map(lang => (
+                      <div key={lang.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`lang-${lang.value}`}
+                          checked={aiLanguages.includes(lang.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setAiLanguages(prev => [...prev, lang.value]);
+                            } else {
+                              setAiLanguages(prev => prev.filter(l => l !== lang.value));
+                            }
+                          }}
+                          className="border-gray-500 data-[state=checked]:bg-purple-600"
+                        />
+                        <label 
+                          htmlFor={`lang-${lang.value}`}
+                          className="text-sm text-gray-300 cursor-pointer"
+                        >
+                          {lang.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {aiLanguages.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {aiLanguages.map(langValue => {
+                    const lang = LANGUAGES.find(l => l.value === langValue);
+                    return (
+                      <span 
+                        key={langValue}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-xs"
+                      >
+                        {lang?.label || langValue}
+                        <button
+                          type="button"
+                          onClick={() => setAiLanguages(prev => prev.filter(l => l !== langValue))}
+                          className="hover:text-white"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label className="text-gray-300">Custom AI Instructions</Label>

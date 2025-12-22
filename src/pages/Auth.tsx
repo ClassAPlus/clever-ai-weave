@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Phone, Bot, Shield, ArrowLeft, Mail, CheckCircle2, RefreshCw } from "lucide-react";
 
 export default function Auth() {
-  const { user, signIn, signUp, loading, resendConfirmation } = useAuth();
+  const { user, signIn, signUp, loading, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -20,6 +20,9 @@ export default function Auth() {
   const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [signUpEmail, setSignUpEmail] = useState("");
   const [isResending, setIsResending] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
 
   useEffect(() => {
     if (user && !loading) {
@@ -126,6 +129,25 @@ export default function Auth() {
     setIsSubmitting(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    const { error } = await resetPassword(forgotEmail);
+    
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to send reset email",
+        description: error.message,
+      });
+    } else {
+      setForgotPasswordSent(true);
+    }
+    
+    setIsSubmitting(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
@@ -192,7 +214,96 @@ export default function Auth() {
 
       {/* Right side - Auth forms */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        {signUpSuccess ? (
+        {showForgotPassword ? (
+          <Card className="w-full max-w-md bg-gray-800/50 border-gray-700">
+            <CardContent className="pt-8 pb-8">
+              {forgotPasswordSent ? (
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="p-4 bg-green-500/20 rounded-full">
+                    <Mail className="h-12 w-12 text-green-400" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-white">Check Your Email</h2>
+                    <p className="text-gray-400">
+                      We sent a password reset link to
+                    </p>
+                    <p className="text-purple-400 font-medium">{forgotEmail}</p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-gray-700/50 rounded-lg p-4 mt-4">
+                    <Mail className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                    <p className="text-sm text-gray-300 text-left">
+                      Click the link in the email to reset your password. Check spam folder if you don't see it.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="mt-4 border-gray-600 text-gray-300 hover:bg-gray-700"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setForgotPasswordSent(false);
+                      setForgotEmail("");
+                    }}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Sign In
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="p-4 bg-purple-500/20 rounded-full">
+                    <Mail className="h-12 w-12 text-purple-400" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold text-white">Reset Password</h2>
+                    <p className="text-gray-400">
+                      Enter your email and we'll send you a link to reset your password.
+                    </p>
+                  </div>
+                  <form onSubmit={handleForgotPassword} className="w-full space-y-4 mt-4">
+                    <div className="space-y-2 text-left">
+                      <Label htmlFor="forgot-email" className="text-gray-300">Email</Label>
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                        className="bg-gray-700 border-gray-600 text-white"
+                      />
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Send Reset Link"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                      onClick={() => {
+                        setShowForgotPassword(false);
+                        setForgotEmail("");
+                      }}
+                    >
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Back to Sign In
+                    </Button>
+                  </form>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : signUpSuccess ? (
           <Card className="w-full max-w-md bg-gray-800/50 border-gray-700">
             <CardContent className="pt-8 pb-8">
               <div className="flex flex-col items-center text-center space-y-4">
@@ -298,7 +409,19 @@ export default function Auth() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="signin-password" className="text-gray-300">Password</Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="signin-password" className="text-gray-300">Password</Label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowForgotPassword(true);
+                            setForgotEmail(email);
+                          }}
+                          className="text-sm text-purple-400 hover:text-purple-300 hover:underline"
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
                       <Input
                         id="signin-password"
                         type="password"

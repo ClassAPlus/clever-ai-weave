@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, ArrowLeft, CheckCircle2, KeyRound } from "lucide-react";
+import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
 
 export default function ResetPassword() {
   const { updatePassword, session, loading } = useAuth();
@@ -121,6 +122,7 @@ export default function ResetPassword() {
                   placeholder="Enter new password"
                   minLength={6}
                 />
+                <PasswordStrengthIndicator password={password} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword" className="text-gray-200">Confirm Password</Label>

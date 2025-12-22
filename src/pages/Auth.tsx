@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Phone, Bot, Shield, ArrowLeft, Mail, CheckCircle2, RefreshCw } from "lucide-react";
+import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
 
 export default function Auth() {
   const { user, signIn, signUp, loading, resendConfirmation, resetPassword } = useAuth();
@@ -475,6 +476,7 @@ export default function Auth() {
                         minLength={6}
                         className="bg-gray-700 border-gray-600 text-white"
                       />
+                      <PasswordStrengthIndicator password={password} />
                     </div>
                     <Button 
                       type="submit" 

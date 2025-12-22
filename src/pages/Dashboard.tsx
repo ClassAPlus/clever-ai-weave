@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,13 +50,7 @@ export default function Dashboard() {
     }
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    if (user) {
-      fetchBusiness();
-    }
-  }, [user]);
-
-  const fetchBusiness = async () => {
+  const fetchBusiness = useCallback(async () => {
     try {
       // Fetch business
       const { data: businessData, error: businessError } = await supabase
@@ -101,7 +95,13 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.id, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      fetchBusiness();
+    }
+  }, [user, fetchBusiness]);
 
   const handleSignOut = async () => {
     await signOut();

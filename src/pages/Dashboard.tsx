@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { EditPhoneDialog } from "@/components/EditPhoneDialog";
+import { ChangeAIPhoneDialog } from "@/components/ChangeAIPhoneDialog";
 
 interface Business {
   id: string;
@@ -139,7 +140,14 @@ export default function Dashboard() {
         <div className="text-sm text-gray-400">Business</div>
         <div className="font-medium text-white">{business?.name}</div>
         {business?.twilio_phone_number ? (
-          <div className="text-sm text-purple-400 font-mono">{business.twilio_phone_number}</div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-purple-400 font-mono">{business.twilio_phone_number}</span>
+            <ChangeAIPhoneDialog
+              businessId={business.id}
+              currentPhone={business.twilio_phone_number}
+              onUpdate={fetchBusiness}
+            />
+          </div>
         ) : (
           <Link to="/onboarding" className="text-sm text-yellow-400 hover:underline">
             + Add phone number

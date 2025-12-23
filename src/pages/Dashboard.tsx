@@ -17,6 +17,7 @@ import Calls from "./Calls";
 import Conversations from "./Conversations";
 import Appointments from "./Appointments";
 import Inquiries from "./Inquiries";
+import Contacts from "./Contacts";
 
 interface Business {
   id: string;
@@ -128,6 +129,7 @@ export default function Dashboard() {
     { icon: MessageSquare, label: "Conversations", path: "/dashboard/conversations" },
     { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
     { icon: Bell, label: "Inquiries", path: "/dashboard/inquiries", badge: stats.inquiries },
+    { icon: Users, label: "Contacts", path: "/dashboard/contacts" },
     { icon: SettingsIcon, label: "Settings", path: "/dashboard/settings" },
   ];
 
@@ -253,6 +255,8 @@ export default function Dashboard() {
             <Appointments />
           ) : location.pathname === "/dashboard/inquiries" ? (
             <Inquiries />
+          ) : location.pathname === "/dashboard/contacts" ? (
+            <Contacts />
           ) : (
             <>
               <div className="mb-8">

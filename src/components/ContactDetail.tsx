@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { 
   Loader2, User, Phone, Mail, Clock, ArrowLeft,
   PhoneIncoming, PhoneMissed, MessageSquare, Calendar,
-  UserX, UserCheck, Bot, Send
+  UserX, UserCheck, Bot, Send, FileText, Save, X
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ interface Contact {
   opted_out: boolean | null;
   opted_out_at: string | null;
   created_at: string | null;
+  notes: string | null;
 }
 
 interface Call {
@@ -77,6 +78,9 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
   const [smsMessage, setSmsMessage] = useState("");
   const [isSendingSms, setIsSendingSms] = useState(false);
   const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [notes, setNotes] = useState(contact.notes || "");
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const fetchContactData = useCallback(async () => {
     setIsLoading(true);
@@ -178,6 +182,35 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
     } finally {
       setIsSendingSms(false);
     }
+  };
+
+  const saveNotes = async () => {
+    setIsSavingNotes(true);
+    try {
+      const { error } = await supabase
+        .from("contacts")
+        .update({ notes: notes.trim() || null })
+        .eq("id", contact.id);
+
+      if (error) {
+        console.error("Error saving notes:", error);
+        toast.error("Failed to save notes");
+        return;
+      }
+
+      toast.success("Notes saved");
+      setIsEditingNotes(false);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to save notes");
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
+  const cancelEditNotes = () => {
+    setNotes(contact.notes || "");
+    setIsEditingNotes(false);
   };
 
   const formatDuration = (seconds: number | null) => {
@@ -343,6 +376,72 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
               </Dialog>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Notes Section */}
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-purple-400" />
+              <CardTitle className="text-white text-lg">Notes</CardTitle>
+            </div>
+            {!isEditingNotes ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditingNotes(true)}
+                className="text-gray-400 hover:text-white hover:bg-gray-700"
+              >
+                Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={cancelEditNotes}
+                  disabled={isSavingNotes}
+                  className="text-gray-400 hover:text-white hover:bg-gray-700"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={saveNotes}
+                  disabled={isSavingNotes}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {isSavingNotes ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-1" />
+                  )}
+                  Save
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isEditingNotes ? (
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add notes about this contact..."
+              className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500 min-h-32"
+            />
+          ) : (
+            <div className="min-h-16">
+              {notes ? (
+                <p className="text-gray-300 whitespace-pre-wrap">{notes}</p>
+              ) : (
+                <p className="text-gray-500 italic">No notes added</p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -37,6 +37,7 @@ interface Contact {
   opted_out_at: string | null;
   created_at: string | null;
   updated_at: string | null;
+  notes: string | null;
 }
 
 interface ContactStats {

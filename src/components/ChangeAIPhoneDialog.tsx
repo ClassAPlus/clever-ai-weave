@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Pencil, Phone, AlertTriangle, Info } from "lucide-react";
+import { Loader2, Pencil, Phone, AlertTriangle, Info, RefreshCw } from "lucide-react";
 
 interface AvailableNumber {
   phone_number: string;
@@ -242,10 +242,27 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
         {step === "select" && (
           <>
             <DialogHeader>
-              <DialogTitle>Select Your New Number</DialogTitle>
-              <DialogDescription className="text-gray-400">
-                Choose a number from the available options.
-              </DialogDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle>Select Your New Number</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Choose a mobile number for your AI assistant.
+                  </DialogDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={searchNumbers}
+                  disabled={isSearching}
+                  className="text-gray-400 hover:text-white hover:bg-gray-700"
+                >
+                  {isSearching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </DialogHeader>
             <div className="space-y-2 py-4 max-h-80 overflow-y-auto">
               {availableNumbers.map((num) => (

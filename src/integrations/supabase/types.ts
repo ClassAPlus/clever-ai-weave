@@ -310,6 +310,7 @@ export type Database = {
           email: string | null
           id: string
           name: string | null
+          notes: string | null
           opted_out: boolean | null
           opted_out_at: string | null
           phone_number: string
@@ -321,6 +322,7 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string | null
+          notes?: string | null
           opted_out?: boolean | null
           opted_out_at?: string | null
           phone_number: string
@@ -332,6 +334,7 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string | null
+          notes?: string | null
           opted_out?: boolean | null
           opted_out_at?: string | null
           phone_number?: string

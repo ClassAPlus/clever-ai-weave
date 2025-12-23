@@ -314,6 +314,7 @@ export type Database = {
           opted_out: boolean | null
           opted_out_at: string | null
           phone_number: string
+          tags: string[] | null
           updated_at: string | null
         }
         Insert: {
@@ -326,6 +327,7 @@ export type Database = {
           opted_out?: boolean | null
           opted_out_at?: string | null
           phone_number: string
+          tags?: string[] | null
           updated_at?: string | null
         }
         Update: {
@@ -338,6 +340,7 @@ export type Database = {
           opted_out?: boolean | null
           opted_out_at?: string | null
           phone_number?: string
+          tags?: string[] | null
           updated_at?: string | null
         }
         Relationships: [

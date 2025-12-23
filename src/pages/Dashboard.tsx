@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Loader2, Phone, MessageSquare, Calendar, Bell, Settings as SettingsIcon, 
-  LogOut, PhoneMissed, PhoneIncoming, Users, BarChart3, Menu
+  LogOut, PhoneMissed, PhoneIncoming, Users, BarChart3, Menu, FileText
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { EditPhoneDialog } from "@/components/EditPhoneDialog";
@@ -18,6 +18,7 @@ import Conversations from "./Conversations";
 import Appointments from "./Appointments";
 import Inquiries from "./Inquiries";
 import Contacts from "./Contacts";
+import Templates from "./Templates";
 
 interface Business {
   id: string;
@@ -130,6 +131,7 @@ export default function Dashboard() {
     { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
     { icon: Bell, label: "Inquiries", path: "/dashboard/inquiries", badge: stats.inquiries },
     { icon: Users, label: "Contacts", path: "/dashboard/contacts" },
+    { icon: FileText, label: "Templates", path: "/dashboard/templates" },
     { icon: SettingsIcon, label: "Settings", path: "/dashboard/settings" },
   ];
 
@@ -257,6 +259,8 @@ export default function Dashboard() {
             <Inquiries />
           ) : location.pathname === "/dashboard/contacts" ? (
             <Contacts />
+          ) : location.pathname === "/dashboard/templates" ? (
+            <Templates />
           ) : (
             <>
               <div className="mb-8">

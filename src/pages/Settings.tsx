@@ -12,8 +12,13 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send } from "lucide-react";
+import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
+import { IndustryTemplateSelector, INDUSTRY_TEMPLATES } from "@/components/settings/IndustryTemplateSelector";
+import { AIPersonalitySettings, AIPersonality } from "@/components/settings/AIPersonalitySettings";
+import { CustomGreetingsEditor, GreetingMessages } from "@/components/settings/CustomGreetingsEditor";
+import { CustomToolsToggle } from "@/components/settings/CustomToolsToggle";
+import { KnowledgeBaseEditor, KnowledgeBase } from "@/components/settings/KnowledgeBaseEditor";
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -34,6 +39,11 @@ interface Business {
   quiet_hours_start: string | null;
   quiet_hours_end: string | null;
   twilio_phone_number: string | null;
+  industry_type: string | null;
+  ai_personality: AIPersonality | null;
+  greeting_messages: GreetingMessages | null;
+  custom_tools: string[] | null;
+  knowledge_base: KnowledgeBase | null;
 }
 
 const DAYS = [
@@ -137,6 +147,28 @@ export default function Settings() {
     sat: undefined,
   });
 
+  // New specialized messaging state
+  const [industryType, setIndustryType] = useState<string>("");
+  const [aiPersonality, setAiPersonality] = useState<AIPersonality>({
+    tone: "friendly",
+    style: "conversational",
+    emoji_usage: "minimal",
+    response_length: "medium",
+  });
+  const [greetingMessages, setGreetingMessages] = useState<GreetingMessages>({
+    new_conversation: "",
+    missed_call: "",
+    returning_customer: "",
+    after_hours: "",
+  });
+  const [customTools, setCustomTools] = useState<string[]>([]);
+  const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBase>({
+    faqs: [],
+    policies: {},
+    pricing: [],
+    staff: [],
+  });
+
   // Handle owner phone change with validation
   const handleOwnerPhoneChange = (value: string) => {
     setOwnerPhone(value);
@@ -189,12 +221,10 @@ export default function Settings() {
       setBusiness({
         ...data,
         business_hours: data.business_hours as BusinessHours | null,
+        ai_personality: data.ai_personality as unknown as AIPersonality | null,
+        greeting_messages: data.greeting_messages as unknown as GreetingMessages | null,
+        knowledge_base: data.knowledge_base as unknown as KnowledgeBase | null,
       });
-
-      // Populate form
-      setName(data.name || "");
-      setOwnerEmail(data.owner_email || "");
-      setOwnerPhone(data.owner_phone || "");
       setForwardPhones(data.forward_to_phones?.join(", ") || "");
       setServices(data.services?.join(", ") || "");
       // Parse ai_language - format: "primary:lang1,lang2,lang3:autodetect" or legacy formats
@@ -219,6 +249,19 @@ export default function Settings() {
       
       if (data.business_hours) {
         setBusinessHours(data.business_hours as BusinessHours);
+      }
+
+      // Load new specialized messaging fields
+      setIndustryType(data.industry_type || "");
+      if (data.ai_personality) {
+        setAiPersonality(data.ai_personality as unknown as AIPersonality);
+      }
+      if (data.greeting_messages) {
+        setGreetingMessages(data.greeting_messages as unknown as GreetingMessages);
+      }
+      setCustomTools(data.custom_tools || []);
+      if (data.knowledge_base) {
+        setKnowledgeBase(data.knowledge_base as unknown as KnowledgeBase);
       }
     } catch (error) {
       console.error("Error fetching business:", error);
@@ -268,6 +311,11 @@ export default function Settings() {
           quiet_hours_end: quietHoursEnd,
           owner_notification_channels: notificationChannels,
           business_hours: businessHours as unknown as Json,
+          industry_type: industryType || null,
+          ai_personality: aiPersonality as unknown as Json,
+          greeting_messages: greetingMessages as unknown as Json,
+          custom_tools: customTools,
+          knowledge_base: knowledgeBase as unknown as Json,
         })
         .eq("id", business.id);
 
@@ -860,6 +908,115 @@ export default function Settings() {
                 />
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Industry Template */}
+        <Card className="bg-gray-800/50 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-400" />
+              Industry Template
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Quick-start with industry-specific settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <IndustryTemplateSelector
+              value={industryType}
+              onChange={(industry, template) => {
+                setIndustryType(industry || "");
+                if (template) {
+                  setAiPersonality(template.personality);
+                  setCustomTools(template.defaultTools);
+                  setGreetingMessages(template.greetings);
+                  setKnowledgeBase({
+                    faqs: template.sampleKnowledge.faqs,
+                    policies: template.sampleKnowledge.policies,
+                    pricing: [],
+                    staff: [],
+                  });
+                }
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        {/* AI Personality */}
+        <Card className="bg-gray-800/50 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Bot className="h-5 w-5 text-purple-400" />
+              AI Personality
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Customize how your AI assistant communicates
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AIPersonalitySettings
+              personality={aiPersonality}
+              onChange={setAiPersonality}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Custom Greetings */}
+        <Card className="bg-gray-800/50 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-purple-400" />
+              Custom Greetings
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Personalized messages for different scenarios
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CustomGreetingsEditor
+              greetings={greetingMessages}
+              onChange={setGreetingMessages}
+              businessName={name}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Custom Tools */}
+        <Card className="bg-gray-800/50 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Wrench className="h-5 w-5 text-purple-400" />
+              AI Tools & Actions
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Enable or disable specific AI capabilities
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CustomToolsToggle
+              enabledTools={customTools}
+              onChange={setCustomTools}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Knowledge Base */}
+        <Card className="bg-gray-800/50 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-purple-400" />
+              Knowledge Base
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              FAQs, pricing, policies, and staff info for your AI
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <KnowledgeBaseEditor
+              knowledgeBase={knowledgeBase}
+              onChange={setKnowledgeBase}
+            />
           </CardContent>
         </Card>
 

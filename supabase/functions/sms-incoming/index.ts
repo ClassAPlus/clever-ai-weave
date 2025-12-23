@@ -295,6 +295,93 @@ serve(async (req) => {
   }
 });
 
+// Build personality instructions from settings
+function buildPersonalityInstructions(personality: any): string {
+  if (!personality) return '';
+  
+  const toneMap: Record<string, string> = {
+    professional: 'Use a formal, business-like tone',
+    friendly: 'Use a warm and approachable tone',
+    casual: 'Use a relaxed and informal tone',
+    formal: 'Use a very proper and official tone',
+  };
+  
+  const styleMap: Record<string, string> = {
+    concise: 'Keep responses short and to the point',
+    conversational: 'Use a natural, flowing dialogue style',
+    detailed: 'Provide thorough explanations when needed',
+  };
+  
+  const emojiMap: Record<string, string> = {
+    none: 'Do not use any emojis',
+    minimal: 'Use emojis sparingly, only for key emphasis',
+    moderate: 'Use emojis regularly to add warmth',
+    frequent: 'Use lots of expressive emojis',
+  };
+  
+  const lengthMap: Record<string, string> = {
+    short: 'Keep responses under 100 characters',
+    medium: 'Keep responses between 100-200 characters',
+    detailed: 'Responses can be 200-400 characters when needed',
+  };
+  
+  return `
+PERSONALITY:
+- ${toneMap[personality.tone] || toneMap.friendly}
+- ${styleMap[personality.style] || styleMap.conversational}
+- ${emojiMap[personality.emoji_usage] || emojiMap.minimal}
+- ${lengthMap[personality.response_length] || lengthMap.medium}`;
+}
+
+// Build knowledge base context
+function buildKnowledgeContext(knowledge: any): string {
+  if (!knowledge) return '';
+  
+  let context = '\nKNOWLEDGE BASE:\n';
+  
+  if (knowledge.faqs && knowledge.faqs.length > 0) {
+    context += 'FAQs:\n';
+    knowledge.faqs.forEach((faq: { question: string; answer: string }) => {
+      context += `Q: ${faq.question}\nA: ${faq.answer}\n`;
+    });
+  }
+  
+  if (knowledge.pricing && knowledge.pricing.length > 0) {
+    context += '\nPricing:\n';
+    knowledge.pricing.forEach((item: { service: string; price: string }) => {
+      context += `- ${item.service}: ${item.price}\n`;
+    });
+  }
+  
+  if (knowledge.policies && Object.keys(knowledge.policies).length > 0) {
+    context += '\nPolicies:\n';
+    Object.entries(knowledge.policies).forEach(([key, value]) => {
+      context += `- ${key}: ${value}\n`;
+    });
+  }
+  
+  if (knowledge.staff && knowledge.staff.length > 0) {
+    context += '\nStaff:\n';
+    knowledge.staff.forEach((person: { name: string; specialty: string }) => {
+      context += `- ${person.name}: ${person.specialty}\n`;
+    });
+  }
+  
+  return context;
+}
+
+// Build enabled tools list
+function buildEnabledTools(customTools: string[] | null): any[] {
+  const defaultTools = ['book_appointment', 'create_inquiry', 'request_callback'];
+  const enabledToolNames = customTools && customTools.length > 0 
+    ? [...new Set([...defaultTools, ...customTools])]
+    : defaultTools;
+  
+  return AI_TOOLS.filter(tool => 
+    enabledToolNames.includes(tool.function.name)
+  );
+}
+
 async function generateAIResponseWithTools(
   supabase: any,
   business: any,
@@ -306,25 +393,52 @@ async function generateAIResponseWithTools(
   const language = business.ai_language || 'hebrew';
   const isHebrew = language === 'hebrew';
   
-  const systemPrompt = `You are a helpful AI assistant for ${business.name}.
+  // Build enhanced system prompt with specialized messaging features
+  const personalityInstructions = buildPersonalityInstructions(business.ai_personality);
+  const knowledgeContext = buildKnowledgeContext(business.knowledge_base);
+  const enabledTools = buildEnabledTools(business.custom_tools);
+  
+  // Check if this is a returning customer
+  const { count: previousConversations } = await supabase
+    .from('conversations')
+    .select('*', { count: 'exact', head: true })
+    .eq('contact_id', contact?.id)
+    .eq('business_id', business.id);
+  
+  const isReturningCustomer = (previousConversations || 0) > 1;
+  
+  // Build greeting context
+  const greetings = business.greeting_messages || {};
+  let greetingNote = '';
+  if (messageHistory.length === 0) {
+    if (isReturningCustomer && greetings.returning_customer) {
+      greetingNote = `\nUse this greeting for returning customer: "${greetings.returning_customer}"`;
+    } else if (greetings.new_conversation) {
+      greetingNote = `\nUse this greeting for new customers: "${greetings.new_conversation}"`;
+    }
+  }
+  
+  const systemPrompt = `You are a helpful AI assistant for ${business.name}${business.industry_type ? ` (${business.industry_type} business)` : ''}.
 ${business.ai_instructions || ''}
+${personalityInstructions}
 
 Business Services: ${(business.services || []).join(', ') || 'Not specified'}
 Business Hours: ${JSON.stringify(business.business_hours || {})}
 Timezone: ${business.timezone || 'Asia/Jerusalem'}
+${knowledgeContext}
 
 AVAILABLE ACTIONS:
 1. book_appointment - When customer wants to schedule. Collect service type, date, and time first.
 2. create_inquiry - For questions needing owner attention (pricing, complex issues, complaints).
 3. request_callback - When customer explicitly asks to speak with someone.
+${greetingNote}
 
 Instructions:
 - Respond in ${isHebrew ? 'Hebrew' : 'English'}
-- Keep responses concise (SMS length, under 160 characters when possible)
-- Be friendly and professional
+- Be helpful and match the personality guidelines above
 - Use tools when appropriate - don't just say you'll do something, actually call the function
 - For appointments: confirm details before booking
-- Never make up information about services or prices
+- Use the knowledge base to answer questions about services, pricing, and policies
 - If unsure, create an inquiry for the owner`;
 
   const messages = [
@@ -346,7 +460,7 @@ Instructions:
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages,
-        tools: AI_TOOLS,
+        tools: enabledTools,
         tool_choice: 'auto',
         max_tokens: 300,
         temperature: 0.7,

@@ -60,6 +60,17 @@ serve(async (req) => {
       );
     }
 
+    // Validate international phone format (E.164: +[country code][number], 8-15 digits)
+    const phoneRegex = /^\+[1-9]\d{7,14}$/;
+    if (!phoneRegex.test(business.owner_phone.replace(/\s/g, ''))) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Owner phone number must be in international format (e.g., +1234567890)' 
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Use provided greeting or generate one based on settings
     const testGreeting = greeting || generateGreeting(business);
 

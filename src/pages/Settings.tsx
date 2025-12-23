@@ -19,6 +19,7 @@ import { AIPersonalitySettings, AIPersonality } from "@/components/settings/AIPe
 import { CustomGreetingsEditor, GreetingMessages } from "@/components/settings/CustomGreetingsEditor";
 import { CustomToolsToggle } from "@/components/settings/CustomToolsToggle";
 import { KnowledgeBaseEditor, KnowledgeBase } from "@/components/settings/KnowledgeBaseEditor";
+import { AIResponsePreview } from "@/components/settings/AIResponsePreview";
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -954,11 +955,22 @@ export default function Settings() {
               Customize how your AI assistant communicates
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <AIPersonalitySettings
               personality={aiPersonality}
               onChange={setAiPersonality}
             />
+            
+            {/* Live Preview */}
+            <div className="pt-4 border-t border-gray-700">
+              <Label className="text-gray-300 mb-3 block">Live Response Preview</Label>
+              <AIResponsePreview
+                businessName={name}
+                personality={aiPersonality}
+                knowledgeBase={knowledgeBase}
+                industryType={industryType}
+              />
+            </div>
           </CardContent>
         </Card>
 

@@ -131,6 +131,31 @@ export default function Appointments() {
     fetchAppointments();
   }, [fetchAppointments]);
 
+  // Real-time subscription for appointments
+  useEffect(() => {
+    if (!businessId) return;
+
+    const channel = supabase
+      .channel('appointments-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'appointments',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          fetchAppointments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [businessId, fetchAppointments]);
+
   const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
     try {
       const { error } = await supabase

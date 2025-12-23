@@ -172,6 +172,56 @@ export default function Conversations() {
     }
   }, [selectedConversation, fetchMessages]);
 
+  // Real-time subscription for conversations
+  useEffect(() => {
+    if (!businessId) return;
+
+    const conversationsChannel = supabase
+      .channel('conversations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          fetchConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(conversationsChannel);
+    };
+  }, [businessId, fetchConversations]);
+
+  // Real-time subscription for messages in selected conversation
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    const messagesChannel = supabase
+      .channel('messages-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${selectedConversation.id}`
+        },
+        () => {
+          fetchMessages(selectedConversation.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messagesChannel);
+    };
+  }, [selectedConversation, fetchMessages]);
+
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);
   };

@@ -124,10 +124,15 @@ export type Database = {
         Row: {
           ai_instructions: string | null
           ai_language: string | null
+          ai_personality: Json | null
           business_hours: Json | null
           created_at: string | null
+          custom_tools: string[] | null
           forward_to_phones: string[]
+          greeting_messages: Json | null
           id: string
+          industry_type: string | null
+          knowledge_base: Json | null
           name: string
           owner_email: string | null
           owner_notification_channels: string[] | null
@@ -146,10 +151,15 @@ export type Database = {
         Insert: {
           ai_instructions?: string | null
           ai_language?: string | null
+          ai_personality?: Json | null
           business_hours?: Json | null
           created_at?: string | null
+          custom_tools?: string[] | null
           forward_to_phones?: string[]
+          greeting_messages?: Json | null
           id?: string
+          industry_type?: string | null
+          knowledge_base?: Json | null
           name: string
           owner_email?: string | null
           owner_notification_channels?: string[] | null
@@ -168,10 +178,15 @@ export type Database = {
         Update: {
           ai_instructions?: string | null
           ai_language?: string | null
+          ai_personality?: Json | null
           business_hours?: Json | null
           created_at?: string | null
+          custom_tools?: string[] | null
           forward_to_phones?: string[]
+          greeting_messages?: Json | null
           id?: string
+          industry_type?: string | null
+          knowledge_base?: Json | null
           name?: string
           owner_email?: string | null
           owner_notification_channels?: string[] | null
@@ -465,6 +480,50 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          business_id: string
+          category: string | null
+          content: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+          variables: string[] | null
+        }
+        Insert: {
+          business_id: string
+          category?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+          variables?: string[] | null
+        }
+        Update: {
+          business_id?: string
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+          variables?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_templates_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
         ]

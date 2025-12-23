@@ -265,10 +265,11 @@ export default function Contacts() {
   }
 
   // Show contact detail view if a contact is selected
-  if (selectedContact) {
+  if (selectedContact && businessId) {
     return (
       <ContactDetail 
-        contact={selectedContact} 
+        contact={selectedContact}
+        businessId={businessId}
         onBack={() => setSelectedContact(null)} 
       />
     );

@@ -115,6 +115,7 @@ export default function Settings() {
   const [ownerPhone, setOwnerPhone] = useState("");
   const [ownerPhoneError, setOwnerPhoneError] = useState("");
   const [forwardPhones, setForwardPhones] = useState("");
+  const [forwardPhonesError, setForwardPhonesError] = useState("");
   const [services, setServices] = useState("");
   const [aiLanguages, setAiLanguages] = useState<string[]>(["hebrew"]);
   const [primaryLanguage, setPrimaryLanguage] = useState("hebrew");
@@ -140,6 +141,32 @@ export default function Settings() {
     setOwnerPhone(value);
     const { isValid, message } = validatePhoneNumber(value);
     setOwnerPhoneError(isValid ? "" : message);
+  };
+
+  // Handle forward phones change with validation (comma-separated)
+  const handleForwardPhonesChange = (value: string) => {
+    setForwardPhones(value);
+    
+    if (!value.trim()) {
+      setForwardPhonesError("");
+      return;
+    }
+    
+    const phones = value.split(",").map(p => p.trim()).filter(Boolean);
+    const invalidPhones: string[] = [];
+    
+    for (const phone of phones) {
+      const { isValid } = validatePhoneNumber(phone);
+      if (!isValid) {
+        invalidPhones.push(phone);
+      }
+    }
+    
+    if (invalidPhones.length > 0) {
+      setForwardPhonesError(`Invalid: ${invalidPhones.join(", ")} - Use international format (+1234567890)`);
+    } else {
+      setForwardPhonesError("");
+    }
   };
 
   const fetchBusiness = useCallback(async () => {
@@ -347,7 +374,7 @@ export default function Settings() {
           <h1 className="text-2xl font-bold text-white">Settings</h1>
           <p className="text-gray-400">Manage your business configuration</p>
         </div>
-        <Button onClick={handleSave} disabled={isSaving || !!ownerPhoneError} className="bg-purple-600 hover:bg-purple-700">
+        <Button onClick={handleSave} disabled={isSaving || !!ownerPhoneError || !!forwardPhonesError} className="bg-purple-600 hover:bg-purple-700">
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
           Save Changes
         </Button>
@@ -649,13 +676,17 @@ export default function Settings() {
               <Label className="text-gray-300">Forward to Phones (comma-separated)</Label>
               <Input
                 value={forwardPhones}
-                onChange={(e) => setForwardPhones(e.target.value)}
+                onChange={(e) => handleForwardPhonesChange(e.target.value)}
                 placeholder="+972501234567, +972509876543"
-                className="bg-gray-700 border-gray-600 text-white"
+                className={`bg-gray-700 border-gray-600 text-white ${forwardPhonesError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
               />
-              <p className="text-xs text-gray-500">
-                Incoming calls will first try these numbers. If no answer, AI takes over.
-              </p>
+              {forwardPhonesError ? (
+                <p className="text-xs text-red-400">{forwardPhonesError}</p>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  Incoming calls will first try these numbers. If no answer, AI takes over.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

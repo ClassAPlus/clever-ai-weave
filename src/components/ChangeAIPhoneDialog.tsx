@@ -9,9 +9,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Pencil, Phone, AlertTriangle, Info, RefreshCw } from "lucide-react";
+import { Loader2, Pencil, Phone, AlertTriangle, Info, RefreshCw, Search } from "lucide-react";
 
 interface AvailableNumber {
   phone_number: string;
@@ -34,12 +36,14 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
   const [isProvisioning, setIsProvisioning] = useState(false);
   const [availableNumbers, setAvailableNumbers] = useState<AvailableNumber[]>([]);
   const [selectedNumber, setSelectedNumber] = useState("");
+  const [searchPattern, setSearchPattern] = useState("");
   const { toast } = useToast();
 
   const resetState = () => {
     setStep("confirm");
     setAvailableNumbers([]);
     setSelectedNumber("");
+    setSearchPattern("");
   };
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -101,11 +105,17 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
     setSelectedNumber("");
 
     try {
+      const body: { country_code: string; limit: number; contains?: string } = {
+        country_code: "IL",
+        limit: 30,
+      };
+      
+      if (searchPattern.trim()) {
+        body.contains = searchPattern.trim();
+      }
+
       const { data, error } = await supabase.functions.invoke("twilio-search-numbers", {
-        body: {
-          country_code: "IL",
-          limit: 30,
-        },
+        body,
       });
 
       if (error) throw error;
@@ -116,8 +126,10 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
         setStep("select");
       } else {
         toast({
-          title: "No numbers available",
-          description: "Please try again later.",
+          title: "No numbers found",
+          description: searchPattern.trim() 
+            ? `No numbers containing "${searchPattern}" available. Try a different pattern.`
+            : "Please try again later.",
         });
       }
     } catch (error: any) {
@@ -225,6 +237,19 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
                   </div>
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label className="text-gray-300">Search for specific digits (optional)</Label>
+                <Input
+                  value={searchPattern}
+                  onChange={(e) => setSearchPattern(e.target.value.replace(/[^0-9*]/g, ''))}
+                  placeholder="e.g., 777, 123, 5000"
+                  className="bg-gray-700 border-gray-600 text-white font-mono"
+                  maxLength={10}
+                />
+                <p className="text-xs text-gray-500">
+                  Find numbers containing your lucky digits or memorable patterns
+                </p>
+              </div>
             </div>
             <DialogFooter>
               <Button
@@ -246,7 +271,8 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
                 <div>
                   <DialogTitle>Select Your New Number</DialogTitle>
                   <DialogDescription className="text-gray-400">
-                    Choose a mobile number for your AI assistant.
+                    {availableNumbers.length} numbers available
+                    {searchPattern && ` containing "${searchPattern}"`}
                   </DialogDescription>
                 </div>
                 <Button
@@ -255,6 +281,7 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
                   onClick={searchNumbers}
                   disabled={isSearching}
                   className="text-gray-400 hover:text-white hover:bg-gray-700"
+                  title="Refresh list"
                 >
                   {isSearching ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -264,6 +291,28 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
                 </Button>
               </div>
             </DialogHeader>
+            <div className="flex gap-2 mb-2">
+              <Input
+                value={searchPattern}
+                onChange={(e) => setSearchPattern(e.target.value.replace(/[^0-9*]/g, ''))}
+                placeholder="Filter by digits..."
+                className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
+                maxLength={10}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={searchNumbers}
+                disabled={isSearching}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700 px-3"
+              >
+                {isSearching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
             <div className="space-y-2 py-4 max-h-80 overflow-y-auto">
               {availableNumbers.map((num) => (
                 <button

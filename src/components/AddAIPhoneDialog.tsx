@@ -9,9 +9,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Phone, Plus, Info, RefreshCw } from "lucide-react";
+import { Loader2, Phone, Plus, Info, RefreshCw, Search } from "lucide-react";
 
 interface AvailableNumber {
   phone_number: string;
@@ -33,12 +35,14 @@ export function AddAIPhoneDialog({ businessId, onUpdate, trigger }: AddAIPhoneDi
   const [isProvisioning, setIsProvisioning] = useState(false);
   const [availableNumbers, setAvailableNumbers] = useState<AvailableNumber[]>([]);
   const [selectedNumber, setSelectedNumber] = useState("");
+  const [searchPattern, setSearchPattern] = useState("");
   const { toast } = useToast();
 
   const resetState = () => {
     setStep("info");
     setAvailableNumbers([]);
     setSelectedNumber("");
+    setSearchPattern("");
   };
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -48,17 +52,25 @@ export function AddAIPhoneDialog({ businessId, onUpdate, trigger }: AddAIPhoneDi
     }
   };
 
-  const searchNumbers = async () => {
+  const searchNumbers = async (pattern?: string) => {
     setIsSearching(true);
     setAvailableNumbers([]);
     setSelectedNumber("");
 
     try {
+      const body: { country_code: string; limit: number; contains?: string } = {
+        country_code: "IL",
+        limit: 30,
+      };
+      
+      // Use provided pattern or current state
+      const searchValue = pattern !== undefined ? pattern : searchPattern;
+      if (searchValue.trim()) {
+        body.contains = searchValue.trim();
+      }
+
       const { data, error } = await supabase.functions.invoke("twilio-search-numbers", {
-        body: {
-          country_code: "IL",
-          limit: 30,
-        },
+        body,
       });
 
       if (error) throw error;
@@ -69,8 +81,10 @@ export function AddAIPhoneDialog({ businessId, onUpdate, trigger }: AddAIPhoneDi
         setStep("select");
       } else {
         toast({
-          title: "No numbers available",
-          description: "Please try again later.",
+          title: "No numbers found",
+          description: searchValue.trim() 
+            ? `No numbers containing "${searchValue}" available. Try a different pattern.`
+            : "Please try again later.",
         });
       }
     } catch (error: any) {
@@ -146,14 +160,25 @@ export function AddAIPhoneDialog({ businessId, onUpdate, trigger }: AddAIPhoneDi
                   <div className="text-sm text-gray-300">
                     <p className="font-medium text-blue-400 mb-1">Mobile Numbers Only</p>
                     <p>Your AI assistant requires SMS capability to communicate with customers. 
-                    In Israel, only mobile numbers support both voice and SMS. Landline numbers 
-                    with area codes (02, 03, etc.) do not support SMS.</p>
+                    In Israel, only mobile numbers support both voice and SMS.</p>
                   </div>
                 </div>
               </div>
-              <p className="text-sm text-gray-400">
-                Click below to see available mobile numbers you can use for your AI assistant.
-              </p>
+              <div className="space-y-2">
+                <Label className="text-gray-300">Search for specific digits (optional)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={searchPattern}
+                    onChange={(e) => setSearchPattern(e.target.value.replace(/[^0-9*]/g, ''))}
+                    placeholder="e.g., 777, 123, 5000"
+                    className="bg-gray-700 border-gray-600 text-white font-mono"
+                    maxLength={10}
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  Find numbers containing your lucky digits or memorable patterns
+                </p>
+              </div>
             </div>
             <DialogFooter>
               <Button
@@ -164,7 +189,7 @@ export function AddAIPhoneDialog({ businessId, onUpdate, trigger }: AddAIPhoneDi
                 Cancel
               </Button>
               <Button
-                onClick={searchNumbers}
+                onClick={() => searchNumbers()}
                 disabled={isSearching}
                 className="bg-purple-600 hover:bg-purple-700"
               >
@@ -182,15 +207,17 @@ export function AddAIPhoneDialog({ businessId, onUpdate, trigger }: AddAIPhoneDi
                 <div>
                   <DialogTitle>Select Your AI Number</DialogTitle>
                   <DialogDescription className="text-gray-400">
-                    Choose a mobile number for your AI assistant.
+                    {availableNumbers.length} numbers available
+                    {searchPattern && ` containing "${searchPattern}"`}
                   </DialogDescription>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={searchNumbers}
+                  onClick={() => searchNumbers()}
                   disabled={isSearching}
                   className="text-gray-400 hover:text-white hover:bg-gray-700"
+                  title="Refresh list"
                 >
                   {isSearching ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -200,6 +227,28 @@ export function AddAIPhoneDialog({ businessId, onUpdate, trigger }: AddAIPhoneDi
                 </Button>
               </div>
             </DialogHeader>
+            <div className="flex gap-2 mb-2">
+              <Input
+                value={searchPattern}
+                onChange={(e) => setSearchPattern(e.target.value.replace(/[^0-9*]/g, ''))}
+                placeholder="Filter by digits..."
+                className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
+                maxLength={10}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => searchNumbers()}
+                disabled={isSearching}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700 px-3"
+              >
+                {isSearching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
             <div className="space-y-2 py-4 max-h-80 overflow-y-auto">
               {availableNumbers.map((num) => (
                 <button

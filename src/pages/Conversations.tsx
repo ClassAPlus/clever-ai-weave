@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -55,6 +56,7 @@ export default function Conversations() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [filter, setFilter] = useState<"all" | "active" | "closed">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const isInitialLoad = useRef(true);
 
   const fetchConversations = useCallback(async () => {
     if (!user) return;
@@ -181,7 +183,25 @@ export default function Conversations() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'conversations',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          if (!isInitialLoad.current) {
+            toast.info("New conversation", {
+              description: "A new SMS conversation has started",
+              icon: <MessageSquare className="h-4 w-4 text-purple-400" />
+            });
+          }
+          fetchConversations();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'conversations',
           filter: `business_id=eq.${businessId}`
@@ -191,6 +211,10 @@ export default function Conversations() {
         }
       )
       .subscribe();
+
+    setTimeout(() => {
+      isInitialLoad.current = false;
+    }, 1000);
 
     return () => {
       supabase.removeChannel(conversationsChannel);
@@ -206,12 +230,19 @@ export default function Conversations() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${selectedConversation.id}`
         },
-        () => {
+        (payload) => {
+          const newMessage = payload.new as { direction?: string };
+          if (newMessage.direction === 'inbound') {
+            toast.info("New message", {
+              description: "A new message has been received",
+              icon: <MessageSquare className="h-4 w-4 text-blue-400" />
+            });
+          }
           fetchMessages(selectedConversation.id);
         }
       )

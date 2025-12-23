@@ -1,7 +1,9 @@
-import { Bot, MessageSquare, RefreshCw } from "lucide-react";
+import { Bot, RefreshCw, Loader2, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface AIPersonality {
   tone: string;
@@ -24,13 +26,20 @@ interface AIResponsePreviewProps {
   industryType: string;
 }
 
-const SAMPLE_QUESTIONS = [
+const SAMPLE_QUESTIONS_HE = [
   "מה שעות הפעילות?",
   "כמה עולה?",
   "אפשר לקבוע תור?",
+  "יש לכם הנחות?",
+  "מי עובד היום?",
+];
+
+const SAMPLE_QUESTIONS_EN = [
   "What are your hours?",
   "How much does it cost?",
   "Can I book an appointment?",
+  "Do you have any discounts?",
+  "Who is working today?",
 ];
 
 export function AIResponsePreview({ 
@@ -39,133 +48,165 @@ export function AIResponsePreview({
   knowledgeBase,
   industryType 
 }: AIResponsePreviewProps) {
-  const [sampleQuestion, setSampleQuestion] = useState(SAMPLE_QUESTIONS[0]);
+  const { toast } = useToast();
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [isHebrew, setIsHebrew] = useState(true);
   const [response, setResponse] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState(false);
 
-  const generateResponse = () => {
-    const { tone, style, emoji_usage, response_length } = personality;
+  const questions = isHebrew ? SAMPLE_QUESTIONS_HE : SAMPLE_QUESTIONS_EN;
+  const sampleQuestion = questions[questionIndex];
+
+  const generatePreview = useCallback(async () => {
+    setIsLoading(true);
+    setHasGenerated(true);
     
-    // Check if we have a relevant FAQ
-    const matchingFaq = knowledgeBase.faqs.find(faq => 
-      sampleQuestion.toLowerCase().includes("שעות") || 
-      sampleQuestion.toLowerCase().includes("hours") ||
-      faq.q.toLowerCase().includes(sampleQuestion.toLowerCase().slice(0, 10))
-    );
-    
-    const hasPricing = knowledgeBase.pricing.length > 0;
-    const isPricingQuestion = sampleQuestion.includes("עולה") || sampleQuestion.includes("cost") || sampleQuestion.includes("price");
-    
-    // Base responses by tone
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-preview', {
+        body: {
+          businessName,
+          industryType,
+          personality,
+          knowledgeBase,
+          sampleMessage: sampleQuestion,
+          language: isHebrew ? 'hebrew' : 'english',
+        },
+      });
+
+      if (error) {
+        console.error('AI Preview error:', error);
+        throw error;
+      }
+
+      setResponse(data.response || 'No response generated');
+    } catch (err) {
+      console.error('Preview error:', err);
+      toast({
+        variant: "destructive",
+        title: "Preview Error",
+        description: "Could not generate AI preview. Try again.",
+      });
+      // Fallback to local generation
+      setResponse(generateLocalFallback());
+    } finally {
+      setIsLoading(false);
+    }
+  }, [businessName, industryType, personality, knowledgeBase, sampleQuestion, isHebrew, toast]);
+
+  const generateLocalFallback = () => {
+    const { tone, emoji_usage } = personality;
     const greetings: Record<string, string> = {
-      professional: "שלום,",
-      friendly: "היי!",
-      casual: "היי 👋",
-      formal: "שלום רב,",
+      professional: isHebrew ? "שלום," : "Hello,",
+      friendly: isHebrew ? "היי!" : "Hi!",
+      casual: isHebrew ? "היי 👋" : "Hey 👋",
+      formal: isHebrew ? "שלום רב," : "Good day,",
     };
-    
-    const closings: Record<string, string> = {
-      professional: "נשמח לעזור בכל שאלה.",
-      friendly: "אם יש עוד שאלות, אני כאן!",
-      casual: "תרגיש חופשי לשאול עוד!",
-      formal: "אנו עומדים לרשותך.",
-    };
-    
-    // Build response
-    let baseResponse = "";
-    
-    // Opening based on tone
     const greeting = greetings[tone] || greetings.friendly;
+    const base = isHebrew 
+      ? `תודה שפנית ל${businessName}! נשמח לעזור.`
+      : `Thanks for reaching out to ${businessName}! Happy to help.`;
     
-    // Content based on question and knowledge
-    if (matchingFaq && (sampleQuestion.includes("שעות") || sampleQuestion.includes("hours"))) {
-      baseResponse = matchingFaq.a;
-    } else if (isPricingQuestion && hasPricing) {
-      const prices = knowledgeBase.pricing.slice(0, 3).map(p => `${p.service}: ${p.price}`).join(", ");
-      baseResponse = `המחירים שלנו: ${prices}`;
-    } else if (sampleQuestion.includes("תור") || sampleQuestion.includes("appointment") || sampleQuestion.includes("book")) {
-      baseResponse = "בטח! מתי נוח לך? אני יכול לבדוק זמינות.";
-    } else {
-      baseResponse = `תודה שפנית ל${businessName}! נשמח לעזור.`;
-    }
+    let result = `${greeting} ${base}`;
+    if (emoji_usage === "frequent") result += " 😊✨";
+    else if (emoji_usage === "moderate") result += " 😊";
     
-    // Apply style
-    let styledResponse = "";
-    if (style === "concise") {
-      styledResponse = baseResponse.split(".")[0] + ".";
-    } else if (style === "detailed") {
-      styledResponse = `${baseResponse} ${closings[tone] || closings.friendly}`;
-    } else {
-      styledResponse = baseResponse;
-    }
-    
-    // Apply emoji usage
-    let finalResponse = "";
-    if (emoji_usage === "none") {
-      finalResponse = `${greeting.replace(/[^\w\sא-ת,]/g, "")} ${styledResponse}`;
-    } else if (emoji_usage === "minimal") {
-      finalResponse = `${greeting} ${styledResponse}`;
-    } else if (emoji_usage === "moderate") {
-      finalResponse = `${greeting} ${styledResponse} 😊`;
-    } else if (emoji_usage === "frequent") {
-      finalResponse = `${greeting} ✨ ${styledResponse} 🙌😊`;
-    } else {
-      finalResponse = `${greeting} ${styledResponse}`;
-    }
-    
-    // Apply length constraints
-    if (response_length === "short" && finalResponse.length > 100) {
-      finalResponse = finalResponse.slice(0, 97) + "...";
-    } else if (response_length === "medium" && finalResponse.length > 200) {
-      finalResponse = finalResponse.slice(0, 197) + "...";
-    }
-    
-    setResponse(finalResponse);
+    return result;
   };
 
-  useEffect(() => {
-    generateResponse();
-  }, [personality, knowledgeBase, sampleQuestion, businessName]);
-
   const cycleQuestion = () => {
-    const currentIndex = SAMPLE_QUESTIONS.indexOf(sampleQuestion);
-    const nextIndex = (currentIndex + 1) % SAMPLE_QUESTIONS.length;
-    setSampleQuestion(SAMPLE_QUESTIONS[nextIndex]);
+    setQuestionIndex((prev) => (prev + 1) % questions.length);
+    setHasGenerated(false);
+    setResponse("");
+  };
+
+  const toggleLanguage = () => {
+    setIsHebrew((prev) => !prev);
+    setQuestionIndex(0);
+    setHasGenerated(false);
+    setResponse("");
   };
 
   return (
     <Card className="bg-gray-900/50 border-gray-700">
       <CardContent className="pt-4 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-gray-400">
-            See how your AI would respond with current settings
+            Test how AI responds with your settings
           </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={cycleQuestion}
-            className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
-          >
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Try Another
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleLanguage}
+              className="text-gray-400 hover:text-white text-xs px-2"
+            >
+              {isHebrew ? "EN" : "עב"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={cycleQuestion}
+              className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Next
+            </Button>
+          </div>
         </div>
 
         {/* Customer Message */}
         <div className="flex justify-end">
           <div className="bg-blue-600/20 border border-blue-500/30 rounded-2xl rounded-br-md px-4 py-2 max-w-[80%]">
-            <p className="text-sm text-blue-100" dir="auto">{sampleQuestion}</p>
+            <p className="text-sm text-blue-100" dir={isHebrew ? "rtl" : "ltr"}>{sampleQuestion}</p>
           </div>
         </div>
 
-        {/* AI Response */}
-        <div className="flex items-start gap-2">
-          <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-            <Bot className="h-4 w-4 text-purple-400" />
+        {/* AI Response or Generate Button */}
+        {!hasGenerated ? (
+          <div className="flex justify-center py-4">
+            <Button
+              onClick={generatePreview}
+              disabled={isLoading}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Generate AI Response
+            </Button>
           </div>
-          <div className="bg-gray-800 border border-gray-700 rounded-2xl rounded-bl-md px-4 py-2 max-w-[80%]">
-            <p className="text-sm text-gray-200" dir="auto">{response}</p>
+        ) : (
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 text-purple-400 animate-spin" />
+              ) : (
+                <Bot className="h-4 w-4 text-purple-400" />
+              )}
+            </div>
+            <div className="bg-gray-800 border border-gray-700 rounded-2xl rounded-bl-md px-4 py-2 max-w-[80%] min-h-[40px]">
+              {isLoading ? (
+                <p className="text-sm text-gray-400 italic">Generating response...</p>
+              ) : (
+                <p className="text-sm text-gray-200" dir={isHebrew ? "rtl" : "ltr"}>{response}</p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Regenerate button after response */}
+        {hasGenerated && !isLoading && (
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={generatePreview}
+              className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Regenerate
+            </Button>
+          </div>
+        )}
 
         {/* Personality Indicators */}
         <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-800">
@@ -179,7 +220,7 @@ export function AIResponsePreview({
             {personality.emoji_usage} emoji
           </span>
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-300">
-            {personality.response_length} length
+            {personality.response_length}
           </span>
         </div>
       </CardContent>

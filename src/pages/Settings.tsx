@@ -75,6 +75,30 @@ const LANGUAGES = [
   { value: "vietnamese", label: "Tiếng Việt (Vietnamese)" },
 ];
 
+// Validate E.164 phone format: +[country code][number], 8-15 digits total
+const validatePhoneNumber = (phone: string): { isValid: boolean; message: string } => {
+  if (!phone) return { isValid: true, message: "" }; // Empty is allowed
+  
+  const cleanPhone = phone.replace(/\s/g, "");
+  
+  if (!cleanPhone.startsWith("+")) {
+    return { isValid: false, message: "Must start with + (e.g., +1234567890)" };
+  }
+  
+  const phoneRegex = /^\+[1-9]\d{7,14}$/;
+  if (!phoneRegex.test(cleanPhone)) {
+    if (cleanPhone.length < 9) {
+      return { isValid: false, message: "Phone number too short" };
+    }
+    if (cleanPhone.length > 16) {
+      return { isValid: false, message: "Phone number too long" };
+    }
+    return { isValid: false, message: "Invalid format (e.g., +972501234567)" };
+  }
+  
+  return { isValid: true, message: "" };
+};
+
 export default function Settings() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -89,6 +113,7 @@ export default function Settings() {
   const [name, setName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPhone, setOwnerPhone] = useState("");
+  const [ownerPhoneError, setOwnerPhoneError] = useState("");
   const [forwardPhones, setForwardPhones] = useState("");
   const [services, setServices] = useState("");
   const [aiLanguages, setAiLanguages] = useState<string[]>(["hebrew"]);
@@ -109,6 +134,13 @@ export default function Settings() {
     fri: { start: "09:00", end: "14:00" },
     sat: undefined,
   });
+
+  // Handle owner phone change with validation
+  const handleOwnerPhoneChange = (value: string) => {
+    setOwnerPhone(value);
+    const { isValid, message } = validatePhoneNumber(value);
+    setOwnerPhoneError(isValid ? "" : message);
+  };
 
   const fetchBusiness = useCallback(async () => {
     try {
@@ -315,7 +347,7 @@ export default function Settings() {
           <h1 className="text-2xl font-bold text-white">Settings</h1>
           <p className="text-gray-400">Manage your business configuration</p>
         </div>
-        <Button onClick={handleSave} disabled={isSaving} className="bg-purple-600 hover:bg-purple-700">
+        <Button onClick={handleSave} disabled={isSaving || !!ownerPhoneError} className="bg-purple-600 hover:bg-purple-700">
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
           Save Changes
         </Button>
@@ -356,10 +388,13 @@ export default function Settings() {
                 <Label className="text-gray-300">Owner Phone</Label>
                 <Input
                   value={ownerPhone}
-                  onChange={(e) => setOwnerPhone(e.target.value)}
+                  onChange={(e) => handleOwnerPhoneChange(e.target.value)}
                   placeholder="+972501234567"
-                  className="bg-gray-700 border-gray-600 text-white"
+                  className={`bg-gray-700 border-gray-600 text-white ${ownerPhoneError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                 />
+                {ownerPhoneError && (
+                  <p className="text-xs text-red-400">{ownerPhoneError}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-300">Services (comma-separated)</Label>

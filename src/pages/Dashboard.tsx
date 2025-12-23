@@ -16,6 +16,7 @@ import Settings from "./Settings";
 import Calls from "./Calls";
 import Conversations from "./Conversations";
 import Appointments from "./Appointments";
+import Inquiries from "./Inquiries";
 
 interface Business {
   id: string;
@@ -250,6 +251,8 @@ export default function Dashboard() {
             <Conversations />
           ) : location.pathname === "/dashboard/appointments" ? (
             <Appointments />
+          ) : location.pathname === "/dashboard/inquiries" ? (
+            <Inquiries />
           ) : (
             <>
               <div className="mb-8">

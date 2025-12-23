@@ -754,7 +754,7 @@ export default function Settings() {
                 </p>
               )}
             </div>
-            {forwardPhones.trim() && !forwardPhonesError && business?.twilio_phone_number && (
+            {forwardPhones.trim() && !forwardPhonesError && business?.twilio_phone_number ? (
               <Button
                 variant="outline"
                 size="sm"
@@ -769,6 +769,16 @@ export default function Settings() {
                 )}
                 Test Forward Phones
               </Button>
+            ) : (
+              <p className="text-xs text-gray-500 italic">
+                {!business?.twilio_phone_number
+                  ? "💡 To test forward phones, first configure an AI phone number in your business setup."
+                  : !forwardPhones.trim()
+                    ? "💡 Enter phone numbers above to enable testing."
+                    : forwardPhonesError
+                      ? "💡 Fix the phone format errors above to enable testing."
+                      : null}
+              </p>
             )}
           </CardContent>
         </Card>

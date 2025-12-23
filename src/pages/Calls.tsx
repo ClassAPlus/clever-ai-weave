@@ -121,6 +121,31 @@ export default function Calls() {
     fetchCalls();
   }, [fetchCalls]);
 
+  // Real-time subscription for calls
+  useEffect(() => {
+    if (!businessId) return;
+
+    const channel = supabase
+      .channel('calls-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'calls',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          fetchCalls();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [businessId, fetchCalls]);
+
   const formatDuration = (seconds: number | null) => {
     if (!seconds) return "0s";
     const mins = Math.floor(seconds / 60);

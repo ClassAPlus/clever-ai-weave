@@ -128,6 +128,31 @@ export default function Contacts() {
     fetchContacts();
   }, [fetchContacts]);
 
+  // Real-time subscription for contacts
+  useEffect(() => {
+    if (!businessId) return;
+
+    const channel = supabase
+      .channel('contacts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contacts',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          fetchContacts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [businessId, fetchContacts]);
+
   const toggleOptOut = async (contactId: string, currentOptOut: boolean | null) => {
     try {
       const newOptOut = !currentOptOut;

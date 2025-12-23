@@ -135,6 +135,31 @@ export default function Inquiries() {
     fetchInquiries();
   }, [fetchInquiries]);
 
+  // Real-time subscription for inquiries
+  useEffect(() => {
+    if (!businessId) return;
+
+    const channel = supabase
+      .channel('inquiries-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'inquiries',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          fetchInquiries();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [businessId, fetchInquiries]);
+
   const updateInquiryStatus = async (inquiryId: string, newStatus: string) => {
     try {
       const { error } = await supabase

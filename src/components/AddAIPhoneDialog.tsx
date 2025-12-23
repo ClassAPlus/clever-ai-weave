@@ -57,7 +57,7 @@ export function AddAIPhoneDialog({ businessId, onUpdate, trigger }: AddAIPhoneDi
       const { data, error } = await supabase.functions.invoke("twilio-search-numbers", {
         body: {
           country_code: "IL",
-          limit: 10,
+          limit: 30,
         },
       });
 
@@ -183,7 +183,7 @@ export function AddAIPhoneDialog({ businessId, onUpdate, trigger }: AddAIPhoneDi
                 Choose a mobile number for your AI assistant.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-2 py-4 max-h-64 overflow-y-auto">
+            <div className="space-y-2 py-4 max-h-80 overflow-y-auto">
               {availableNumbers.map((num) => (
                 <button
                   key={num.phone_number}

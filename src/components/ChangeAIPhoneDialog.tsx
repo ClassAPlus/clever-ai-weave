@@ -104,7 +104,7 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
       const { data, error } = await supabase.functions.invoke("twilio-search-numbers", {
         body: {
           country_code: "IL",
-          limit: 10,
+          limit: 30,
         },
       });
 
@@ -247,7 +247,7 @@ export function ChangeAIPhoneDialog({ businessId, currentPhone, onUpdate }: Chan
                 Choose a number from the available options.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-2 py-4 max-h-64 overflow-y-auto">
+            <div className="space-y-2 py-4 max-h-80 overflow-y-auto">
               {availableNumbers.map((num) => (
                 <button
                   key={num.phone_number}

@@ -13,6 +13,7 @@ import { EditPhoneDialog } from "@/components/EditPhoneDialog";
 import { ChangeAIPhoneDialog } from "@/components/ChangeAIPhoneDialog";
 import { AddAIPhoneDialog } from "@/components/AddAIPhoneDialog";
 import Settings from "./Settings";
+import Calls from "./Calls";
 
 interface Business {
   id: string;
@@ -241,6 +242,8 @@ export default function Dashboard() {
         <div className="p-6 lg:p-8">
           {location.pathname === "/dashboard/settings" ? (
             <Settings />
+          ) : location.pathname === "/dashboard/calls" ? (
+            <Calls />
           ) : (
             <>
               <div className="mb-8">

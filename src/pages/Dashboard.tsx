@@ -11,6 +11,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { EditPhoneDialog } from "@/components/EditPhoneDialog";
 import { ChangeAIPhoneDialog } from "@/components/ChangeAIPhoneDialog";
+import { AddAIPhoneDialog } from "@/components/AddAIPhoneDialog";
 import Settings from "./Settings";
 
 interface Business {
@@ -149,11 +150,17 @@ export default function Dashboard() {
               onUpdate={fetchBusiness}
             />
           </div>
-        ) : (
-          <Link to="/onboarding" className="text-sm text-yellow-400 hover:underline">
-            + Add phone number
-          </Link>
-        )}
+        ) : business ? (
+          <AddAIPhoneDialog
+            businessId={business.id}
+            onUpdate={fetchBusiness}
+            trigger={
+              <button className="text-sm text-yellow-400 hover:underline">
+                + Add phone number
+              </button>
+            }
+          />
+        ) : null}
         {business && (
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-gray-500">Contact:</span>
@@ -354,11 +361,12 @@ export default function Dashboard() {
                         <p className="text-sm text-gray-400">Add a phone number to start receiving calls</p>
                       </div>
                     </div>
-                    <Link to="/onboarding">
-                      <Button className="bg-yellow-500 hover:bg-yellow-600 text-black">
-                        Add Number
-                      </Button>
-                    </Link>
+                    {business && (
+                      <AddAIPhoneDialog
+                        businessId={business.id}
+                        onUpdate={fetchBusiness}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               )}

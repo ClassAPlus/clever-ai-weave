@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Loader2, Users, User, Phone, Mail, Clock, RefreshCw, Filter,
-  UserX, UserCheck, Search, MessageSquare, PhoneCall
+  UserX, UserCheck, Search, MessageSquare, PhoneCall, Eye
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import {
@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import ContactDetail from "@/components/ContactDetail";
 
 interface Contact {
   id: string;
@@ -57,6 +58,7 @@ export default function Contacts() {
   const [editEmail, setEditEmail] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const isInitialLoad = useRef(true);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   const fetchContacts = useCallback(async () => {
     if (!user) return;
@@ -262,6 +264,16 @@ export default function Contacts() {
     );
   }
 
+  // Show contact detail view if a contact is selected
+  if (selectedContact) {
+    return (
+      <ContactDetail 
+        contact={selectedContact} 
+        onBack={() => setSelectedContact(null)} 
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -422,6 +434,15 @@ export default function Contacts() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 ml-11 sm:ml-0">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20"
+                      onClick={() => setSelectedContact(contact)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"

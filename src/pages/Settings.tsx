@@ -107,6 +107,7 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingTestSms, setIsSendingTestSms] = useState(false);
+  const [isTestingForwardPhones, setIsTestingForwardPhones] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
 
   // Form state
@@ -342,6 +343,71 @@ export default function Settings() {
     }
   };
 
+  const handleTestForwardPhones = async () => {
+    if (!business) return;
+
+    const phones = forwardPhones.split(",").map(p => p.trim()).filter(Boolean);
+    if (phones.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No phone numbers",
+        description: "Please enter at least one forward phone number",
+      });
+      return;
+    }
+
+    if (forwardPhonesError) {
+      toast({
+        variant: "destructive",
+        title: "Invalid phone numbers",
+        description: "Please fix the phone format errors before testing",
+      });
+      return;
+    }
+
+    setIsTestingForwardPhones(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-test-sms', {
+        body: { 
+          businessId: business.id, 
+          testType: 'forward_phones',
+          targetPhones: phones
+        }
+      });
+
+      if (error) throw error;
+
+      const successCount = data.results?.filter((r: { success: boolean }) => r.success).length || 0;
+      const totalCount = phones.length;
+
+      if (successCount === totalCount) {
+        toast({
+          title: "All test SMS sent",
+          description: `Successfully sent to ${successCount} number${successCount > 1 ? 's' : ''}`,
+        });
+      } else if (successCount > 0) {
+        toast({
+          title: "Partial success",
+          description: `${successCount}/${totalCount} messages sent. Check phone formats.`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Failed to send",
+          description: "Could not send to any numbers. Please check formats.",
+        });
+      }
+    } catch (error) {
+      console.error("Error testing forward phones:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to send test SMS",
+        description: error instanceof Error ? error.message : "Please try again",
+      });
+    } finally {
+      setIsTestingForwardPhones(false);
+    }
+  };
   const updateBusinessHours = (day: string, field: "start" | "end", value: string) => {
     setBusinessHours(prev => ({
       ...prev,
@@ -688,6 +754,22 @@ export default function Settings() {
                 </p>
               )}
             </div>
+            {forwardPhones.trim() && !forwardPhonesError && business?.twilio_phone_number && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestForwardPhones}
+                disabled={isTestingForwardPhones}
+                className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+              >
+                {isTestingForwardPhones ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                Test Forward Phones
+              </Button>
+            )}
           </CardContent>
         </Card>
 

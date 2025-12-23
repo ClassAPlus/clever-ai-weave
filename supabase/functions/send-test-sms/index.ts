@@ -15,9 +15,9 @@ serve(async (req) => {
   }
 
   try {
-    const { businessId, greeting } = await req.json();
+    const { businessId, greeting, targetPhones, testType } = await req.json();
 
-    console.log("Send test SMS request for business:", businessId);
+    console.log("Send test SMS request for business:", businessId, "type:", testType || "greeting");
 
     if (!businessId) {
       return new Response(
@@ -53,6 +53,54 @@ serve(async (req) => {
       );
     }
 
+    // Validate international phone format (E.164: +[country code][number], 8-15 digits)
+    const phoneRegex = /^\+[1-9]\d{7,14}$/;
+
+    // Handle forward phones test
+    if (testType === 'forward_phones' && targetPhones && Array.isArray(targetPhones)) {
+      console.log("Testing forward phones:", targetPhones);
+      
+      if (targetPhones.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'No forward phone numbers provided' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const results: { phone: string; success: boolean; error?: string; messageSid?: string }[] = [];
+      const testMessage = `🔔 Test from ${business.name || 'your business'}: This is a test message to verify your call forwarding number is set up correctly.`;
+
+      for (const phone of targetPhones) {
+        const cleanPhone = phone.replace(/\s/g, '');
+        
+        if (!phoneRegex.test(cleanPhone)) {
+          results.push({ phone, success: false, error: 'Invalid phone format' });
+          continue;
+        }
+
+        try {
+          const smsResult = await sendSMS(business.twilio_phone_number, cleanPhone, testMessage);
+          results.push({ phone, success: true, messageSid: smsResult.sid });
+          console.log("SMS sent to", phone, ":", smsResult.sid);
+        } catch (error) {
+          console.error("Failed to send to", phone, ":", error.message);
+          results.push({ phone, success: false, error: error.message });
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      
+      return new Response(
+        JSON.stringify({ 
+          success: successCount > 0,
+          results,
+          summary: `${successCount}/${targetPhones.length} messages sent successfully`
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Default: send greeting to owner phone
     if (!business.owner_phone) {
       return new Response(
         JSON.stringify({ error: 'No owner phone number configured' }),
@@ -60,8 +108,6 @@ serve(async (req) => {
       );
     }
 
-    // Validate international phone format (E.164: +[country code][number], 8-15 digits)
-    const phoneRegex = /^\+[1-9]\d{7,14}$/;
     if (!phoneRegex.test(business.owner_phone.replace(/\s/g, ''))) {
       return new Response(
         JSON.stringify({ 

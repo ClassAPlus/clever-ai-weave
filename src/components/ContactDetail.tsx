@@ -5,12 +5,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Loader2, User, Phone, Mail, Clock, ArrowLeft,
   PhoneIncoming, PhoneMissed, MessageSquare, Calendar,
-  UserX, UserCheck, Bot
+  UserX, UserCheck, Bot, Send
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Contact {
   id: string;
@@ -54,15 +64,19 @@ interface Appointment {
 
 interface ContactDetailProps {
   contact: Contact;
+  businessId: string;
   onBack: () => void;
 }
 
-export default function ContactDetail({ contact, onBack }: ContactDetailProps) {
+export default function ContactDetail({ contact, businessId, onBack }: ContactDetailProps) {
   const [calls, setCalls] = useState<Call[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("calls");
+  const [smsMessage, setSmsMessage] = useState("");
+  const [isSendingSms, setIsSendingSms] = useState(false);
+  const [smsDialogOpen, setSmsDialogOpen] = useState(false);
 
   const fetchContactData = useCallback(async () => {
     setIsLoading(true);
@@ -120,6 +134,51 @@ export default function ContactDetail({ contact, onBack }: ContactDetailProps) {
   useEffect(() => {
     fetchContactData();
   }, [fetchContactData]);
+
+  const sendManualSms = async () => {
+    if (!smsMessage.trim()) {
+      toast.error("Please enter a message");
+      return;
+    }
+
+    if (contact.opted_out) {
+      toast.error("Cannot send SMS to opted-out contact");
+      return;
+    }
+
+    setIsSendingSms(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-manual-sms', {
+        body: {
+          businessId,
+          contactId: contact.id,
+          message: smsMessage.trim()
+        }
+      });
+
+      if (error) {
+        console.error("Error sending SMS:", error);
+        toast.error("Failed to send SMS");
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success("SMS sent successfully");
+      setSmsMessage("");
+      setSmsDialogOpen(false);
+      // Refresh conversations to show the new message
+      fetchContactData();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to send SMS");
+    } finally {
+      setIsSendingSms(false);
+    }
+  };
 
   const formatDuration = (seconds: number | null) => {
     if (!seconds) return "0s";
@@ -209,19 +268,79 @@ export default function ContactDetail({ contact, onBack }: ContactDetailProps) {
                   : "unknown"}
               </p>
             </div>
-            <div className="flex gap-4 text-center">
-              <div className="bg-gray-700/50 rounded-lg p-3">
-                <p className="text-2xl font-bold text-white">{calls.length}</p>
-                <p className="text-xs text-gray-400">Calls</p>
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-4 text-center">
+                <div className="bg-gray-700/50 rounded-lg p-3">
+                  <p className="text-2xl font-bold text-white">{calls.length}</p>
+                  <p className="text-xs text-gray-400">Calls</p>
+                </div>
+                <div className="bg-gray-700/50 rounded-lg p-3">
+                  <p className="text-2xl font-bold text-white">{conversations.length}</p>
+                  <p className="text-xs text-gray-400">Conversations</p>
+                </div>
+                <div className="bg-gray-700/50 rounded-lg p-3">
+                  <p className="text-2xl font-bold text-white">{appointments.length}</p>
+                  <p className="text-xs text-gray-400">Appointments</p>
+                </div>
               </div>
-              <div className="bg-gray-700/50 rounded-lg p-3">
-                <p className="text-2xl font-bold text-white">{conversations.length}</p>
-                <p className="text-xs text-gray-400">Conversations</p>
-              </div>
-              <div className="bg-gray-700/50 rounded-lg p-3">
-                <p className="text-2xl font-bold text-white">{appointments.length}</p>
-                <p className="text-xs text-gray-400">Appointments</p>
-              </div>
+              {/* Send SMS Button */}
+              <Dialog open={smsDialogOpen} onOpenChange={setSmsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-700"
+                    disabled={contact.opted_out === true}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Send SMS
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-gray-800 border-gray-700 text-white">
+                  <DialogHeader>
+                    <DialogTitle>Send SMS to {contact.name || contact.phone_number}</DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                      Send a manual SMS message to this contact
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="text-sm text-gray-400 flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      <span className="font-mono">{contact.phone_number}</span>
+                    </div>
+                    <Textarea
+                      value={smsMessage}
+                      onChange={(e) => setSmsMessage(e.target.value)}
+                      placeholder="Type your message here..."
+                      className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500 min-h-32"
+                      maxLength={1600}
+                    />
+                    <div className="flex items-center justify-between text-sm text-gray-400">
+                      <span>{smsMessage.length}/1600 characters</span>
+                      <span>{Math.ceil(smsMessage.length / 160)} SMS segment(s)</span>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                      <Button
+                        variant="ghost"
+                        onClick={() => setSmsDialogOpen(false)}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={sendManualSms}
+                        disabled={isSendingSms || !smsMessage.trim()}
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        {isSendingSms ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
+                        Send Message
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CardContent>

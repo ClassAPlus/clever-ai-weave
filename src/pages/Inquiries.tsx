@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,7 @@ export default function Inquiries() {
   const [statusFilter, setStatusFilter] = useState<"all" | "new" | "in_progress" | "resolved">("all");
   const [priorityFilter, setPriorityFilter] = useState<"all" | "high" | "normal" | "low">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const isInitialLoad = useRef(true);
 
   const fetchInquiries = useCallback(async () => {
     if (!user) return;
@@ -144,7 +145,28 @@ export default function Inquiries() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'inquiries',
+          filter: `business_id=eq.${businessId}`
+        },
+        (payload) => {
+          if (!isInitialLoad.current) {
+            const newInquiry = payload.new as { priority?: string };
+            toast.info("New inquiry", {
+              description: newInquiry.priority === 'high' 
+                ? "A new high priority inquiry has arrived!" 
+                : "A new customer inquiry has arrived",
+              icon: <Bell className="h-4 w-4 text-yellow-400" />
+            });
+          }
+          fetchInquiries();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'inquiries',
           filter: `business_id=eq.${businessId}`
@@ -154,6 +176,10 @@ export default function Inquiries() {
         }
       )
       .subscribe();
+
+    setTimeout(() => {
+      isInitialLoad.current = false;
+    }, 1000);
 
     return () => {
       supabase.removeChannel(channel);

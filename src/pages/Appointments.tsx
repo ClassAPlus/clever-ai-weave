@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface Appointment {
   id: string;
@@ -50,6 +51,7 @@ export default function Appointments() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "completed" | "cancelled">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const isInitialLoad = useRef(true);
 
   const fetchAppointments = useCallback(async () => {
     if (!user) return;
@@ -140,7 +142,25 @@ export default function Appointments() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'appointments',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          if (!isInitialLoad.current) {
+            toast.info("New appointment", {
+              description: "A new appointment has been scheduled",
+              icon: <Calendar className="h-4 w-4 text-purple-400" />
+            });
+          }
+          fetchAppointments();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'appointments',
           filter: `business_id=eq.${businessId}`
@@ -150,6 +170,10 @@ export default function Appointments() {
         }
       )
       .subscribe();
+
+    setTimeout(() => {
+      isInitialLoad.current = false;
+    }, 1000);
 
     return () => {
       supabase.removeChannel(channel);

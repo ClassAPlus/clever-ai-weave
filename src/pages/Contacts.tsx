@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +56,7 @@ export default function Contacts() {
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const isInitialLoad = useRef(true);
 
   const fetchContacts = useCallback(async () => {
     if (!user) return;
@@ -137,7 +138,25 @@ export default function Contacts() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'contacts',
+          filter: `business_id=eq.${businessId}`
+        },
+        () => {
+          if (!isInitialLoad.current) {
+            toast.info("New contact", {
+              description: "A new contact has been added",
+              icon: <Users className="h-4 w-4 text-purple-400" />
+            });
+          }
+          fetchContacts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'contacts',
           filter: `business_id=eq.${businessId}`
@@ -147,6 +166,10 @@ export default function Contacts() {
         }
       )
       .subscribe();
+
+    setTimeout(() => {
+      isInitialLoad.current = false;
+    }, 1000);
 
     return () => {
       supabase.removeChannel(channel);

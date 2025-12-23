@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface Call {
   id: string;
@@ -45,6 +46,7 @@ export default function Calls() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "answered" | "missed">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const isInitialLoad = useRef(true);
 
   const fetchCalls = useCallback(async () => {
     if (!user) return;
@@ -130,7 +132,33 @@ export default function Calls() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'calls',
+          filter: `business_id=eq.${businessId}`
+        },
+        (payload) => {
+          if (!isInitialLoad.current) {
+            const newCall = payload.new as { was_answered?: boolean };
+            if (newCall.was_answered === false) {
+              toast.info("New missed call", { 
+                description: "A new missed call has been recorded",
+                icon: <PhoneMissed className="h-4 w-4 text-red-400" />
+              });
+            } else {
+              toast.info("New call received", {
+                description: "A new call has been recorded",
+                icon: <PhoneIncoming className="h-4 w-4 text-green-400" />
+              });
+            }
+          }
+          fetchCalls();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'calls',
           filter: `business_id=eq.${businessId}`
@@ -140,6 +168,11 @@ export default function Calls() {
         }
       )
       .subscribe();
+
+    // Mark initial load as complete after a short delay
+    setTimeout(() => {
+      isInitialLoad.current = false;
+    }, 1000);
 
     return () => {
       supabase.removeChannel(channel);

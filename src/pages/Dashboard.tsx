@@ -15,6 +15,7 @@ import { AddAIPhoneDialog } from "@/components/AddAIPhoneDialog";
 import Settings from "./Settings";
 import Calls from "./Calls";
 import Conversations from "./Conversations";
+import Appointments from "./Appointments";
 
 interface Business {
   id: string;
@@ -247,6 +248,8 @@ export default function Dashboard() {
             <Calls />
           ) : location.pathname === "/dashboard/conversations" ? (
             <Conversations />
+          ) : location.pathname === "/dashboard/appointments" ? (
+            <Appointments />
           ) : (
             <>
               <div className="mb-8">

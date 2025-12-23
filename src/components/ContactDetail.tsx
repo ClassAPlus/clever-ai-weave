@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { 
   Loader2, User, Phone, Mail, Clock, ArrowLeft,
   PhoneIncoming, PhoneMissed, MessageSquare, Calendar,
-  UserX, UserCheck, Bot, Send, FileText, Save, X
+  UserX, UserCheck, Bot, Send, FileText, Save, X, Tag, Plus
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ interface Contact {
   opted_out_at: string | null;
   created_at: string | null;
   notes: string | null;
+  tags: string[] | null;
 }
 
 interface Call {
@@ -81,6 +83,9 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
   const [notes, setNotes] = useState(contact.notes || "");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [tags, setTags] = useState<string[]>(contact.tags || []);
+  const [newTag, setNewTag] = useState("");
+  const [isSavingTags, setIsSavingTags] = useState(false);
 
   const fetchContactData = useCallback(async () => {
     setIsLoading(true);
@@ -211,6 +216,71 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
   const cancelEditNotes = () => {
     setNotes(contact.notes || "");
     setIsEditingNotes(false);
+  };
+
+  const addTag = async () => {
+    const tagToAdd = newTag.trim().toLowerCase();
+    if (!tagToAdd) return;
+    if (tags.includes(tagToAdd)) {
+      toast.error("Tag already exists");
+      return;
+    }
+
+    const updatedTags = [...tags, tagToAdd];
+    setIsSavingTags(true);
+    try {
+      const { error } = await supabase
+        .from("contacts")
+        .update({ tags: updatedTags })
+        .eq("id", contact.id);
+
+      if (error) {
+        console.error("Error adding tag:", error);
+        toast.error("Failed to add tag");
+        return;
+      }
+
+      setTags(updatedTags);
+      setNewTag("");
+      toast.success("Tag added");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to add tag");
+    } finally {
+      setIsSavingTags(false);
+    }
+  };
+
+  const removeTag = async (tagToRemove: string) => {
+    const updatedTags = tags.filter(t => t !== tagToRemove);
+    setIsSavingTags(true);
+    try {
+      const { error } = await supabase
+        .from("contacts")
+        .update({ tags: updatedTags })
+        .eq("id", contact.id);
+
+      if (error) {
+        console.error("Error removing tag:", error);
+        toast.error("Failed to remove tag");
+        return;
+      }
+
+      setTags(updatedTags);
+      toast.success("Tag removed");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to remove tag");
+    } finally {
+      setIsSavingTags(false);
+    }
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag();
+    }
   };
 
   const formatDuration = (seconds: number | null) => {
@@ -442,6 +512,61 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Tags Section */}
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Tag className="h-5 w-5 text-purple-400" />
+            <CardTitle className="text-white text-lg">Tags</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {tags.length === 0 ? (
+              <p className="text-gray-500 italic text-sm">No tags added</p>
+            ) : (
+              tags.map((tag) => (
+                <Badge 
+                  key={tag} 
+                  className="bg-purple-500/20 text-purple-300 border-purple-500/30 pl-2 pr-1 py-1 flex items-center gap-1"
+                >
+                  {tag}
+                  <button
+                    onClick={() => removeTag(tag)}
+                    disabled={isSavingTags}
+                    className="ml-1 hover:bg-purple-500/30 rounded-full p-0.5 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              onKeyDown={handleTagKeyDown}
+              placeholder="Add a tag..."
+              className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500 flex-1"
+              disabled={isSavingTags}
+            />
+            <Button
+              onClick={addTag}
+              disabled={isSavingTags || !newTag.trim()}
+              size="icon"
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {isSavingTags ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

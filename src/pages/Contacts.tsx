@@ -38,6 +38,7 @@ interface Contact {
   created_at: string | null;
   updated_at: string | null;
   notes: string | null;
+  tags: string[] | null;
 }
 
 interface ContactStats {

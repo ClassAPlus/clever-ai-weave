@@ -120,6 +120,38 @@ export type Database = {
         }
         Relationships: []
       }
+      business_staff: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["business_role"]
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["business_role"]
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["business_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_staff_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           ai_instructions: string | null
@@ -675,9 +707,14 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { user_id?: string }; Returns: boolean }
+      is_business_owner: {
+        Args: { _business_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      business_role: "manager" | "staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -806,6 +843,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      business_role: ["manager", "staff"],
     },
   },
 } as const

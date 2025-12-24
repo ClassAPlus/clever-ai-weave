@@ -326,17 +326,28 @@ async function sendSMS(from: string, to: string, body: string): Promise<{ sid: s
 serve(async (req) => {
   const url = new URL(req.url);
   
-  // Get business ID from query params
-  const businessId = url.searchParams.get("businessId");
-  const callSid = url.searchParams.get("callSid");
-  
-  console.log(`Voice realtime connection request: businessId=${businessId}, callSid=${callSid}`);
+  console.log(`Voice realtime connection request`);
+  console.log(`Full URL: ${req.url}`);
   console.log(`Request method: ${req.method}`);
   console.log(`Upgrade header: ${req.headers.get("upgrade")}`);
   console.log(`Connection header: ${req.headers.get("connection")}`);
   console.log(`OPENAI_API_KEY exists: ${!!OPENAI_API_KEY}`);
   
-  // Fetch business settings and caller info
+  // Check if this is a WebSocket upgrade request
+  const upgrade = req.headers.get("upgrade") || "";
+  if (upgrade.toLowerCase() !== "websocket") {
+    console.log("Not a WebSocket upgrade request, returning 426");
+    return new Response("Expected WebSocket upgrade", { status: 426 });
+  }
+  
+  console.log("Upgrading to WebSocket...");
+  
+  // Upgrade to WebSocket
+  const { socket: twilioWs, response } = Deno.upgradeWebSocket(req);
+  
+  // These will be set when we receive the start message from Twilio
+  let businessId: string | null = null;
+  let callSid: string | null = null;
   let businessName = "our business";
   let instructions = "";
   let voiceLanguage = "en-US";
@@ -354,13 +365,29 @@ serve(async (req) => {
     callHistory: []
   };
   
-  if (businessId) {
+  let openaiWs: WebSocket | null = null;
+  let streamSid: string | null = null;
+  let latestMediaTimestamp = 0;
+  let lastAssistantItem: string | null = null;
+  let responseStartTimestamp: number | null = null;
+  const markQueue: string[] = [];
+  let sessionInitialized = false;
+  
+  // Function to load business and contact data
+  const loadBusinessData = async (bizId: string, cSid: string | null) => {
+    console.log(`Loading business data for: ${bizId}, callSid: ${cSid}`);
+    
     try {
-      const { data: business } = await supabase
+      const { data: business, error: bizError } = await supabase
         .from("businesses")
         .select("name, ai_instructions, twilio_settings, twilio_phone_number, business_hours, timezone, services, knowledge_base")
-        .eq("id", businessId)
+        .eq("id", bizId)
         .single();
+      
+      if (bizError) {
+        console.error("Error loading business:", bizError);
+        return;
+      }
       
       if (business) {
         businessName = business.name || "our business";
@@ -377,15 +404,20 @@ serve(async (req) => {
         (globalThis as any).__businessServices = business.services || [];
         (globalThis as any).__knowledgeBase = business.knowledge_base || {};
         console.log(`Loaded business: ${businessName}, language: ${voiceLanguage}, voice: ${voice}, services: ${(business.services || []).length}`);
+        console.log(`Business hours loaded:`, JSON.stringify(business.business_hours));
       }
       
       // Get caller phone and contact info from the call record
-      if (callSid) {
-        const { data: callRecord } = await supabase
+      if (cSid) {
+        const { data: callRecord, error: callError } = await supabase
           .from("calls")
           .select("caller_phone, contact_id, contacts(name, email, notes, tags)")
-          .eq("twilio_call_sid", callSid)
+          .eq("twilio_call_sid", cSid)
           .single();
+        
+        if (callError) {
+          console.error("Error loading call record:", callError);
+        }
         
         if (callRecord) {
           callerPhone = callRecord.caller_phone;
@@ -443,7 +475,7 @@ serve(async (req) => {
               .from("calls")
               .select("created_at, was_answered, duration_seconds")
               .eq("contact_id", contactId)
-              .neq("twilio_call_sid", callSid) // Exclude current call
+              .neq("twilio_call_sid", cSid) // Exclude current call
               .order("created_at", { ascending: false })
               .limit(10);
             
@@ -455,12 +487,9 @@ serve(async (req) => {
         }
       }
     } catch (err) {
-      console.error("Error fetching business:", err);
+      console.error("Error loading business data:", err);
     }
-  }
-  
-  // Check if this is a WebSocket upgrade request
-  const upgrade = req.headers.get("upgrade") || "";
+  };
   if (upgrade.toLowerCase() !== "websocket") {
     console.log("Not a WebSocket upgrade request, returning 426");
     return new Response("Expected WebSocket upgrade", { status: 426 });
@@ -1037,106 +1066,94 @@ serve(async (req) => {
         case "start":
           streamSid = msg.start.streamSid;
           console.log(`Stream started: ${streamSid}`);
+          console.log(`Start message:`, JSON.stringify(msg.start));
+          
+          // Extract custom parameters from Twilio's start message
+          const customParameters = msg.start.customParameters || {};
+          businessId = customParameters.businessId || null;
+          callSid = customParameters.callSid || null;
+          
+          console.log(`Extracted parameters: businessId=${businessId}, callSid=${callSid}`);
+          
           responseStartTimestamp = null;
           latestMediaTimestamp = 0;
           lastAssistantItem = null;
           
-          console.log("Connecting to OpenAI with API key...");
-          
-          try {
-            openaiWs = new WebSocket(
-              "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17",
-              ["realtime", `openai-insecure-api-key.${OPENAI_API_KEY}`, "openai-beta.realtime-v1"]
-            );
-            
-            openaiWs.onopen = () => {
-              console.log("OpenAI WebSocket opened via subprotocol auth");
-            };
-            
-            openaiWs.onmessage = (openaiEvent) => {
+          // Load business data before connecting to OpenAI
+          if (businessId) {
+            loadBusinessData(businessId, callSid).then(() => {
+              console.log(`Business data loaded. Starting OpenAI connection...`);
+              console.log(`Context after load: businessId=${businessId}, contactId=${contactId}, callerPhone=${callerPhone}, businessPhone=${businessPhone}`);
+              
               try {
-                const data = JSON.parse(openaiEvent.data);
+                openaiWs = new WebSocket(
+                  "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17",
+                  ["realtime", `openai-insecure-api-key.${OPENAI_API_KEY}`, "openai-beta.realtime-v1"]
+                );
                 
-                if (LOG_EVENT_TYPES.includes(data.type)) {
-                  console.log(`OpenAI event: ${data.type}`);
-                }
+                openaiWs.onopen = () => {
+                  console.log("OpenAI WebSocket opened via subprotocol auth");
+                };
                 
-                switch (data.type) {
-                  case "session.created":
-                    console.log("OpenAI session created!");
-                    sendSessionUpdate();
-                    setTimeout(sendInitialGreeting, 300);
-                    break;
+                openaiWs.onmessage = (openaiEvent) => {
+                  try {
+                    const data = JSON.parse(openaiEvent.data);
                     
-                  case "response.audio.delta":
-                    if (streamSid && data.delta && twilioWs.readyState === WebSocket.OPEN) {
-                      twilioWs.send(JSON.stringify({
-                        event: "media",
-                        streamSid: streamSid,
-                        media: { payload: data.delta }
-                      }));
-                      
-                      if (responseStartTimestamp === null) {
-                        responseStartTimestamp = latestMediaTimestamp;
-                      }
-                      if (data.item_id) {
-                        lastAssistantItem = data.item_id;
-                      }
-                      sendMark();
+                    if (LOG_EVENT_TYPES.includes(data.type)) {
+                      console.log(`OpenAI event: ${data.type}`);
                     }
-                    break;
                     
-                  case "response.audio_transcript.done":
-                    console.log(`AI: ${data.transcript}`);
-                    break;
-                    
-                  case "response.function_call_arguments.done":
-                    console.log(`Function call: ${data.name}`, data.arguments);
-                    try {
-                      const args = JSON.parse(data.arguments);
-                      handleFunctionCall(data.name, args, data.call_id);
-                    } catch (parseErr) {
-                      console.error("Failed to parse function arguments:", parseErr);
-                    }
-                    break;
-                    
-                  case "input_audio_buffer.speech_started":
-                    if (markQueue.length > 0 && responseStartTimestamp !== null && lastAssistantItem) {
-                      const elapsed = latestMediaTimestamp - responseStartTimestamp;
-                      openaiWs?.send(JSON.stringify({
-                        type: "conversation.item.truncate",
-                        item_id: lastAssistantItem,
-                        content_index: 0,
-                        audio_end_ms: elapsed
-                      }));
-                      if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
-                        twilioWs.send(JSON.stringify({ event: "clear", streamSid }));
-                      }
-                      markQueue.length = 0;
-                      lastAssistantItem = null;
-                      responseStartTimestamp = null;
-                    }
-                    break;
-                    
-                  case "error":
-                    console.error("OpenAI error:", JSON.stringify(data.error));
-                    break;
-                }
+                    handleOpenAIMessage(data);
+                  } catch (err) {
+                    console.error("Error processing OpenAI message:", err);
+                  }
+                };
+                
+                openaiWs.onerror = (err) => {
+                  console.error("OpenAI WebSocket error");
+                };
+                
+                openaiWs.onclose = (e) => {
+                  console.log(`OpenAI closed: ${e.code}`);
+                };
+                
               } catch (err) {
-                console.error("Error processing OpenAI message:", err);
+                console.error("Failed to connect to OpenAI:", err);
               }
-            };
-            
-            openaiWs.onerror = (err) => {
-              console.error("OpenAI WebSocket error");
-            };
-            
-            openaiWs.onclose = (e) => {
-              console.log(`OpenAI closed: ${e.code}`);
-            };
-            
-          } catch (err) {
-            console.error("Failed to connect to OpenAI:", err);
+            }).catch(err => {
+              console.error("Failed to load business data:", err);
+            });
+          } else {
+            console.error("No businessId in start message - cannot load business data");
+            // Still try to connect to OpenAI with defaults
+            try {
+              openaiWs = new WebSocket(
+                "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17",
+                ["realtime", `openai-insecure-api-key.${OPENAI_API_KEY}`, "openai-beta.realtime-v1"]
+              );
+              
+              openaiWs.onopen = () => {
+                console.log("OpenAI WebSocket opened via subprotocol auth (no business data)");
+              };
+              
+              openaiWs.onmessage = (openaiEvent) => {
+                try {
+                  const data = JSON.parse(openaiEvent.data);
+                  if (LOG_EVENT_TYPES.includes(data.type)) {
+                    console.log(`OpenAI event: ${data.type}`);
+                  }
+                  handleOpenAIMessage(data);
+                } catch (err) {
+                  console.error("Error processing OpenAI message:", err);
+                }
+              };
+              
+              openaiWs.onerror = () => console.error("OpenAI WebSocket error");
+              openaiWs.onclose = (e) => console.log(`OpenAI closed: ${e.code}`);
+              
+            } catch (err) {
+              console.error("Failed to connect to OpenAI:", err);
+            }
           }
           break;
           
@@ -1165,6 +1182,71 @@ serve(async (req) => {
       }
     } catch (err) {
       console.error("Error processing Twilio message:", err);
+    }
+  };
+  
+  // Handler for OpenAI messages - extracted for reuse
+  const handleOpenAIMessage = (data: any) => {
+    switch (data.type) {
+      case "session.created":
+        console.log("OpenAI session created!");
+        sendSessionUpdate();
+        setTimeout(sendInitialGreeting, 300);
+        break;
+        
+      case "response.audio.delta":
+        if (streamSid && data.delta && twilioWs.readyState === WebSocket.OPEN) {
+          twilioWs.send(JSON.stringify({
+            event: "media",
+            streamSid: streamSid,
+            media: { payload: data.delta }
+          }));
+          
+          if (responseStartTimestamp === null) {
+            responseStartTimestamp = latestMediaTimestamp;
+          }
+          if (data.item_id) {
+            lastAssistantItem = data.item_id;
+          }
+          sendMark();
+        }
+        break;
+        
+      case "response.audio_transcript.done":
+        console.log(`AI: ${data.transcript}`);
+        break;
+        
+      case "response.function_call_arguments.done":
+        console.log(`Function call: ${data.name}`, data.arguments);
+        try {
+          const args = JSON.parse(data.arguments);
+          handleFunctionCall(data.name, args, data.call_id);
+        } catch (parseErr) {
+          console.error("Failed to parse function arguments:", parseErr);
+        }
+        break;
+        
+      case "input_audio_buffer.speech_started":
+        if (markQueue.length > 0 && responseStartTimestamp !== null && lastAssistantItem) {
+          const elapsed = latestMediaTimestamp - responseStartTimestamp;
+          openaiWs?.send(JSON.stringify({
+            type: "conversation.item.truncate",
+            item_id: lastAssistantItem,
+            content_index: 0,
+            audio_end_ms: elapsed
+          }));
+          if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
+            twilioWs.send(JSON.stringify({ event: "clear", streamSid }));
+          }
+          markQueue.length = 0;
+          lastAssistantItem = null;
+          responseStartTimestamp = null;
+        }
+        break;
+        
+      case "error":
+        console.error("OpenAI error:", JSON.stringify(data.error));
+        break;
     }
   };
   

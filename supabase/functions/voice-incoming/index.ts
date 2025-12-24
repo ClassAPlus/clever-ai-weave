@@ -105,11 +105,36 @@ serve(async (req) => {
     const projectId = 'wqhakzywmqirucmetnuo';
     const statusCallbackUrl = `https://${projectId}.supabase.co/functions/v1/voice-dial-result`;
 
+    // Get Twilio settings from business configuration
+    const twilioSettings = business.twilio_settings || {};
+    const ringTimeout = twilioSettings.ringTimeout || 30;
+    const voiceLanguage = twilioSettings.voiceLanguage || 'he-IL';
+    const voiceGender = twilioSettings.voiceGender || 'female';
+
+    // Map language codes to Twilio voice names
+    const getVoiceName = (lang: string, gender: string): string => {
+      const voiceMap: Record<string, Record<string, string>> = {
+        'he-IL': { female: 'Polly.Adina', male: 'Polly.Adina' }, // Hebrew only has one voice
+        'en-US': { female: 'Polly.Joanna', male: 'Polly.Matthew' },
+        'en-GB': { female: 'Polly.Amy', male: 'Polly.Brian' },
+        'ar-XA': { female: 'Polly.Zeina', male: 'Polly.Zeina' },
+        'ru-RU': { female: 'Polly.Tatyana', male: 'Polly.Maxim' },
+        'es-ES': { female: 'Polly.Conchita', male: 'Polly.Enrique' },
+        'fr-FR': { female: 'Polly.Celine', male: 'Polly.Mathieu' },
+        'de-DE': { female: 'Polly.Marlene', male: 'Polly.Hans' },
+      };
+      return voiceMap[lang]?.[gender] || voiceMap['en-US'][gender] || 'Polly.Joanna';
+    };
+
+    const voiceName = getVoiceName(voiceLanguage, voiceGender);
+
+    console.log("Using Twilio settings - timeout:", ringTimeout, "voice:", voiceName, "language:", voiceLanguage);
+
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
 
     if (forwardPhones.length > 0) {
-      // Dial with timeout and status callback
-      twiml += `<Dial timeout="25" action="${statusCallbackUrl}" method="POST">`;
+      // Dial with configurable timeout and status callback
+      twiml += `<Dial timeout="${ringTimeout}" action="${statusCallbackUrl}" method="POST">`;
       
       for (const phone of forwardPhones) {
         twiml += `<Number statusCallback="${statusCallbackUrl}" statusCallbackEvent="initiated ringing answered completed">${phone}</Number>`;
@@ -117,9 +142,9 @@ serve(async (req) => {
       
       twiml += `</Dial>`;
     } else {
-      // No forward numbers configured - go directly to voicemail/hangup
+      // No forward numbers configured - use configured voice settings
       console.log("No forward numbers configured for business:", business.id);
-      twiml += `<Say language="he-IL">מצטערים, אין אפשרות לענות כרגע. נחזור אליכם בהקדם.</Say>`;
+      twiml += `<Say voice="${voiceName}" language="${voiceLanguage}">מצטערים, אין אפשרות לענות כרגע. נחזור אליכם בהקדם.</Say>`;
       twiml += `<Hangup/>`;
     }
 

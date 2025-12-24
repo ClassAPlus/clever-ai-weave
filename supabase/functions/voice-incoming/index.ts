@@ -100,7 +100,7 @@ serve(async (req) => {
       console.log("Created call record:", callRecord.id);
     }
 
-    // Build TwiML response to dial forward numbers
+    // Build TwiML response
     const forwardPhones = business.forward_to_phones || [];
     const projectId = 'wqhakzywmqirucmetnuo';
     const statusCallbackUrl = `https://${projectId}.supabase.co/functions/v1/voice-dial-result`;
@@ -110,6 +110,7 @@ serve(async (req) => {
     const ringTimeout = twilioSettings.ringTimeout || 30;
     const voiceLanguage = twilioSettings.voiceLanguage || 'he-IL';
     const voiceGender = twilioSettings.voiceGender || 'female';
+    const enableAiReceptionist = twilioSettings.enableAiReceptionist !== false; // Default to true
 
     // Check if Google Cloud TTS is configured
     const useGoogleTTS = !!Deno.env.get('GOOGLE_CLOUD_API_KEY');
@@ -142,12 +143,13 @@ serve(async (req) => {
     };
 
     const pollyVoiceName = getVoiceName(voiceLanguage, voiceGender);
-    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage);
+    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage, "AI receptionist:", enableAiReceptionist);
 
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
 
     if (forwardPhones.length > 0) {
       // Dial with configurable timeout and status callback
+      // If no answer, the action URL will handle the AI receptionist
       twiml += `<Dial timeout="${ringTimeout}" action="${statusCallbackUrl}" method="POST">`;
       
       for (const phone of forwardPhones) {
@@ -155,17 +157,19 @@ serve(async (req) => {
       }
       
       twiml += `</Dial>`;
+    } else if (enableAiReceptionist) {
+      // No forward numbers - go directly to AI receptionist
+      console.log("Connecting to AI receptionist for business:", business.id);
+      const realtimeWsUrl = `wss://${projectId}.supabase.co/functions/v1/voice-realtime?businessId=${business.id}&callSid=${callSid}`;
+      twiml += `<Connect><Stream url="${realtimeWsUrl}"/></Connect>`;
     } else {
-      // No forward numbers configured - play voice message
-      console.log("No forward numbers configured for business:", business.id);
+      // No forward numbers and AI disabled - play voice message
+      console.log("No forward numbers and AI disabled for business:", business.id);
       
       if (useGoogleTTS) {
-        // Use Google Cloud TTS via our audio endpoint
         const audioUrl = `https://${projectId}.supabase.co/functions/v1/voice-audio?business_id=${business.id}&type=no-answer`;
         twiml += `<Play>${audioUrl}</Play>`;
-        console.log("Using Google Cloud TTS via:", audioUrl);
       } else {
-        // Fallback to Twilio Polly voice
         const fallbackMessage = voiceLanguage.startsWith('he') 
           ? 'מצטערים, אין אפשרות לענות כרגע. נחזור אליכם בהקדם.'
           : 'Sorry, we are unable to answer your call right now. We will get back to you soon.';

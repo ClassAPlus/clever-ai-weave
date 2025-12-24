@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Phone, MessageSquare, Volume2, Loader2, Square, User } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Phone, MessageSquare, Volume2, Loader2, Square, User, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface TwilioSettings {
@@ -16,6 +17,7 @@ interface TwilioSettings {
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;
+  enableAiReceptionist?: boolean;
 }
 
 interface TwilioAdvancedSettingsProps {
@@ -271,6 +273,28 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* AI Receptionist Toggle */}
+        <div className="p-4 rounded-lg bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Bot className="h-5 w-5 text-purple-400" />
+              <div>
+                <Label className="text-white font-medium">AI Receptionist</Label>
+                <p className="text-xs text-gray-400">Let AI answer calls when you're unavailable</p>
+              </div>
+            </div>
+            <Switch
+              checked={settings.enableAiReceptionist !== false}
+              onCheckedChange={(checked) => updateSettings({ enableAiReceptionist: checked })}
+            />
+          </div>
+          {settings.enableAiReceptionist !== false && (
+            <p className="text-xs text-purple-300">
+              🎙️ When enabled, callers will have a real-time voice conversation with your AI assistant powered by OpenAI Realtime API.
+            </p>
+          )}
+        </div>
+
         {/* Voice Settings */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-gray-700">

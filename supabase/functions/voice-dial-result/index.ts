@@ -54,6 +54,12 @@ serve(async (req) => {
     const isMissedCall = ['no-answer', 'busy', 'failed', 'canceled'].includes(dialCallStatus);
     const wasAnswered = dialCallStatus === 'completed' && callDuration > 0;
 
+    // Check if ElevenLabs is configured
+    const twilioSettings = business.twilio_settings || {};
+    const voiceId = twilioSettings.voiceId;
+    const useElevenLabs = !!voiceId && !!Deno.env.get('ELEVENLABS_API_KEY');
+    const projectId = 'wqhakzywmqirucmetnuo';
+
     console.log(`Call ${callSid}: status=${dialCallStatus}, answered=${wasAnswered}, duration=${callDuration}`);
 
     // Update call record
@@ -167,11 +173,21 @@ serve(async (req) => {
       }
     }
 
-    // Return empty TwiML to end call
-    return new Response(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`,
-      { headers: { ...corsHeaders, 'Content-Type': 'text/xml' } }
-    );
+    // Play missed call message if applicable, then hang up
+    let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
+    
+    if (isMissedCall && useElevenLabs) {
+      // Play ElevenLabs voice message for missed calls
+      const audioUrl = `https://${projectId}.supabase.co/functions/v1/voice-audio?business_id=${business.id}&type=missed-call`;
+      twiml += `<Play>${audioUrl}</Play>`;
+      console.log("Playing ElevenLabs missed call message");
+    }
+    
+    twiml += `<Hangup/></Response>`;
+
+    return new Response(twiml, {
+      headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+    });
 
   } catch (error) {
     console.error("Error in voice-dial-result:", error);

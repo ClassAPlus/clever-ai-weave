@@ -108,13 +108,17 @@ serve(async (req) => {
     // Get Twilio settings from business configuration
     const twilioSettings = business.twilio_settings || {};
     const ringTimeout = twilioSettings.ringTimeout || 30;
+    const voiceId = twilioSettings.voiceId;
     const voiceLanguage = twilioSettings.voiceLanguage || 'he-IL';
     const voiceGender = twilioSettings.voiceGender || 'female';
 
-    // Map language codes to Twilio voice names
+    // Check if ElevenLabs voice is configured
+    const useElevenLabs = !!voiceId && !!Deno.env.get('ELEVENLABS_API_KEY');
+    
+    // Map language codes to Twilio voice names (fallback)
     const getVoiceName = (lang: string, gender: string): string => {
       const voiceMap: Record<string, Record<string, string>> = {
-        'he-IL': { female: 'Polly.Adina', male: 'Polly.Adina' }, // Hebrew only has one voice
+        'he-IL': { female: 'Polly.Adina', male: 'Polly.Adina' },
         'en-US': { female: 'Polly.Joanna', male: 'Polly.Matthew' },
         'en-GB': { female: 'Polly.Amy', male: 'Polly.Brian' },
         'ar-XA': { female: 'Polly.Zeina', male: 'Polly.Zeina' },
@@ -133,14 +137,13 @@ serve(async (req) => {
         'tr-TR': { female: 'Polly.Filiz', male: 'Polly.Filiz' },
         'hi-IN': { female: 'Polly.Aditi', male: 'Polly.Aditi' },
         'th-TH': { female: 'Polly.Achara', male: 'Polly.Achara' },
-        'vi-VN': { female: 'Polly.Joanna', male: 'Polly.Matthew' }, // Fallback to English
+        'vi-VN': { female: 'Polly.Joanna', male: 'Polly.Matthew' },
       };
       return voiceMap[lang]?.[gender] || voiceMap['en-US'][gender] || 'Polly.Joanna';
     };
 
-    const voiceName = getVoiceName(voiceLanguage, voiceGender);
-
-    console.log("Using Twilio settings - timeout:", ringTimeout, "voice:", voiceName, "language:", voiceLanguage);
+    const pollyVoiceName = getVoiceName(voiceLanguage, voiceGender);
+    console.log("Using settings - timeout:", ringTimeout, "ElevenLabs:", useElevenLabs, "language:", voiceLanguage);
 
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
 
@@ -154,14 +157,26 @@ serve(async (req) => {
       
       twiml += `</Dial>`;
     } else {
-      // No forward numbers configured - use configured voice settings
+      // No forward numbers configured - play voice message
       console.log("No forward numbers configured for business:", business.id);
-      twiml += `<Say voice="${voiceName}" language="${voiceLanguage}">מצטערים, אין אפשרות לענות כרגע. נחזור אליכם בהקדם.</Say>`;
+      
+      if (useElevenLabs) {
+        // Use ElevenLabs premium voice via our audio endpoint
+        const audioUrl = `https://${projectId}.supabase.co/functions/v1/voice-audio?business_id=${business.id}&type=no-answer`;
+        twiml += `<Play>${audioUrl}</Play>`;
+        console.log("Using ElevenLabs voice via:", audioUrl);
+      } else {
+        // Fallback to Twilio Polly voice
+        const fallbackMessage = voiceLanguage.startsWith('he') 
+          ? 'מצטערים, אין אפשרות לענות כרגע. נחזור אליכם בהקדם.'
+          : 'Sorry, we are unable to answer your call right now. We will get back to you soon.';
+        twiml += `<Say voice="${pollyVoiceName}" language="${voiceLanguage}">${fallbackMessage}</Say>`;
+      }
+      
       twiml += `<Hangup/>`;
     }
 
     twiml += `</Response>`;
-
     console.log("Returning TwiML:", twiml);
 
     return new Response(twiml, {

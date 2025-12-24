@@ -167,7 +167,6 @@ export default function Dashboard() {
           </div> : business ? <AddAIPhoneDialog businessId={business.id} onUpdate={fetchBusiness} trigger={<button className="text-sm text-yellow-400 hover:underline">
                 + Add phone number
               </button>} /> : null}
-        {business}
       </div>
 
       <nav className="flex-1 p-4 space-y-1">

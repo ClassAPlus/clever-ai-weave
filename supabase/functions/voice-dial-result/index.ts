@@ -178,7 +178,7 @@ serve(async (req) => {
     
     if (isMissedCall && enableAiReceptionist) {
       // Connect to AI receptionist for real-time conversation
-      const realtimeWsUrl = `wss://${projectId}.functions.supabase.co/voice-realtime?businessId=${business.id}&callSid=${callSid}`;
+      const realtimeWsUrl = `wss://${projectId}.functions.supabase.co/functions/v1/voice-realtime?businessId=${business.id}&callSid=${callSid}`;
       console.log("Connecting missed call to AI receptionist:", realtimeWsUrl);
       twiml += `<Connect><Stream url="${realtimeWsUrl}"/></Connect>`;
     } else if (isMissedCall && useGoogleTTS) {

@@ -179,8 +179,10 @@ serve(async (req) => {
     if (isMissedCall && enableAiReceptionist) {
       // Connect to AI receptionist for real-time conversation
       const realtimeWsUrl = `wss://${projectId}.functions.supabase.co/functions/v1/voice-realtime?businessId=${business.id}&callSid=${callSid}`;
+      // XML attribute escaping: TwiML is XML, so '&' must be encoded as '&amp;'
+      const realtimeWsUrlXml = realtimeWsUrl.replaceAll("&", "&amp;");
       console.log("Connecting missed call to AI receptionist:", realtimeWsUrl);
-      twiml += `<Connect><Stream url="${realtimeWsUrl}"/></Connect>`;
+      twiml += `<Connect><Stream url="${realtimeWsUrlXml}"/></Connect>`;
     } else if (isMissedCall && useGoogleTTS) {
       // Play Google Cloud TTS voice message for missed calls (AI disabled)
       const audioUrl = `https://${projectId}.supabase.co/functions/v1/voice-audio?business_id=${business.id}&type=missed-call`;

@@ -4,10 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Loader2, Phone, MessageSquare, Calendar, Bell, Settings as SettingsIcon, 
-  LogOut, PhoneMissed, PhoneIncoming, Users, BarChart3, Menu, FileText
-} from "lucide-react";
+import { Loader2, Phone, MessageSquare, Calendar, Bell, Settings as SettingsIcon, LogOut, PhoneMissed, PhoneIncoming, Users, BarChart3, Menu, FileText } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { EditPhoneDialog } from "@/components/EditPhoneDialog";
 import { ChangeAIPhoneDialog } from "@/components/ChangeAIPhoneDialog";
@@ -19,7 +16,6 @@ import Appointments from "./Appointments";
 import Inquiries from "./Inquiries";
 import Contacts from "./Contacts";
 import Templates from "./Templates";
-
 interface Business {
   id: string;
   name: string;
@@ -27,7 +23,6 @@ interface Business {
   owner_phone: string | null;
   subscription_status: string;
 }
-
 interface DashboardStats {
   totalCalls: number;
   missedCalls: number;
@@ -35,38 +30,36 @@ interface DashboardStats {
   appointments: number;
   inquiries: number;
 }
-
 export default function Dashboard() {
-  const { user, loading, signOut } = useAuth();
+  const {
+    user,
+    loading,
+    signOut
+  } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
   const [business, setBusiness] = useState<Business | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     totalCalls: 0,
     missedCalls: 0,
     conversations: 0,
     appointments: 0,
-    inquiries: 0,
+    inquiries: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
-
   const fetchBusiness = useCallback(async () => {
     try {
       // Fetch business
-      const { data: businessData, error: businessError } = await supabase
-        .from("businesses")
-        .select("*")
-        .eq("owner_user_id", user?.id)
-        .single();
-
+      const {
+        data: businessData,
+        error: businessError
+      } = await supabase.from("businesses").select("*").eq("owner_user_id", user?.id).single();
       if (businessError) {
         if (businessError.code === "PGRST116") {
           // No business found, redirect to onboarding
@@ -75,28 +68,27 @@ export default function Dashboard() {
         }
         throw businessError;
       }
-
       setBusiness(businessData);
 
       // Fetch stats
       const businessId = businessData.id;
-
-      const [callsRes, convsRes, apptsRes, inquiriesRes] = await Promise.all([
-        supabase.from("calls").select("id, was_answered", { count: "exact" }).eq("business_id", businessId),
-        supabase.from("conversations").select("id", { count: "exact" }).eq("business_id", businessId),
-        supabase.from("appointments").select("id", { count: "exact" }).eq("business_id", businessId),
-        supabase.from("inquiries").select("id", { count: "exact" }).eq("business_id", businessId).eq("status", "new"),
-      ]);
-
+      const [callsRes, convsRes, apptsRes, inquiriesRes] = await Promise.all([supabase.from("calls").select("id, was_answered", {
+        count: "exact"
+      }).eq("business_id", businessId), supabase.from("conversations").select("id", {
+        count: "exact"
+      }).eq("business_id", businessId), supabase.from("appointments").select("id", {
+        count: "exact"
+      }).eq("business_id", businessId), supabase.from("inquiries").select("id", {
+        count: "exact"
+      }).eq("business_id", businessId).eq("status", "new")]);
       const totalCalls = callsRes.count || 0;
       const missedCalls = callsRes.data?.filter(c => !c.was_answered).length || 0;
-
       setStats({
         totalCalls,
         missedCalls,
         conversations: convsRes.count || 0,
         appointments: apptsRes.count || 0,
-        inquiries: inquiriesRes.count || 0,
+        inquiries: inquiriesRes.count || 0
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -104,39 +96,59 @@ export default function Dashboard() {
       setIsLoading(false);
     }
   }, [user?.id, navigate]);
-
   useEffect(() => {
     if (user) {
       fetchBusiness();
     }
   }, [user, fetchBusiness]);
-
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
   };
-
   if (loading || isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+    return <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
-      </div>
-    );
+      </div>;
   }
-
-  const navItems = [
-    { icon: BarChart3, label: "Overview", path: "/dashboard" },
-    { icon: PhoneIncoming, label: "Calls", path: "/dashboard/calls" },
-    { icon: MessageSquare, label: "Conversations", path: "/dashboard/conversations" },
-    { icon: Calendar, label: "Appointments", path: "/dashboard/appointments" },
-    { icon: Bell, label: "Inquiries", path: "/dashboard/inquiries", badge: stats.inquiries },
-    { icon: Users, label: "Contacts", path: "/dashboard/contacts" },
-    { icon: FileText, label: "Templates", path: "/dashboard/templates" },
-    { icon: SettingsIcon, label: "Settings", path: "/dashboard/settings" },
-  ];
-
-  const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
-    <div className={`${mobile ? "" : "hidden lg:flex"} flex-col w-64 bg-gray-800/50 border-r border-gray-700`}>
+  const navItems = [{
+    icon: BarChart3,
+    label: "Overview",
+    path: "/dashboard"
+  }, {
+    icon: PhoneIncoming,
+    label: "Calls",
+    path: "/dashboard/calls"
+  }, {
+    icon: MessageSquare,
+    label: "Conversations",
+    path: "/dashboard/conversations"
+  }, {
+    icon: Calendar,
+    label: "Appointments",
+    path: "/dashboard/appointments"
+  }, {
+    icon: Bell,
+    label: "Inquiries",
+    path: "/dashboard/inquiries",
+    badge: stats.inquiries
+  }, {
+    icon: Users,
+    label: "Contacts",
+    path: "/dashboard/contacts"
+  }, {
+    icon: FileText,
+    label: "Templates",
+    path: "/dashboard/templates"
+  }, {
+    icon: SettingsIcon,
+    label: "Settings",
+    path: "/dashboard/settings"
+  }];
+  const Sidebar = ({
+    mobile = false
+  }: {
+    mobile?: boolean;
+  }) => <div className={`${mobile ? "" : "hidden lg:flex"} flex-col w-64 bg-gray-800/50 border-r border-gray-700`}>
       <div className="p-6 border-b border-gray-700">
         <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-purple-600 flex items-center justify-center">
@@ -149,78 +161,33 @@ export default function Dashboard() {
       <div className="p-4 border-b border-gray-700">
         <div className="text-sm text-gray-400">Business</div>
         <div className="font-medium text-white">{business?.name}</div>
-        {business?.twilio_phone_number ? (
-          <div className="flex items-center gap-2">
+        {business?.twilio_phone_number ? <div className="flex items-center gap-2">
             <span className="text-sm text-purple-400 font-mono">{business.twilio_phone_number}</span>
-            <ChangeAIPhoneDialog
-              businessId={business.id}
-              currentPhone={business.twilio_phone_number}
-              onUpdate={fetchBusiness}
-            />
-          </div>
-        ) : business ? (
-          <AddAIPhoneDialog
-            businessId={business.id}
-            onUpdate={fetchBusiness}
-            trigger={
-              <button className="text-sm text-yellow-400 hover:underline">
+            <ChangeAIPhoneDialog businessId={business.id} currentPhone={business.twilio_phone_number} onUpdate={fetchBusiness} />
+          </div> : business ? <AddAIPhoneDialog businessId={business.id} onUpdate={fetchBusiness} trigger={<button className="text-sm text-yellow-400 hover:underline">
                 + Add phone number
-              </button>
-            }
-          />
-        ) : null}
-        {business && (
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-gray-500">Contact:</span>
-            <span className="text-xs text-gray-300 font-mono">
-              {business.owner_phone || "Not set"}
-            </span>
-            <EditPhoneDialog
-              businessId={business.id}
-              currentPhone={business.owner_phone}
-              onUpdate={fetchBusiness}
-            />
-          </div>
-        )}
+              </button>} /> : null}
+        {business}
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            onClick={() => setMobileMenuOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-              location.pathname === item.path
-                ? "bg-purple-600 text-white"
-                : "text-gray-400 hover:bg-gray-700 hover:text-white"
-            }`}
-          >
+        {navItems.map(item => <Link key={item.path} to={item.path} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${location.pathname === item.path ? "bg-purple-600 text-white" : "text-gray-400 hover:bg-gray-700 hover:text-white"}`}>
             <item.icon className="h-5 w-5" />
             <span>{item.label}</span>
-            {item.badge && item.badge > 0 && (
-              <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+            {item.badge && item.badge > 0 && <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
                 {item.badge}
-              </span>
-            )}
-          </Link>
-        ))}
+              </span>}
+          </Link>)}
       </nav>
 
       <div className="p-4 border-t border-gray-700">
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2 w-full text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors"
-        >
+        <button onClick={handleSignOut} className="flex items-center gap-3 px-3 py-2 w-full text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition-colors">
           <LogOut className="h-5 w-5" />
           <span>Sign Out</span>
         </button>
       </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex">
+    </div>;
+  return <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex">
       {/* Desktop Sidebar */}
       <Sidebar />
 
@@ -247,22 +214,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 lg:ml-0 pt-16 lg:pt-0">
         <div className="p-6 lg:p-8">
-          {location.pathname === "/dashboard/settings" ? (
-            <Settings />
-          ) : location.pathname === "/dashboard/calls" ? (
-            <Calls />
-          ) : location.pathname === "/dashboard/conversations" ? (
-            <Conversations />
-          ) : location.pathname === "/dashboard/appointments" ? (
-            <Appointments />
-          ) : location.pathname === "/dashboard/inquiries" ? (
-            <Inquiries />
-          ) : location.pathname === "/dashboard/contacts" ? (
-            <Contacts />
-          ) : location.pathname === "/dashboard/templates" ? (
-            <Templates />
-          ) : (
-            <>
+          {location.pathname === "/dashboard/settings" ? <Settings /> : location.pathname === "/dashboard/calls" ? <Calls /> : location.pathname === "/dashboard/conversations" ? <Conversations /> : location.pathname === "/dashboard/appointments" ? <Appointments /> : location.pathname === "/dashboard/inquiries" ? <Inquiries /> : location.pathname === "/dashboard/contacts" ? <Contacts /> : location.pathname === "/dashboard/templates" ? <Templates /> : <>
               <div className="mb-8">
                 <h1 className="text-2xl font-bold text-white">Dashboard</h1>
                 <p className="text-gray-400">Welcome back, {user?.email}</p>
@@ -336,9 +288,7 @@ export default function Dashboard() {
                       New Inquiries
                     </CardTitle>
                     <CardDescription className="text-gray-400">
-                      {stats.inquiries > 0 
-                        ? `${stats.inquiries} inquiry needs your attention`
-                        : "No new inquiries"}
+                      {stats.inquiries > 0 ? `${stats.inquiries} inquiry needs your attention` : "No new inquiries"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -371,8 +321,7 @@ export default function Dashboard() {
               </div>
 
               {/* Setup reminder if no phone number */}
-              {!business?.twilio_phone_number && (
-                <Card className="mt-6 bg-yellow-500/10 border-yellow-500/30">
+              {!business?.twilio_phone_number && <Card className="mt-6 bg-yellow-500/10 border-yellow-500/30">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Phone className="h-5 w-5 text-yellow-400" />
@@ -381,19 +330,11 @@ export default function Dashboard() {
                         <p className="text-sm text-gray-400">Add a phone number to start receiving calls</p>
                       </div>
                     </div>
-                    {business && (
-                      <AddAIPhoneDialog
-                        businessId={business.id}
-                        onUpdate={fetchBusiness}
-                      />
-                    )}
+                    {business && <AddAIPhoneDialog businessId={business.id} onUpdate={fetchBusiness} />}
                   </CardContent>
-                </Card>
-              )}
-            </>
-          )}
+                </Card>}
+            </>}
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Phone, MessageSquare, Clock } from "lucide-react";
+import { Phone, MessageSquare, Volume2, Loader2, Square } from "lucide-react";
 
 interface TwilioSettings {
   voiceLanguage: string;
@@ -20,20 +21,97 @@ interface TwilioAdvancedSettingsProps {
 }
 
 const VOICE_LANGUAGES = [
-  { value: "he-IL", label: "Hebrew (Israel)" },
-  { value: "en-US", label: "English (US)" },
-  { value: "en-GB", label: "English (UK)" },
-  { value: "ar-XA", label: "Arabic" },
-  { value: "ru-RU", label: "Russian" },
-  { value: "es-ES", label: "Spanish" },
-  { value: "fr-FR", label: "French" },
-  { value: "de-DE", label: "German" },
+  { value: "he-IL", label: "Hebrew (Israel)", sampleText: "שלום! ברוכים הבאים. איך אוכל לעזור לך היום?" },
+  { value: "en-US", label: "English (US)", sampleText: "Hello! Welcome. How can I help you today?" },
+  { value: "en-GB", label: "English (UK)", sampleText: "Hello! Welcome. How may I assist you today?" },
+  { value: "ar-XA", label: "Arabic", sampleText: "مرحباً! أهلاً بك. كيف يمكنني مساعدتك اليوم؟" },
+  { value: "ru-RU", label: "Russian", sampleText: "Здравствуйте! Добро пожаловать. Чем могу помочь?" },
+  { value: "es-ES", label: "Spanish", sampleText: "¡Hola! Bienvenido. ¿Cómo puedo ayudarte hoy?" },
+  { value: "fr-FR", label: "French", sampleText: "Bonjour! Bienvenue. Comment puis-je vous aider?" },
+  { value: "de-DE", label: "German", sampleText: "Hallo! Willkommen. Wie kann ich Ihnen helfen?" },
 ];
 
 export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSettingsProps) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [customText, setCustomText] = useState("");
+
+  useEffect(() => {
+    // Load available voices
+    const loadVoices = () => {
+      const voices = speechSynthesis.getVoices();
+      setAvailableVoices(voices);
+    };
+
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      speechSynthesis.cancel();
+    };
+  }, []);
+
   const updateSetting = <K extends keyof TwilioSettings>(key: K, value: TwilioSettings[K]) => {
     onChange({ ...settings, [key]: value });
   };
+
+  const getVoiceForLanguage = (lang: string, gender: string): SpeechSynthesisVoice | null => {
+    // Find a voice matching the language and gender preference
+    const langCode = lang.split("-")[0]; // e.g., "he" from "he-IL"
+    
+    // Try to find exact match first
+    let voice = availableVoices.find(v => 
+      v.lang.startsWith(lang) && 
+      v.name.toLowerCase().includes(gender)
+    );
+    
+    // Fall back to language match
+    if (!voice) {
+      voice = availableVoices.find(v => v.lang.startsWith(lang));
+    }
+    
+    // Fall back to language code match
+    if (!voice) {
+      voice = availableVoices.find(v => v.lang.startsWith(langCode));
+    }
+    
+    // Final fallback to any voice
+    if (!voice && availableVoices.length > 0) {
+      voice = availableVoices[0];
+    }
+    
+    return voice || null;
+  };
+
+  const playVoicePreview = () => {
+    if (isSpeaking) {
+      speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const langConfig = VOICE_LANGUAGES.find(l => l.value === settings.voiceLanguage);
+    const textToSpeak = customText.trim() || langConfig?.sampleText || "Hello, how can I help you today?";
+    
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = settings.voiceLanguage;
+    
+    const voice = getVoiceForLanguage(settings.voiceLanguage, settings.voiceGender);
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    utterance.rate = 1.0;
+    utterance.pitch = settings.voiceGender === "female" ? 1.1 : 0.9;
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    speechSynthesis.speak(utterance);
+  };
+
+  const currentLang = VOICE_LANGUAGES.find(l => l.value === settings.voiceLanguage);
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -88,6 +166,48 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
                   <SelectItem value="male">Male</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Voice Preview Section */}
+          <div className="p-4 rounded-lg bg-gray-900/50 border border-gray-700 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Volume2 className="h-4 w-4 text-purple-400" />
+                <span className="text-sm font-medium text-white">Voice Preview</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={playVoicePreview}
+                className={`border-purple-500/50 hover:bg-purple-500/10 ${
+                  isSpeaking ? "text-red-400 border-red-500/50" : "text-purple-400"
+                }`}
+              >
+                {isSpeaking ? (
+                  <>
+                    <Square className="h-4 w-4 mr-2 fill-current" />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="h-4 w-4 mr-2" />
+                    Play Preview
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              <Input
+                value={customText}
+                onChange={(e) => setCustomText(e.target.value)}
+                placeholder={currentLang?.sampleText || "Enter custom text to preview..."}
+                className="bg-gray-700 border-gray-600 text-white text-sm"
+              />
+              <p className="text-xs text-gray-500">
+                Leave empty to use the default greeting for {currentLang?.label || "the selected language"}
+              </p>
             </div>
           </div>
 
@@ -156,7 +276,7 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
 
         <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
           <p className="text-sm text-yellow-300">
-            ⚠️ <strong>Note:</strong> These settings affect how your AI responds to customers. Adjust carefully to balance responsiveness and cost.
+            ⚠️ <strong>Note:</strong> Voice preview uses your browser's speech synthesis. Actual Twilio voices may sound slightly different.
           </p>
         </div>
       </CardContent>

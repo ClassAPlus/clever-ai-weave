@@ -135,6 +135,7 @@ export default function Settings() {
   const [isSendingTestSms, setIsSendingTestSms] = useState(false);
   const [isTestingForwardPhones, setIsTestingForwardPhones] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -311,6 +312,12 @@ export default function Settings() {
   useEffect(() => {
     if (user) {
       fetchBusiness();
+      // Check if user is admin
+      const checkAdminStatus = async () => {
+        const { data } = await supabase.rpc('is_admin', { user_id: user.id });
+        setIsAdmin(data === true);
+      };
+      checkAdminStatus();
     }
   }, [user, fetchBusiness]);
 
@@ -532,10 +539,12 @@ export default function Settings() {
             <Bot className="h-4 w-4 mr-2" />
             AI Assistant
           </TabsTrigger>
-          <TabsTrigger value="developer" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-            <Code className="h-4 w-4 mr-2" />
-            Developer
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="developer" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+              <Code className="h-4 w-4 mr-2" />
+              Developer
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* General Settings Tab */}
@@ -1109,33 +1118,35 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
-        {/* Developer Tab */}
-        <TabsContent value="developer" className="space-y-6">
-          {/* API Status Dashboard */}
-          {business && <APIStatusDashboard businessId={business.id} />}
+        {/* Developer Tab - Admin Only */}
+        {isAdmin && (
+          <TabsContent value="developer" className="space-y-6">
+            {/* API Status Dashboard */}
+            {business && <APIStatusDashboard businessId={business.id} />}
 
-          {/* Webhook URLs */}
-          <WebhookURLs />
+            {/* Webhook URLs */}
+            <WebhookURLs />
 
-          {/* Debug Tools */}
-          {business && (
-            <DebugTools
-              businessId={business.id}
-              businessName={name}
-              ownerPhone={ownerPhone}
-              twilioPhoneNumber={business.twilio_phone_number}
+            {/* Debug Tools */}
+            {business && (
+              <DebugTools
+                businessId={business.id}
+                businessName={name}
+                ownerPhone={ownerPhone}
+                twilioPhoneNumber={business.twilio_phone_number}
+              />
+            )}
+
+            {/* Data Export */}
+            {business && <DataExport businessId={business.id} />}
+
+            {/* Advanced Twilio Settings */}
+            <TwilioAdvancedSettings
+              settings={twilioSettings}
+              onChange={setTwilioSettings}
             />
-          )}
-
-          {/* Data Export */}
-          {business && <DataExport businessId={business.id} />}
-
-          {/* Advanced Twilio Settings */}
-          <TwilioAdvancedSettings
-            settings={twilioSettings}
-            onChange={setTwilioSettings}
-          />
-        </TabsContent>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Bottom Save Button */}

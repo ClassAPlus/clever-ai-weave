@@ -36,6 +36,7 @@ interface BusinessHours {
 interface TwilioSettings {
   voiceLanguage: string;
   voiceGender: string;
+  voiceId: string;
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;
@@ -190,6 +191,7 @@ export default function Settings() {
   const [twilioSettings, setTwilioSettings] = useState<TwilioSettings>({
     voiceLanguage: "he-IL",
     voiceGender: "female",
+    voiceId: "EXAVITQu4vr4xnSDxMaL",
     ringTimeout: 30,
     dailyMessageLimit: 10,
     rateLimitWindow: 5,

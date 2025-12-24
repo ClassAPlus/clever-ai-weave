@@ -49,6 +49,13 @@ export default function Dashboard() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [updatedStats, setUpdatedStats] = useState<Set<string>>(new Set());
+
+  // Helper to trigger pulse animation
+  const triggerPulse = (statKeys: string[]) => {
+    setUpdatedStats(new Set(statKeys));
+    setTimeout(() => setUpdatedStats(new Set()), 1500);
+  };
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -123,6 +130,7 @@ export default function Dashboard() {
           const totalCalls = count || 0;
           const missedCalls = data?.filter(c => !c.was_answered).length || 0;
           setStats(prev => ({ ...prev, totalCalls, missedCalls }));
+          triggerPulse(['totalCalls', 'missedCalls']);
         }
       )
       .subscribe();
@@ -139,6 +147,7 @@ export default function Dashboard() {
             .select("id", { count: "exact" })
             .eq("business_id", businessId);
           setStats(prev => ({ ...prev, conversations: count || 0 }));
+          triggerPulse(['conversations']);
         }
       )
       .subscribe();
@@ -155,6 +164,7 @@ export default function Dashboard() {
             .select("id", { count: "exact" })
             .eq("business_id", businessId);
           setStats(prev => ({ ...prev, appointments: count || 0 }));
+          triggerPulse(['appointments']);
         }
       )
       .subscribe();
@@ -172,6 +182,7 @@ export default function Dashboard() {
             .eq("business_id", businessId)
             .eq("status", "new");
           setStats(prev => ({ ...prev, inquiries: count || 0 }));
+          triggerPulse(['inquiries']);
         }
       )
       .subscribe();
@@ -321,10 +332,10 @@ export default function Dashboard() {
                   </>
                 ) : (
                   <>
-                    <Card className="bg-gray-800/50 border-gray-700">
+                    <Card className={`bg-gray-800/50 border-gray-700 transition-all duration-300 ${updatedStats.has('totalCalls') ? 'ring-2 ring-blue-400/50 animate-pulse' : ''}`}>
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-blue-500/20 rounded-lg">
+                          <div className={`p-2 bg-blue-500/20 rounded-lg transition-all duration-300 ${updatedStats.has('totalCalls') ? 'bg-blue-500/40 scale-110' : ''}`}>
                             <PhoneIncoming className="h-5 w-5 text-blue-400" />
                           </div>
                           <div>
@@ -335,10 +346,10 @@ export default function Dashboard() {
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-gray-800/50 border-gray-700">
+                    <Card className={`bg-gray-800/50 border-gray-700 transition-all duration-300 ${updatedStats.has('missedCalls') ? 'ring-2 ring-red-400/50 animate-pulse' : ''}`}>
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-red-500/20 rounded-lg">
+                          <div className={`p-2 bg-red-500/20 rounded-lg transition-all duration-300 ${updatedStats.has('missedCalls') ? 'bg-red-500/40 scale-110' : ''}`}>
                             <PhoneMissed className="h-5 w-5 text-red-400" />
                           </div>
                           <div>
@@ -349,10 +360,10 @@ export default function Dashboard() {
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-gray-800/50 border-gray-700">
+                    <Card className={`bg-gray-800/50 border-gray-700 transition-all duration-300 ${updatedStats.has('conversations') ? 'ring-2 ring-purple-400/50 animate-pulse' : ''}`}>
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-purple-500/20 rounded-lg">
+                          <div className={`p-2 bg-purple-500/20 rounded-lg transition-all duration-300 ${updatedStats.has('conversations') ? 'bg-purple-500/40 scale-110' : ''}`}>
                             <MessageSquare className="h-5 w-5 text-purple-400" />
                           </div>
                           <div>
@@ -363,10 +374,10 @@ export default function Dashboard() {
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-gray-800/50 border-gray-700">
+                    <Card className={`bg-gray-800/50 border-gray-700 transition-all duration-300 ${updatedStats.has('appointments') ? 'ring-2 ring-green-400/50 animate-pulse' : ''}`}>
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-green-500/20 rounded-lg">
+                          <div className={`p-2 bg-green-500/20 rounded-lg transition-all duration-300 ${updatedStats.has('appointments') ? 'bg-green-500/40 scale-110' : ''}`}>
                             <Calendar className="h-5 w-5 text-green-400" />
                           </div>
                           <div>

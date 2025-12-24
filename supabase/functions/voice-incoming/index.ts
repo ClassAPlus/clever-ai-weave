@@ -160,7 +160,7 @@ serve(async (req) => {
     } else if (enableAiReceptionist) {
       // No forward numbers - go directly to AI receptionist
       console.log("Connecting to AI receptionist for business:", business.id);
-      const realtimeWsUrl = `wss://${projectId}.functions.supabase.co/functions/v1/voice-realtime?businessId=${business.id}&callSid=${callSid}`;
+      const realtimeWsUrl = `wss://${projectId}.functions.supabase.co/voice-realtime?businessId=${business.id}&callSid=${callSid}`;
       twiml += `<Connect><Stream url="${realtimeWsUrl}"/></Connect>`;
     } else {
       // No forward numbers and AI disabled - play voice message

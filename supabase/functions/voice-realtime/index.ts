@@ -54,6 +54,10 @@ serve(async (req) => {
   const callSid = url.searchParams.get("callSid");
   
   console.log(`Voice realtime connection request: businessId=${businessId}, callSid=${callSid}`);
+  console.log(`Request method: ${req.method}`);
+  console.log(`Upgrade header: ${req.headers.get("upgrade")}`);
+  console.log(`Connection header: ${req.headers.get("connection")}`);
+  console.log(`OPENAI_API_KEY exists: ${!!OPENAI_API_KEY}`);
   
   // Fetch business settings
   let businessName = "our business";

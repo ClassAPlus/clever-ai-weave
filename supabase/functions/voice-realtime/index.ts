@@ -4,6 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
+const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -15,7 +17,82 @@ const LOG_EVENT_TYPES = [
   "input_audio_buffer.speech_stopped",
   "input_audio_buffer.speech_started",
   "session.created",
+  "response.function_call_arguments.done",
   "error"
+];
+
+// Tools for the AI to use
+const TOOLS = [
+  {
+    type: "function",
+    name: "create_appointment",
+    description: "Schedule a new appointment for the caller. Use this when the caller wants to book an appointment.",
+    parameters: {
+      type: "object",
+      properties: {
+        scheduled_date: {
+          type: "string",
+          description: "The date and time for the appointment in ISO 8601 format (e.g., 2025-09-25T12:00:00)"
+        },
+        service_type: {
+          type: "string",
+          description: "The type of service or reason for the appointment"
+        },
+        caller_name: {
+          type: "string",
+          description: "The name of the caller"
+        },
+        notes: {
+          type: "string",
+          description: "Any additional notes about the appointment"
+        }
+      },
+      required: ["scheduled_date"]
+    }
+  },
+  {
+    type: "function",
+    name: "send_confirmation_sms",
+    description: "Send an SMS confirmation to the caller. Use this when the caller asks for a confirmation message or after booking an appointment.",
+    parameters: {
+      type: "object",
+      properties: {
+        message: {
+          type: "string",
+          description: "The message to send to the caller"
+        }
+      },
+      required: ["message"]
+    }
+  },
+  {
+    type: "function",
+    name: "take_message",
+    description: "Record a message from the caller to pass along to the business owner.",
+    parameters: {
+      type: "object",
+      properties: {
+        caller_name: {
+          type: "string",
+          description: "The name of the caller"
+        },
+        message: {
+          type: "string",
+          description: "The message the caller wants to leave"
+        },
+        callback_requested: {
+          type: "boolean",
+          description: "Whether the caller requested a callback"
+        },
+        urgency: {
+          type: "string",
+          enum: ["low", "medium", "high"],
+          description: "The urgency level of the message"
+        }
+      },
+      required: ["message"]
+    }
+  }
 ];
 
 // System prompt for the AI receptionist
@@ -35,7 +112,7 @@ const getSystemPrompt = (businessName: string, instructions: string, language: s
   
   return `You are a friendly and professional AI receptionist for ${businessName}. 
 Speak in ${languageName}.
-Be concise but warm. Help callers with their questions, take messages, and schedule callbacks if needed.
+Be concise but warm. Help callers with their questions, take messages, and schedule appointments.
 
 ${instructions || "Answer questions helpfully and take messages when the caller wants to leave one."}
 
@@ -43,8 +120,41 @@ Important guidelines:
 - Keep responses brief (1-2 sentences when possible)
 - If you don't know something specific about the business, offer to take a message
 - Be polite and professional at all times
-- If the caller wants to speak to a human, let them know you'll pass along their message`;
+- If the caller wants to speak to a human, let them know you'll pass along their message
+- When scheduling appointments, ALWAYS use the create_appointment function to actually book it
+- When the caller asks for a confirmation SMS, ALWAYS use the send_confirmation_sms function to send it
+- When taking a message, ALWAYS use the take_message function to record it
+- After using a function, confirm to the caller that the action was completed`;
 };
+
+// Function to send SMS via Twilio
+async function sendSMS(from: string, to: string, body: string): Promise<{ sid: string }> {
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+    throw new Error("Twilio credentials not configured");
+  }
+  
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Basic ' + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`),
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      From: from,
+      To: to,
+      Body: body,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Twilio SMS error: ${errorText}`);
+  }
+
+  return await response.json();
+}
 
 serve(async (req) => {
   const url = new URL(req.url);
@@ -59,28 +169,47 @@ serve(async (req) => {
   console.log(`Connection header: ${req.headers.get("connection")}`);
   console.log(`OPENAI_API_KEY exists: ${!!OPENAI_API_KEY}`);
   
-  // Fetch business settings
+  // Fetch business settings and caller info
   let businessName = "our business";
   let instructions = "";
   let voiceLanguage = "en-US";
   let voice = "alloy";
+  let businessPhone = "";
+  let callerPhone = "";
+  let contactId: string | null = null;
   
   if (businessId) {
     try {
       const { data: business } = await supabase
         .from("businesses")
-        .select("name, ai_instructions, twilio_settings")
+        .select("name, ai_instructions, twilio_settings, twilio_phone_number")
         .eq("id", businessId)
         .single();
       
       if (business) {
         businessName = business.name || "our business";
         instructions = business.ai_instructions || "";
+        businessPhone = business.twilio_phone_number || "";
         const settings = business.twilio_settings as any;
         voiceLanguage = settings?.voiceLanguage || "en-US";
         const gender = settings?.voiceGender || "female";
         voice = gender === "male" ? "ash" : "alloy";
         console.log(`Loaded business: ${businessName}, language: ${voiceLanguage}, voice: ${voice}`);
+      }
+      
+      // Get caller phone from the call record
+      if (callSid) {
+        const { data: callRecord } = await supabase
+          .from("calls")
+          .select("caller_phone, contact_id")
+          .eq("twilio_call_sid", callSid)
+          .single();
+        
+        if (callRecord) {
+          callerPhone = callRecord.caller_phone;
+          contactId = callRecord.contact_id;
+          console.log(`Caller phone: ${callerPhone}, contact ID: ${contactId}`);
+        }
       }
     } catch (err) {
       console.error("Error fetching business:", err);
@@ -106,6 +235,140 @@ serve(async (req) => {
   let responseStartTimestamp: number | null = null;
   const markQueue: string[] = [];
   
+  // Handle function calls from the AI
+  const handleFunctionCall = async (functionName: string, args: any, callId: string) => {
+    console.log(`Handling function call: ${functionName}`, args);
+    let result = "";
+    
+    try {
+      switch (functionName) {
+        case "create_appointment": {
+          const { scheduled_date, service_type, caller_name, notes } = args;
+          
+          // Generate confirmation code
+          const confirmationCode = `APT-${Date.now().toString(36).toUpperCase()}`;
+          
+          // Create the appointment
+          const { data: appointment, error } = await supabase
+            .from("appointments")
+            .insert({
+              business_id: businessId,
+              contact_id: contactId,
+              scheduled_at: scheduled_date,
+              service_type: service_type || "General",
+              notes: notes ? `${caller_name ? `Caller: ${caller_name}. ` : ""}${notes}` : (caller_name || ""),
+              confirmation_code: confirmationCode,
+              status: "scheduled"
+            })
+            .select()
+            .single();
+          
+          if (error) {
+            console.error("Error creating appointment:", error);
+            result = JSON.stringify({ success: false, error: error.message });
+          } else {
+            console.log("Appointment created:", appointment);
+            result = JSON.stringify({ 
+              success: true, 
+              confirmation_code: confirmationCode,
+              scheduled_at: scheduled_date 
+            });
+            
+            // Automatically send confirmation SMS if we have the caller's phone
+            if (callerPhone && businessPhone) {
+              const confirmMsg = voiceLanguage.startsWith("he") 
+                ? `תור אושר ל-${businessName}. קוד אישור: ${confirmationCode}. תאריך: ${new Date(scheduled_date).toLocaleString('he-IL')}`
+                : `Appointment confirmed at ${businessName}. Confirmation: ${confirmationCode}. Date: ${new Date(scheduled_date).toLocaleString('en-US')}`;
+              
+              try {
+                await sendSMS(businessPhone, callerPhone, confirmMsg);
+                console.log("Confirmation SMS sent automatically");
+              } catch (smsErr) {
+                console.error("Failed to send auto confirmation SMS:", smsErr);
+              }
+            }
+          }
+          break;
+        }
+        
+        case "send_confirmation_sms": {
+          const { message } = args;
+          
+          if (!callerPhone || !businessPhone) {
+            result = JSON.stringify({ success: false, error: "Phone numbers not available" });
+          } else {
+            try {
+              const smsResult = await sendSMS(businessPhone, callerPhone, message);
+              console.log("SMS sent:", smsResult.sid);
+              result = JSON.stringify({ success: true, message_sid: smsResult.sid });
+            } catch (smsErr) {
+              console.error("Failed to send SMS:", smsErr);
+              result = JSON.stringify({ success: false, error: String(smsErr) });
+            }
+          }
+          break;
+        }
+        
+        case "take_message": {
+          const { caller_name, message, callback_requested, urgency } = args;
+          
+          // Create an inquiry record
+          const { data: inquiry, error } = await supabase
+            .from("inquiries")
+            .insert({
+              business_id: businessId,
+              contact_id: contactId,
+              summary: message,
+              priority: urgency || "medium",
+              status: callback_requested ? "pending" : "new"
+            })
+            .select()
+            .single();
+          
+          if (error) {
+            console.error("Error creating inquiry:", error);
+            result = JSON.stringify({ success: false, error: error.message });
+          } else {
+            console.log("Message recorded:", inquiry);
+            result = JSON.stringify({ success: true, inquiry_id: inquiry.id });
+            
+            // Update contact name if provided
+            if (caller_name && contactId) {
+              await supabase
+                .from("contacts")
+                .update({ name: caller_name })
+                .eq("id", contactId);
+            }
+          }
+          break;
+        }
+        
+        default:
+          result = JSON.stringify({ success: false, error: "Unknown function" });
+      }
+    } catch (err) {
+      console.error("Function call error:", err);
+      result = JSON.stringify({ success: false, error: String(err) });
+    }
+    
+    // Send function result back to OpenAI
+    if (openaiWs?.readyState === WebSocket.OPEN) {
+      const functionOutput = {
+        type: "conversation.item.create",
+        item: {
+          type: "function_call_output",
+          call_id: callId,
+          output: result
+        }
+      };
+      openaiWs.send(JSON.stringify(functionOutput));
+      console.log("Sent function output:", result);
+      
+      // Trigger response generation
+      openaiWs.send(JSON.stringify({ type: "response.create" }));
+    }
+  };
+  
   const sendSessionUpdate = () => {
     if (!openaiWs || openaiWs.readyState !== WebSocket.OPEN) return;
     
@@ -119,9 +382,11 @@ serve(async (req) => {
         instructions: getSystemPrompt(businessName, instructions, voiceLanguage),
         modalities: ["text", "audio"],
         temperature: 0.8,
+        tools: TOOLS,
+        tool_choice: "auto"
       }
     };
-    console.log("Sending session update");
+    console.log("Sending session update with tools");
     openaiWs.send(JSON.stringify(sessionUpdate));
   };
   
@@ -156,115 +421,6 @@ serve(async (req) => {
     markQueue.push("responsePart");
   };
   
-  const connectToOpenAI = () => {
-    console.log("Connecting to OpenAI Realtime API...");
-    
-    // Connect using fetch to get WebSocket with headers
-    openaiWs = new WebSocket(
-      "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17"
-    );
-    
-    // Note: Deno WebSocket doesn't support custom headers directly
-    // We need to send auth after connection or use a different approach
-    
-    openaiWs.onopen = () => {
-      console.log("OpenAI WebSocket connected, sending auth...");
-      // Send authentication via message since we can't use headers
-      // Actually OpenAI Realtime requires headers - let's try the protocol approach
-    };
-    
-    openaiWs.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (LOG_EVENT_TYPES.includes(data.type)) {
-          console.log(`OpenAI event: ${data.type}`);
-        }
-        
-        switch (data.type) {
-          case "session.created":
-            console.log("OpenAI session created, sending config...");
-            sendSessionUpdate();
-            setTimeout(sendInitialGreeting, 500);
-            break;
-            
-          case "response.audio.delta":
-            if (streamSid && data.delta) {
-              const audioMessage = {
-                event: "media",
-                streamSid: streamSid,
-                media: {
-                  payload: data.delta
-                }
-              };
-              if (twilioWs.readyState === WebSocket.OPEN) {
-                twilioWs.send(JSON.stringify(audioMessage));
-              }
-              
-              if (responseStartTimestamp === null) {
-                responseStartTimestamp = latestMediaTimestamp;
-              }
-              
-              if (data.item_id) {
-                lastAssistantItem = data.item_id;
-              }
-              
-              sendMark();
-            }
-            break;
-            
-          case "response.audio_transcript.done":
-            console.log(`AI said: ${data.transcript}`);
-            break;
-            
-          case "conversation.item.input_audio_transcription.completed":
-            console.log(`Caller said: ${data.transcript}`);
-            break;
-            
-          case "input_audio_buffer.speech_started":
-            console.log("Speech started - handling interruption");
-            if (markQueue.length > 0 && responseStartTimestamp !== null && lastAssistantItem) {
-              const elapsedTime = latestMediaTimestamp - responseStartTimestamp;
-              
-              const truncateEvent = {
-                type: "conversation.item.truncate",
-                item_id: lastAssistantItem,
-                content_index: 0,
-                audio_end_ms: elapsedTime
-              };
-              openaiWs?.send(JSON.stringify(truncateEvent));
-              
-              if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
-                twilioWs.send(JSON.stringify({
-                  event: "clear",
-                  streamSid: streamSid
-                }));
-              }
-              
-              markQueue.length = 0;
-              lastAssistantItem = null;
-              responseStartTimestamp = null;
-            }
-            break;
-            
-          case "error":
-            console.error("OpenAI error:", JSON.stringify(data.error));
-            break;
-        }
-      } catch (err) {
-        console.error("Error processing OpenAI message:", err);
-      }
-    };
-    
-    openaiWs.onerror = (err) => {
-      console.error("OpenAI WebSocket error:", err);
-    };
-    
-    openaiWs.onclose = (event) => {
-      console.log(`OpenAI WebSocket closed: code=${event.code}, reason=${event.reason}`);
-    };
-  };
-  
   twilioWs.onopen = () => {
     console.log("Twilio WebSocket connected");
   };
@@ -285,8 +441,6 @@ serve(async (req) => {
           latestMediaTimestamp = 0;
           lastAssistantItem = null;
           
-          // Now connect to OpenAI with auth headers via fetch upgrade
-          // Since Deno doesn't support headers on WebSocket, we'll try subprotocol
           console.log("Connecting to OpenAI with API key...");
           
           try {
@@ -334,6 +488,16 @@ serve(async (req) => {
                     
                   case "response.audio_transcript.done":
                     console.log(`AI: ${data.transcript}`);
+                    break;
+                    
+                  case "response.function_call_arguments.done":
+                    console.log(`Function call: ${data.name}`, data.arguments);
+                    try {
+                      const args = JSON.parse(data.arguments);
+                      handleFunctionCall(data.name, args, data.call_id);
+                    } catch (parseErr) {
+                      console.error("Failed to parse function arguments:", parseErr);
+                    }
                     break;
                     
                   case "input_audio_buffer.speech_started":

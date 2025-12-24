@@ -54,16 +54,8 @@ serve(async (req) => {
     const isMissedCall = ['no-answer', 'busy', 'failed', 'canceled'].includes(dialCallStatus);
     const wasAnswered = dialCallStatus === 'completed' && callDuration > 0;
 
-    // Check if ElevenLabs is configured and language is supported
-    const twilioSettings = business.twilio_settings || {};
-    const voiceId = twilioSettings.voiceId;
-    const voiceLanguage = twilioSettings.voiceLanguage || 'en-US';
-    
-    // Languages that ElevenLabs supports well
-    const elevenLabsSupportedLanguages = ['en-US', 'en-GB', 'es-ES', 'fr-FR', 'de-DE', 'pt-BR', 'pt-PT', 'it-IT', 'nl-NL', 'pl-PL', 'ru-RU'];
-    const languageSupportsElevenLabs = elevenLabsSupportedLanguages.some(lang => voiceLanguage.startsWith(lang.split('-')[0]));
-    
-    const useElevenLabs = !!voiceId && !!Deno.env.get('ELEVENLABS_API_KEY') && languageSupportsElevenLabs;
+    // Check if Google Cloud TTS is configured
+    const useGoogleTTS = !!Deno.env.get('GOOGLE_CLOUD_API_KEY');
     const projectId = 'wqhakzywmqirucmetnuo';
 
     console.log(`Call ${callSid}: status=${dialCallStatus}, answered=${wasAnswered}, duration=${callDuration}`);
@@ -182,11 +174,11 @@ serve(async (req) => {
     // Play missed call message if applicable, then hang up
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
     
-    if (isMissedCall && useElevenLabs) {
-      // Play ElevenLabs voice message for missed calls
+    if (isMissedCall && useGoogleTTS) {
+      // Play Google Cloud TTS voice message for missed calls
       const audioUrl = `https://${projectId}.supabase.co/functions/v1/voice-audio?business_id=${business.id}&type=missed-call`;
       twiml += `<Play>${audioUrl}</Play>`;
-      console.log("Playing ElevenLabs missed call message");
+      console.log("Playing Google Cloud TTS missed call message");
     }
     
     twiml += `<Hangup/></Response>`;

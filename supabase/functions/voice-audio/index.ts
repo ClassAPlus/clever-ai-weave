@@ -30,6 +30,30 @@ const DEFAULT_MESSAGES: Record<string, Record<string, string>> = {
   },
 };
 
+// Google Cloud TTS voices - organized by language
+const GOOGLE_VOICES: Record<string, { female: string; male: string }> = {
+  'he-IL': { female: 'he-IL-Wavenet-A', male: 'he-IL-Wavenet-B' },
+  'en-US': { female: 'en-US-Neural2-C', male: 'en-US-Neural2-D' },
+  'en-GB': { female: 'en-GB-Neural2-A', male: 'en-GB-Neural2-B' },
+  'ar-XA': { female: 'ar-XA-Wavenet-A', male: 'ar-XA-Wavenet-B' },
+  'es-ES': { female: 'es-ES-Neural2-A', male: 'es-ES-Neural2-B' },
+  'fr-FR': { female: 'fr-FR-Neural2-A', male: 'fr-FR-Neural2-B' },
+  'de-DE': { female: 'de-DE-Neural2-A', male: 'de-DE-Neural2-B' },
+  'pt-BR': { female: 'pt-BR-Neural2-A', male: 'pt-BR-Neural2-B' },
+  'pt-PT': { female: 'pt-PT-Wavenet-A', male: 'pt-PT-Wavenet-B' },
+  'it-IT': { female: 'it-IT-Neural2-A', male: 'it-IT-Neural2-C' },
+  'nl-NL': { female: 'nl-NL-Wavenet-A', male: 'nl-NL-Wavenet-B' },
+  'pl-PL': { female: 'pl-PL-Wavenet-A', male: 'pl-PL-Wavenet-B' },
+  'ru-RU': { female: 'ru-RU-Wavenet-A', male: 'ru-RU-Wavenet-B' },
+  'zh-CN': { female: 'cmn-CN-Wavenet-A', male: 'cmn-CN-Wavenet-B' },
+  'ja-JP': { female: 'ja-JP-Neural2-B', male: 'ja-JP-Neural2-C' },
+  'ko-KR': { female: 'ko-KR-Neural2-A', male: 'ko-KR-Neural2-C' },
+  'tr-TR': { female: 'tr-TR-Wavenet-A', male: 'tr-TR-Wavenet-B' },
+  'hi-IN': { female: 'hi-IN-Neural2-A', male: 'hi-IN-Neural2-B' },
+  'th-TH': { female: 'th-TH-Standard-A', male: 'th-TH-Standard-A' },
+  'vi-VN': { female: 'vi-VN-Wavenet-A', male: 'vi-VN-Wavenet-B' },
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -66,8 +90,9 @@ serve(async (req) => {
     }
 
     const twilioSettings = business.twilio_settings || {};
-    const voiceId = twilioSettings.voiceId || 'EXAVITQu4vr4xnSDxMaL'; // Default to Sarah
     const voiceLanguage = twilioSettings.voiceLanguage || 'en-US';
+    const voiceGender = twilioSettings.voiceGender || 'female';
+    const customVoiceName = twilioSettings.googleVoiceName;
 
     // Determine the text to speak
     let textToSpeak = customText;
@@ -85,52 +110,69 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Generating audio with voice=${voiceId}, text="${textToSpeak.substring(0, 50)}..."`);
-
-    const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
-    if (!ELEVENLABS_API_KEY) {
-      console.error("ELEVENLABS_API_KEY not configured");
+    // Get Google Cloud API key
+    const GOOGLE_CLOUD_API_KEY = Deno.env.get('GOOGLE_CLOUD_API_KEY');
+    if (!GOOGLE_CLOUD_API_KEY) {
+      console.error("GOOGLE_CLOUD_API_KEY not configured");
       return new Response("Voice service not configured", { status: 500, headers: corsHeaders });
     }
 
-    // Generate audio with ElevenLabs
-    const elevenLabsResponse = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+    // Determine the voice to use
+    const voiceConfig = GOOGLE_VOICES[voiceLanguage] || GOOGLE_VOICES['en-US'];
+    const voiceName = customVoiceName || (voiceGender === 'male' ? voiceConfig.male : voiceConfig.female);
+    const ssmlGender = voiceGender === 'male' ? 'MALE' : 'FEMALE';
+
+    console.log(`Generating audio with Google TTS: voice=${voiceName}, lang=${voiceLanguage}, text="${textToSpeak.substring(0, 50)}..."`);
+
+    // Generate audio with Google Cloud TTS
+    const googleResponse = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GOOGLE_CLOUD_API_KEY}`,
       {
         method: 'POST',
         headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: textToSpeak,
-          model_id: 'eleven_multilingual_v2',
-          output_format: 'mp3_44100_128',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.3,
-            use_speaker_boost: true,
+          input: { text: textToSpeak },
+          voice: {
+            languageCode: voiceLanguage,
+            name: voiceName,
+            ssmlGender: ssmlGender,
+          },
+          audioConfig: {
+            audioEncoding: 'MP3',
+            speakingRate: 1.0,
+            pitch: 0,
+            effectsProfileId: ['telephony-class-application'],
           },
         }),
       }
     );
 
-    if (!elevenLabsResponse.ok) {
-      const errorText = await elevenLabsResponse.text();
-      console.error("ElevenLabs API error:", elevenLabsResponse.status, errorText);
+    if (!googleResponse.ok) {
+      const errorText = await googleResponse.text();
+      console.error("Google TTS API error:", googleResponse.status, errorText);
       return new Response("Voice generation failed", { status: 500, headers: corsHeaders });
     }
 
-    const audioBuffer = await elevenLabsResponse.arrayBuffer();
-    console.log(`Audio generated successfully, size: ${audioBuffer.byteLength} bytes`);
+    const data = await googleResponse.json();
+    const audioContent = data.audioContent;
+
+    // Decode base64 to binary
+    const binaryString = atob(audioContent);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    console.log(`Audio generated successfully, size: ${bytes.byteLength} bytes`);
 
     // Return the audio directly - Twilio will fetch this
-    return new Response(audioBuffer, {
+    return new Response(bytes, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'audio/mpeg',
-        'Content-Length': audioBuffer.byteLength.toString(),
+        'Content-Length': bytes.byteLength.toString(),
         'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
       },
     });

@@ -122,6 +122,18 @@ serve(async (req) => {
         'es-ES': { female: 'Polly.Conchita', male: 'Polly.Enrique' },
         'fr-FR': { female: 'Polly.Celine', male: 'Polly.Mathieu' },
         'de-DE': { female: 'Polly.Marlene', male: 'Polly.Hans' },
+        'pt-BR': { female: 'Polly.Vitoria', male: 'Polly.Ricardo' },
+        'pt-PT': { female: 'Polly.Ines', male: 'Polly.Cristiano' },
+        'zh-CN': { female: 'Polly.Zhiyu', male: 'Polly.Zhiyu' },
+        'ja-JP': { female: 'Polly.Mizuki', male: 'Polly.Takumi' },
+        'ko-KR': { female: 'Polly.Seoyeon', male: 'Polly.Seoyeon' },
+        'it-IT': { female: 'Polly.Carla', male: 'Polly.Giorgio' },
+        'nl-NL': { female: 'Polly.Lotte', male: 'Polly.Ruben' },
+        'pl-PL': { female: 'Polly.Ewa', male: 'Polly.Jacek' },
+        'tr-TR': { female: 'Polly.Filiz', male: 'Polly.Filiz' },
+        'hi-IN': { female: 'Polly.Aditi', male: 'Polly.Aditi' },
+        'th-TH': { female: 'Polly.Achara', male: 'Polly.Achara' },
+        'vi-VN': { female: 'Polly.Joanna', male: 'Polly.Matthew' }, // Fallback to English
       };
       return voiceMap[lang]?.[gender] || voiceMap['en-US'][gender] || 'Polly.Joanna';
     };

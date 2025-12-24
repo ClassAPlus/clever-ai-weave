@@ -29,6 +29,18 @@ const VOICE_LANGUAGES = [
   { value: "es-ES", label: "Spanish", sampleText: "¡Hola! Bienvenido. ¿Cómo puedo ayudarte hoy?" },
   { value: "fr-FR", label: "French", sampleText: "Bonjour! Bienvenue. Comment puis-je vous aider?" },
   { value: "de-DE", label: "German", sampleText: "Hallo! Willkommen. Wie kann ich Ihnen helfen?" },
+  { value: "pt-BR", label: "Portuguese (Brazil)", sampleText: "Olá! Bem-vindo. Como posso ajudá-lo hoje?" },
+  { value: "pt-PT", label: "Portuguese (Portugal)", sampleText: "Olá! Bem-vindo. Como posso ajudá-lo hoje?" },
+  { value: "zh-CN", label: "Chinese (Mandarin)", sampleText: "您好！欢迎光临。今天我能为您做些什么？" },
+  { value: "ja-JP", label: "Japanese", sampleText: "こんにちは！ようこそ。本日はどのようなご用件でしょうか？" },
+  { value: "ko-KR", label: "Korean", sampleText: "안녕하세요! 환영합니다. 무엇을 도와드릴까요?" },
+  { value: "it-IT", label: "Italian", sampleText: "Ciao! Benvenuto. Come posso aiutarti oggi?" },
+  { value: "nl-NL", label: "Dutch", sampleText: "Hallo! Welkom. Hoe kan ik u helpen?" },
+  { value: "pl-PL", label: "Polish", sampleText: "Cześć! Witamy. Jak mogę pomóc?" },
+  { value: "tr-TR", label: "Turkish", sampleText: "Merhaba! Hoş geldiniz. Size nasıl yardımcı olabilirim?" },
+  { value: "hi-IN", label: "Hindi", sampleText: "नमस्ते! स्वागत है। आज मैं आपकी कैसे मदद कर सकता हूं?" },
+  { value: "th-TH", label: "Thai", sampleText: "สวัสดีครับ! ยินดีต้อนรับ วันนี้ให้ช่วยอะไรได้บ้างครับ?" },
+  { value: "vi-VN", label: "Vietnamese", sampleText: "Xin chào! Chào mừng. Tôi có thể giúp gì cho bạn?" },
 ];
 
 export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSettingsProps) {

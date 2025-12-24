@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen } from "lucide-react";
+import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen, Code } from "lucide-react";
 import { Json } from "@/integrations/supabase/types";
 import { IndustryTemplateSelector, INDUSTRY_TEMPLATES } from "@/components/settings/IndustryTemplateSelector";
 import { AIPersonalitySettings, AIPersonality } from "@/components/settings/AIPersonalitySettings";
@@ -21,6 +21,11 @@ import { CustomGreetingsEditor, GreetingMessages } from "@/components/settings/C
 import { CustomToolsToggle } from "@/components/settings/CustomToolsToggle";
 import { KnowledgeBaseEditor, KnowledgeBase } from "@/components/settings/KnowledgeBaseEditor";
 import { AIResponsePreview } from "@/components/settings/AIResponsePreview";
+import { APIStatusDashboard } from "@/components/settings/APIStatusDashboard";
+import { WebhookURLs } from "@/components/settings/WebhookURLs";
+import { DebugTools } from "@/components/settings/DebugTools";
+import { DataExport } from "@/components/settings/DataExport";
+import { TwilioAdvancedSettings } from "@/components/settings/TwilioAdvancedSettings";
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -505,6 +510,10 @@ export default function Settings() {
           <TabsTrigger value="ai" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
             <Bot className="h-4 w-4 mr-2" />
             AI Assistant
+          </TabsTrigger>
+          <TabsTrigger value="developer" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+            <Code className="h-4 w-4 mr-2" />
+            Developer
           </TabsTrigger>
         </TabsList>
 
@@ -1077,6 +1086,43 @@ export default function Settings() {
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Developer Tab */}
+        <TabsContent value="developer" className="space-y-6">
+          {/* API Status Dashboard */}
+          {business && <APIStatusDashboard businessId={business.id} />}
+
+          {/* Webhook URLs */}
+          <WebhookURLs />
+
+          {/* Debug Tools */}
+          {business && (
+            <DebugTools
+              businessId={business.id}
+              businessName={name}
+              ownerPhone={ownerPhone}
+              twilioPhoneNumber={business.twilio_phone_number}
+            />
+          )}
+
+          {/* Data Export */}
+          {business && <DataExport businessId={business.id} />}
+
+          {/* Advanced Twilio Settings */}
+          <TwilioAdvancedSettings
+            settings={{
+              voiceLanguage: "he-IL",
+              voiceGender: "female",
+              ringTimeout: 30,
+              dailyMessageLimit: 10,
+              rateLimitWindow: 5,
+            }}
+            onChange={(settings) => {
+              // These could be saved to the database if needed
+              console.log("Twilio settings changed:", settings);
+            }}
+          />
         </TabsContent>
       </Tabs>
 

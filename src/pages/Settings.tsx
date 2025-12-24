@@ -26,6 +26,7 @@ import { WebhookURLs } from "@/components/settings/WebhookURLs";
 import { DebugTools } from "@/components/settings/DebugTools";
 import { DataExport } from "@/components/settings/DataExport";
 import { TwilioAdvancedSettings } from "@/components/settings/TwilioAdvancedSettings";
+import { AdminRoleManager } from "@/components/settings/AdminRoleManager";
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -1145,6 +1146,9 @@ export default function Settings() {
               settings={twilioSettings}
               onChange={setTwilioSettings}
             />
+
+            {/* Admin Role Management */}
+            <AdminRoleManager />
           </TabsContent>
         )}
       </Tabs>

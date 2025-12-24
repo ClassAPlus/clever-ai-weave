@@ -29,3 +29,6 @@ verify_jwt = true
 
 [functions.ai-preview]
 verify_jwt = true
+
+[functions.test-api-connections]
+verify_jwt = true

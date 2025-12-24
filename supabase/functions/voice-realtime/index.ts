@@ -123,8 +123,19 @@ const TOOLS = [
   }
 ];
 
+// Contact history context for AI
+interface CallerContext {
+  name: string | null;
+  email: string | null;
+  notes: string | null;
+  tags: string[] | null;
+  appointments: Array<{ scheduled_at: string; service_type: string | null; status: string | null }>;
+  recentConversations: Array<{ created_at: string; last_message: string }>;
+  callHistory: Array<{ created_at: string; was_answered: boolean; duration_seconds: number | null }>;
+}
+
 // System prompt for the AI receptionist
-const getSystemPrompt = (businessName: string, instructions: string, language: string, contactName: string | null) => {
+const getSystemPrompt = (businessName: string, instructions: string, language: string, callerContext: CallerContext) => {
   const langMap: Record<string, string> = {
     "he-IL": "Hebrew",
     "en-US": "English",
@@ -137,13 +148,63 @@ const getSystemPrompt = (businessName: string, instructions: string, language: s
   };
   
   const languageName = langMap[language] || "English";
-  const knownCallerInfo = contactName ? `The caller's name is ${contactName}. Use their name naturally in conversation.` : "";
+  
+  // Build context about the caller
+  let callerInfo = "";
+  
+  if (callerContext.name) {
+    callerInfo += `The caller's name is ${callerContext.name}. Use their name naturally in conversation.\n`;
+  }
+  
+  if (callerContext.email) {
+    callerInfo += `Their email is ${callerContext.email}.\n`;
+  }
+  
+  if (callerContext.notes) {
+    callerInfo += `Notes about this caller: ${callerContext.notes}\n`;
+  }
+  
+  if (callerContext.tags && callerContext.tags.length > 0) {
+    callerInfo += `Tags: ${callerContext.tags.join(", ")}\n`;
+  }
+  
+  // Appointment history
+  if (callerContext.appointments.length > 0) {
+    const upcoming = callerContext.appointments.filter(a => new Date(a.scheduled_at) > new Date() && a.status !== 'cancelled');
+    const past = callerContext.appointments.filter(a => new Date(a.scheduled_at) <= new Date() || a.status === 'completed');
+    
+    if (upcoming.length > 0) {
+      const nextAppt = upcoming[0];
+      const apptDate = new Date(nextAppt.scheduled_at).toLocaleString(language.startsWith('he') ? 'he-IL' : 'en-US');
+      callerInfo += `They have an upcoming appointment on ${apptDate} for ${nextAppt.service_type || 'a service'}.\n`;
+    }
+    
+    if (past.length > 0) {
+      callerInfo += `They have had ${past.length} previous appointment(s) with us.\n`;
+    }
+  }
+  
+  // Conversation history
+  if (callerContext.recentConversations.length > 0) {
+    const lastConvo = callerContext.recentConversations[0];
+    const convoDate = new Date(lastConvo.created_at).toLocaleDateString(language.startsWith('he') ? 'he-IL' : 'en-US');
+    callerInfo += `Last SMS conversation was on ${convoDate}. Last message: "${lastConvo.last_message.substring(0, 100)}${lastConvo.last_message.length > 100 ? '...' : ''}"\n`;
+  }
+  
+  // Call history
+  if (callerContext.callHistory.length > 0) {
+    const totalCalls = callerContext.callHistory.length;
+    const answeredCalls = callerContext.callHistory.filter(c => c.was_answered).length;
+    callerInfo += `They have called us ${totalCalls} time(s) before (${answeredCalls} answered).\n`;
+  }
+  
+  const isReturningCaller = callerContext.name || callerContext.callHistory.length > 0 || callerContext.appointments.length > 0;
   
   return `You are a friendly and professional AI receptionist for ${businessName}. 
 Speak in ${languageName}.
 Be concise but warm. Help callers with their questions, take messages, and schedule appointments.
 
-${knownCallerInfo}
+${callerInfo ? `=== CALLER CONTEXT (Use this to personalize the conversation) ===\n${callerInfo}${isReturningCaller ? 'This is a returning caller - acknowledge their history warmly.\n' : ''}===\n\n` : ''}
 
 ${instructions || "Answer questions helpfully and take messages when the caller wants to leave one."}
 
@@ -156,6 +217,8 @@ CRITICAL: COLLECTING CALLER INFORMATION
 
 Important guidelines:
 - Keep responses brief (1-2 sentences when possible)
+- If they have an upcoming appointment, proactively mention it if relevant
+- If they're a returning caller, reference their history naturally (don't read out all details)
 - If you don't know something specific about the business, offer to take a message
 - Be polite and professional at all times
 - If the caller wants to speak to a human, let them know you'll pass along their message
@@ -216,7 +279,15 @@ serve(async (req) => {
   let businessPhone = "";
   let callerPhone = "";
   let contactId: string | null = null;
-  let contactName: string | null = null;
+  let callerContext: CallerContext = {
+    name: null,
+    email: null,
+    notes: null,
+    tags: null,
+    appointments: [],
+    recentConversations: [],
+    callHistory: []
+  };
   
   if (businessId) {
     try {
@@ -248,13 +319,68 @@ serve(async (req) => {
         if (callRecord) {
           callerPhone = callRecord.caller_phone;
           contactId = callRecord.contact_id;
-          // Get contact name if we have it
+          
+          // Get contact details
           const contactData = callRecord.contacts as any;
           if (contactData) {
-            contactName = contactData.name;
-            console.log(`Known contact: ${contactName || 'Unknown'}, email: ${contactData.email || 'none'}`);
+            callerContext.name = contactData.name;
+            callerContext.email = contactData.email;
+            callerContext.notes = contactData.notes;
+            callerContext.tags = contactData.tags;
+            console.log(`Known contact: ${callerContext.name || 'Unknown'}, email: ${callerContext.email || 'none'}`);
           }
           console.log(`Caller phone: ${callerPhone}, contact ID: ${contactId}`);
+          
+          // Fetch appointments for this contact
+          if (contactId) {
+            const { data: appointments } = await supabase
+              .from("appointments")
+              .select("scheduled_at, service_type, status")
+              .eq("contact_id", contactId)
+              .order("scheduled_at", { ascending: false })
+              .limit(5);
+            
+            if (appointments) {
+              callerContext.appointments = appointments;
+              console.log(`Found ${appointments.length} appointments for contact`);
+            }
+            
+            // Fetch recent conversations with last message
+            const { data: conversations } = await supabase
+              .from("conversations")
+              .select("id, created_at, messages(content, created_at, direction)")
+              .eq("contact_id", contactId)
+              .order("created_at", { ascending: false })
+              .limit(3);
+            
+            if (conversations) {
+              callerContext.recentConversations = conversations.map((conv: any) => {
+                const messages = conv.messages || [];
+                const lastMsg = messages.sort((a: any, b: any) => 
+                  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                )[0];
+                return {
+                  created_at: conv.created_at,
+                  last_message: lastMsg?.content || ""
+                };
+              }).filter((c: any) => c.last_message);
+              console.log(`Found ${callerContext.recentConversations.length} recent conversations`);
+            }
+            
+            // Fetch call history
+            const { data: callHistory } = await supabase
+              .from("calls")
+              .select("created_at, was_answered, duration_seconds")
+              .eq("contact_id", contactId)
+              .neq("twilio_call_sid", callSid) // Exclude current call
+              .order("created_at", { ascending: false })
+              .limit(10);
+            
+            if (callHistory) {
+              callerContext.callHistory = callHistory;
+              console.log(`Found ${callHistory.length} previous calls`);
+            }
+          }
         }
       }
     } catch (err) {
@@ -454,7 +580,7 @@ serve(async (req) => {
         input_audio_format: "g711_ulaw",
         output_audio_format: "g711_ulaw",
         voice: voice,
-        instructions: getSystemPrompt(businessName, instructions, voiceLanguage, contactName),
+        instructions: getSystemPrompt(businessName, instructions, voiceLanguage, callerContext),
         modalities: ["text", "audio"],
         temperature: 0.8,
         tools: TOOLS,

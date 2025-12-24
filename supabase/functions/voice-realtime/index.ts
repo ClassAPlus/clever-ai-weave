@@ -170,6 +170,21 @@ const TOOLS = [
       },
       required: []
     }
+  },
+  {
+    type: "function",
+    name: "get_services_info",
+    description: "Get information about available services and pricing. Use this when the caller asks about what services are offered, how much something costs, pricing, rates, or wants to know what the business does.",
+    parameters: {
+      type: "object",
+      properties: {
+        service_name: {
+          type: "string",
+          description: "Optional: specific service to get details about. If not provided, returns all available services."
+        }
+      },
+      required: []
+    }
   }
 ];
 
@@ -343,7 +358,7 @@ serve(async (req) => {
     try {
       const { data: business } = await supabase
         .from("businesses")
-        .select("name, ai_instructions, twilio_settings, twilio_phone_number, business_hours, timezone")
+        .select("name, ai_instructions, twilio_settings, twilio_phone_number, business_hours, timezone, services, knowledge_base")
         .eq("id", businessId)
         .single();
       
@@ -358,7 +373,10 @@ serve(async (req) => {
         // Store business hours for the check_business_hours tool
         (globalThis as any).__businessHours = business.business_hours;
         (globalThis as any).__businessTimezone = business.timezone || "UTC";
-        console.log(`Loaded business: ${businessName}, language: ${voiceLanguage}, voice: ${voice}`);
+        // Store services and knowledge base for the get_services_info tool
+        (globalThis as any).__businessServices = business.services || [];
+        (globalThis as any).__knowledgeBase = business.knowledge_base || {};
+        console.log(`Loaded business: ${businessName}, language: ${voiceLanguage}, voice: ${voice}, services: ${(business.services || []).length}`);
       }
       
       // Get caller phone and contact info from the call record
@@ -811,6 +829,82 @@ serve(async (req) => {
               }
             }
           }
+          break;
+        }
+        
+        case "get_services_info": {
+          const { service_name } = args;
+          const services: string[] = (globalThis as any).__businessServices || [];
+          const knowledgeBase: any = (globalThis as any).__knowledgeBase || {};
+          
+          // Check if knowledge base has pricing or service details
+          const pricingInfo = knowledgeBase.pricing || knowledgeBase.prices || null;
+          const serviceDetails = knowledgeBase.services || knowledgeBase.serviceDetails || null;
+          
+          if (service_name) {
+            // Looking for a specific service
+            const searchName = service_name.toLowerCase();
+            const matchedService = services.find((s: string) => 
+              s.toLowerCase().includes(searchName) || searchName.includes(s.toLowerCase())
+            );
+            
+            if (matchedService) {
+              // Check if we have detailed info in knowledge base
+              let details = null;
+              let price = null;
+              
+              if (serviceDetails && typeof serviceDetails === 'object') {
+                details = serviceDetails[matchedService] || serviceDetails[searchName] || null;
+              }
+              
+              if (pricingInfo && typeof pricingInfo === 'object') {
+                price = pricingInfo[matchedService] || pricingInfo[searchName] || null;
+              }
+              
+              result = JSON.stringify({
+                success: true,
+                service: matchedService,
+                details: details,
+                price: price,
+                message: price 
+                  ? `${matchedService} is available at ${price}. ${details || ''}`
+                  : `${matchedService} is available. ${details || 'For specific pricing, please speak with a team member.'}`
+              });
+            } else {
+              result = JSON.stringify({
+                success: false,
+                available_services: services,
+                message: `I couldn't find a service matching "${service_name}". Our available services are: ${services.join(', ')}.`
+              });
+            }
+          } else {
+            // Return all services
+            if (services.length === 0) {
+              result = JSON.stringify({
+                success: true,
+                services: [],
+                message: "Service information is not currently configured. Please speak with a team member for details on our offerings."
+              });
+            } else {
+              // Build comprehensive service list with any available pricing
+              const serviceList = services.map((service: string) => {
+                let price = null;
+                if (pricingInfo && typeof pricingInfo === 'object') {
+                  price = pricingInfo[service] || null;
+                }
+                return price ? `${service} (${price})` : service;
+              });
+              
+              result = JSON.stringify({
+                success: true,
+                services: services,
+                pricing: pricingInfo,
+                service_details: serviceDetails,
+                message: `We offer the following services: ${serviceList.join(', ')}. Would you like more details about any specific service?`
+              });
+            }
+          }
+          console.log("Services info:", result);
           break;
         }
         

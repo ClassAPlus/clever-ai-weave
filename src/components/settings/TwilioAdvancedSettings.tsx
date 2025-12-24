@@ -161,8 +161,8 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
   const [customText, setCustomText] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const updateSetting = <K extends keyof TwilioSettings>(key: K, value: TwilioSettings[K]) => {
-    onChange({ ...settings, [key]: value });
+  const updateSettings = (patch: Partial<TwilioSettings>) => {
+    onChange({ ...settings, ...patch });
   };
 
   const stopAudio = () => {
@@ -284,13 +284,13 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
               <Select
                 value={settings.voiceLanguage}
                 onValueChange={(value) => {
-                  updateSetting("voiceLanguage", value);
                   // Auto-select first voice of the current gender for new language
-                  const newVoices = GOOGLE_VOICES[value] || GOOGLE_VOICES['en-US'];
-                  const firstVoice = newVoices.find(v => v.gender === settings.voiceGender) || newVoices[0];
-                  if (firstVoice) {
-                    updateSetting("googleVoiceName", firstVoice.name);
-                  }
+                  const newVoices = GOOGLE_VOICES[value] || GOOGLE_VOICES["en-US"];
+                  const firstVoice = newVoices.find((v) => v.gender === settings.voiceGender) || newVoices[0];
+                  updateSettings({
+                    voiceLanguage: value,
+                    googleVoiceName: firstVoice?.name || getDefaultVoice(value, settings.voiceGender),
+                  });
                 }}
               >
                 <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
@@ -311,13 +311,14 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
               <Select
                 value={settings.voiceGender}
                 onValueChange={(value) => {
-                  updateSetting("voiceGender", value);
                   // Auto-select first voice of the new gender
-                  const voices = GOOGLE_VOICES[settings.voiceLanguage] || GOOGLE_VOICES['en-US'];
-                  const firstVoice = voices.find(v => v.gender === value);
-                  if (firstVoice) {
-                    updateSetting("googleVoiceName", firstVoice.name);
-                  }
+                  const voices = GOOGLE_VOICES[settings.voiceLanguage] || GOOGLE_VOICES["en-US"];
+                  const firstVoice = voices.find((v) => v.gender === value) || voices[0];
+                  updateSettings({
+                    voiceGender: value,
+                    googleVoiceName:
+                      firstVoice?.name || getDefaultVoice(settings.voiceLanguage, value),
+                  });
                 }}
               >
                 <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
@@ -339,7 +340,7 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
             </Label>
             <Select
               value={settings.googleVoiceName || getDefaultVoice(settings.voiceLanguage, settings.voiceGender)}
-              onValueChange={(value) => updateSetting("googleVoiceName", value)}
+              onValueChange={(value) => updateSettings({ googleVoiceName: value })}
             >
               <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                 <SelectValue>
@@ -423,7 +424,7 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
             </div>
             <Slider
               value={[settings.ringTimeout]}
-              onValueChange={([value]) => updateSetting("ringTimeout", value)}
+              onValueChange={([value]) => updateSettings({ ringTimeout: value })}
               min={10}
               max={60}
               step={5}
@@ -449,7 +450,7 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
             </div>
             <Slider
               value={[settings.dailyMessageLimit]}
-              onValueChange={([value]) => updateSetting("dailyMessageLimit", value)}
+              onValueChange={([value]) => updateSettings({ dailyMessageLimit: value })}
               min={1}
               max={50}
               step={1}
@@ -467,7 +468,7 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
             </div>
             <Slider
               value={[settings.rateLimitWindow]}
-              onValueChange={([value]) => updateSetting("rateLimitWindow", value)}
+              onValueChange={([value]) => updateSettings({ rateLimitWindow: value })}
               min={1}
               max={60}
               step={1}

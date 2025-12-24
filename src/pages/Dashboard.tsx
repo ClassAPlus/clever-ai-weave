@@ -102,6 +102,87 @@ export default function Dashboard() {
       fetchBusiness();
     }
   }, [user, fetchBusiness]);
+
+  // Real-time subscriptions for stats updates
+  useEffect(() => {
+    if (!business?.id) return;
+
+    const businessId = business.id;
+
+    // Subscribe to calls changes
+    const callsChannel = supabase
+      .channel('dashboard-calls')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'calls', filter: `business_id=eq.${businessId}` },
+        async () => {
+          const { data, count } = await supabase
+            .from("calls")
+            .select("id, was_answered", { count: "exact" })
+            .eq("business_id", businessId);
+          const totalCalls = count || 0;
+          const missedCalls = data?.filter(c => !c.was_answered).length || 0;
+          setStats(prev => ({ ...prev, totalCalls, missedCalls }));
+        }
+      )
+      .subscribe();
+
+    // Subscribe to conversations changes
+    const convsChannel = supabase
+      .channel('dashboard-conversations')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversations', filter: `business_id=eq.${businessId}` },
+        async () => {
+          const { count } = await supabase
+            .from("conversations")
+            .select("id", { count: "exact" })
+            .eq("business_id", businessId);
+          setStats(prev => ({ ...prev, conversations: count || 0 }));
+        }
+      )
+      .subscribe();
+
+    // Subscribe to appointments changes
+    const apptsChannel = supabase
+      .channel('dashboard-appointments')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments', filter: `business_id=eq.${businessId}` },
+        async () => {
+          const { count } = await supabase
+            .from("appointments")
+            .select("id", { count: "exact" })
+            .eq("business_id", businessId);
+          setStats(prev => ({ ...prev, appointments: count || 0 }));
+        }
+      )
+      .subscribe();
+
+    // Subscribe to inquiries changes
+    const inquiriesChannel = supabase
+      .channel('dashboard-inquiries')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inquiries', filter: `business_id=eq.${businessId}` },
+        async () => {
+          const { count } = await supabase
+            .from("inquiries")
+            .select("id", { count: "exact" })
+            .eq("business_id", businessId)
+            .eq("status", "new");
+          setStats(prev => ({ ...prev, inquiries: count || 0 }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(callsChannel);
+      supabase.removeChannel(convsChannel);
+      supabase.removeChannel(apptsChannel);
+      supabase.removeChannel(inquiriesChannel);
+    };
+  }, [business?.id]);
   const handleSignOut = async () => {
     await signOut();
     navigate("/");

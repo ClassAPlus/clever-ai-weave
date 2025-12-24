@@ -146,6 +146,7 @@ export type Database = {
           timezone: string | null
           twilio_phone_number: string | null
           twilio_phone_number_sid: string | null
+          twilio_settings: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -173,6 +174,7 @@ export type Database = {
           timezone?: string | null
           twilio_phone_number?: string | null
           twilio_phone_number_sid?: string | null
+          twilio_settings?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -200,6 +202,7 @@ export type Database = {
           timezone?: string | null
           twilio_phone_number?: string | null
           twilio_phone_number_sid?: string | null
+          twilio_settings?: Json | null
           updated_at?: string | null
         }
         Relationships: []

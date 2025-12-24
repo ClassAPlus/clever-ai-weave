@@ -108,18 +108,13 @@ serve(async (req) => {
     // Get Twilio settings from business configuration
     const twilioSettings = business.twilio_settings || {};
     const ringTimeout = twilioSettings.ringTimeout || 30;
-    const voiceId = twilioSettings.voiceId;
     const voiceLanguage = twilioSettings.voiceLanguage || 'he-IL';
     const voiceGender = twilioSettings.voiceGender || 'female';
 
-    // Languages that ElevenLabs supports well (not Hebrew, Arabic, etc.)
-    const elevenLabsSupportedLanguages = ['en-US', 'en-GB', 'es-ES', 'fr-FR', 'de-DE', 'pt-BR', 'pt-PT', 'it-IT', 'nl-NL', 'pl-PL', 'ru-RU'];
-    const languageSupportsElevenLabs = elevenLabsSupportedLanguages.some(lang => voiceLanguage.startsWith(lang.split('-')[0]));
+    // Check if Google Cloud TTS is configured
+    const useGoogleTTS = !!Deno.env.get('GOOGLE_CLOUD_API_KEY');
     
-    // Only use ElevenLabs for supported languages
-    const useElevenLabs = !!voiceId && !!Deno.env.get('ELEVENLABS_API_KEY') && languageSupportsElevenLabs;
-    
-    // Map language codes to Twilio voice names (fallback)
+    // Map language codes to Twilio voice names (fallback if Google TTS not available)
     const getVoiceName = (lang: string, gender: string): string => {
       const voiceMap: Record<string, Record<string, string>> = {
         'he-IL': { female: 'Polly.Adina', male: 'Polly.Adina' },
@@ -147,7 +142,7 @@ serve(async (req) => {
     };
 
     const pollyVoiceName = getVoiceName(voiceLanguage, voiceGender);
-    console.log("Using settings - timeout:", ringTimeout, "ElevenLabs:", useElevenLabs, "language:", voiceLanguage);
+    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage);
 
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
 
@@ -164,11 +159,11 @@ serve(async (req) => {
       // No forward numbers configured - play voice message
       console.log("No forward numbers configured for business:", business.id);
       
-      if (useElevenLabs) {
-        // Use ElevenLabs premium voice via our audio endpoint
+      if (useGoogleTTS) {
+        // Use Google Cloud TTS via our audio endpoint
         const audioUrl = `https://${projectId}.supabase.co/functions/v1/voice-audio?business_id=${business.id}&type=no-answer`;
         twiml += `<Play>${audioUrl}</Play>`;
-        console.log("Using ElevenLabs voice via:", audioUrl);
+        console.log("Using Google Cloud TTS via:", audioUrl);
       } else {
         // Fallback to Twilio Polly voice
         const fallbackMessage = voiceLanguage.startsWith('he') 

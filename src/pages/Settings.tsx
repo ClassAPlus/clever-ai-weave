@@ -37,9 +37,11 @@ interface TwilioSettings {
   voiceLanguage: string;
   voiceGender: string;
   voiceId: string;
+  googleVoiceName?: string;
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;
+  enableAiReceptionist?: boolean;
 }
 
 interface Business {
@@ -195,6 +197,7 @@ export default function Settings() {
     ringTimeout: 30,
     dailyMessageLimit: 10,
     rateLimitWindow: 5,
+    enableAiReceptionist: true,
   });
 
   // Handle owner phone change with validation

@@ -54,11 +54,13 @@ serve(async (req) => {
     const isMissedCall = ['no-answer', 'busy', 'failed', 'canceled'].includes(dialCallStatus);
     const wasAnswered = dialCallStatus === 'completed' && callDuration > 0;
 
-    // Check if Google Cloud TTS is configured
+    // Check settings
     const useGoogleTTS = !!Deno.env.get('GOOGLE_CLOUD_API_KEY');
     const projectId = 'wqhakzywmqirucmetnuo';
+    const twilioSettings = business.twilio_settings || {};
+    const enableAiReceptionist = twilioSettings.enableAiReceptionist !== false; // Default true
 
-    console.log(`Call ${callSid}: status=${dialCallStatus}, answered=${wasAnswered}, duration=${callDuration}`);
+    console.log(`Call ${callSid}: status=${dialCallStatus}, answered=${wasAnswered}, duration=${callDuration}, aiReceptionist=${enableAiReceptionist}`);
 
     // Update call record
     await supabase
@@ -171,17 +173,25 @@ serve(async (req) => {
       }
     }
 
-    // Play missed call message if applicable, then hang up
+    // Handle missed call - either connect to AI or play message
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
     
-    if (isMissedCall && useGoogleTTS) {
-      // Play Google Cloud TTS voice message for missed calls
+    if (isMissedCall && enableAiReceptionist) {
+      // Connect to AI receptionist for real-time conversation
+      const realtimeWsUrl = `wss://${projectId}.supabase.co/functions/v1/voice-realtime?businessId=${business.id}&callSid=${callSid}`;
+      console.log("Connecting missed call to AI receptionist:", realtimeWsUrl);
+      twiml += `<Connect><Stream url="${realtimeWsUrl}"/></Connect>`;
+    } else if (isMissedCall && useGoogleTTS) {
+      // Play Google Cloud TTS voice message for missed calls (AI disabled)
       const audioUrl = `https://${projectId}.supabase.co/functions/v1/voice-audio?business_id=${business.id}&type=missed-call`;
       twiml += `<Play>${audioUrl}</Play>`;
+      twiml += `<Hangup/>`;
       console.log("Playing Google Cloud TTS missed call message");
+    } else {
+      twiml += `<Hangup/>`;
     }
     
-    twiml += `<Hangup/></Response>`;
+    twiml += `</Response>`;
 
     return new Response(twiml, {
       headers: { ...corsHeaders, 'Content-Type': 'text/xml' },

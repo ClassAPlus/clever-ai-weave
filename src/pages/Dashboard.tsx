@@ -50,12 +50,32 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [updatedStats, setUpdatedStats] = useState<Set<string>>(new Set());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Helper to trigger pulse animation
+  // Helper to trigger pulse animation and update timestamp
   const triggerPulse = (statKeys: string[]) => {
     setUpdatedStats(new Set(statKeys));
+    setLastUpdated(new Date());
     setTimeout(() => setUpdatedStats(new Set()), 1500);
   };
+
+  // Format relative time
+  const formatLastUpdated = (date: Date | null) => {
+    if (!date) return '';
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diff < 5) return 'Just now';
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Update displayed time every 10 seconds
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 10000);
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
@@ -98,6 +118,7 @@ export default function Dashboard() {
         appointments: apptsRes.count || 0,
         inquiries: inquiriesRes.count || 0
       });
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -307,9 +328,17 @@ export default function Dashboard() {
       <div className="flex-1 lg:ml-0 pt-16 lg:pt-0">
         <div className="p-6 lg:p-8">
           {location.pathname === "/dashboard/settings" ? <Settings /> : location.pathname === "/dashboard/calls" ? <Calls /> : location.pathname === "/dashboard/conversations" ? <Conversations /> : location.pathname === "/dashboard/appointments" ? <Appointments /> : location.pathname === "/dashboard/inquiries" ? <Inquiries /> : location.pathname === "/dashboard/contacts" ? <Contacts /> : location.pathname === "/dashboard/templates" ? <Templates /> : <>
-              <div className="mb-8">
-                <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-                <p className="text-gray-400">Welcome back, {user?.email}</p>
+              <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+                  <p className="text-gray-400">Welcome back, {user?.email}</p>
+                </div>
+                {lastUpdated && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span>Updated {formatLastUpdated(lastUpdated)}</span>
+                  </div>
+                )}
               </div>
 
               {/* Stats Grid */}

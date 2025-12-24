@@ -490,23 +490,7 @@ serve(async (req) => {
       console.error("Error loading business data:", err);
     }
   };
-  if (upgrade.toLowerCase() !== "websocket") {
-    console.log("Not a WebSocket upgrade request, returning 426");
-    return new Response("Expected WebSocket upgrade", { status: 426 });
-  }
-  
-  console.log("Upgrading to WebSocket...");
-  
-  // Upgrade to WebSocket
-  const { socket: twilioWs, response } = Deno.upgradeWebSocket(req);
-  
-  let openaiWs: WebSocket | null = null;
-  let streamSid: string | null = null;
-  let latestMediaTimestamp = 0;
-  let lastAssistantItem: string | null = null;
-  let responseStartTimestamp: number | null = null;
-  const markQueue: string[] = [];
-  
+
   // Handle function calls from the AI
   const handleFunctionCall = async (functionName: string, args: any, callId: string) => {
     console.log(`Handling function call: ${functionName}`, JSON.stringify(args));

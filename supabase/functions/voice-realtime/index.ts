@@ -480,7 +480,8 @@ serve(async (req) => {
   
   // Handle function calls from the AI
   const handleFunctionCall = async (functionName: string, args: any, callId: string) => {
-    console.log(`Handling function call: ${functionName}`, args);
+    console.log(`Handling function call: ${functionName}`, JSON.stringify(args));
+    console.log(`Context: businessId=${businessId}, contactId=${contactId}, callerPhone=${callerPhone}, businessPhone=${businessPhone}`);
     let result = "";
     
     try {
@@ -488,8 +489,16 @@ serve(async (req) => {
         case "create_appointment": {
           const { scheduled_date, service_type, caller_name, notes } = args;
           
+          if (!businessId) {
+            console.error("Cannot create appointment: businessId is missing");
+            result = JSON.stringify({ success: false, error: "Business ID not available" });
+            break;
+          }
+          
           // Generate confirmation code
           const confirmationCode = `APT-${Date.now().toString(36).toUpperCase()}`;
+          
+          console.log(`Creating appointment: businessId=${businessId}, contactId=${contactId}, scheduled_date=${scheduled_date}`);
           
           // Create the appointment
           const { data: appointment, error } = await supabase
@@ -508,9 +517,10 @@ serve(async (req) => {
           
           if (error) {
             console.error("Error creating appointment:", error);
+            console.error("Full error details:", JSON.stringify(error));
             result = JSON.stringify({ success: false, error: error.message });
           } else {
-            console.log("Appointment created:", appointment);
+            console.log("Appointment created successfully:", JSON.stringify(appointment));
             result = JSON.stringify({ 
               success: true, 
               confirmation_code: confirmationCode,
@@ -524,11 +534,14 @@ serve(async (req) => {
                 : `Appointment confirmed at ${businessName}. Confirmation: ${confirmationCode}. Date: ${new Date(scheduled_date).toLocaleString('en-US')}`;
               
               try {
+                console.log(`Sending SMS from ${businessPhone} to ${callerPhone}`);
                 await sendSMS(businessPhone, callerPhone, confirmMsg);
                 console.log("Confirmation SMS sent automatically");
               } catch (smsErr) {
                 console.error("Failed to send auto confirmation SMS:", smsErr);
               }
+            } else {
+              console.log(`Skipping SMS: callerPhone=${callerPhone}, businessPhone=${businessPhone}`);
             }
           }
           break;
@@ -555,6 +568,14 @@ serve(async (req) => {
         case "take_message": {
           const { caller_name, message, callback_requested, urgency } = args;
           
+          if (!businessId) {
+            console.error("Cannot take message: businessId is missing");
+            result = JSON.stringify({ success: false, error: "Business ID not available" });
+            break;
+          }
+          
+          console.log(`Taking message: businessId=${businessId}, contactId=${contactId}, message=${message}`);
+          
           // Create an inquiry record
           const { data: inquiry, error } = await supabase
             .from("inquiries")
@@ -570,17 +591,25 @@ serve(async (req) => {
           
           if (error) {
             console.error("Error creating inquiry:", error);
+            console.error("Full error details:", JSON.stringify(error));
             result = JSON.stringify({ success: false, error: error.message });
           } else {
-            console.log("Message recorded:", inquiry);
+            console.log("Message recorded successfully:", JSON.stringify(inquiry));
             result = JSON.stringify({ success: true, inquiry_id: inquiry.id });
             
             // Update contact name if provided
             if (caller_name && contactId) {
-              await supabase
+              console.log(`Updating contact ${contactId} with name: ${caller_name}`);
+              const { error: contactError } = await supabase
                 .from("contacts")
-                .update({ name: caller_name })
+                .update({ name: caller_name, updated_at: new Date().toISOString() })
                 .eq("id", contactId);
+              
+              if (contactError) {
+                console.error("Error updating contact name:", contactError);
+              } else {
+                console.log("Contact name updated successfully");
+              }
             }
           }
           break;
@@ -589,7 +618,10 @@ serve(async (req) => {
         case "update_contact_info": {
           const { name, email, notes, tags } = args;
           
+          console.log(`Updating contact info: contactId=${contactId}, name=${name}, email=${email}`);
+          
           if (!contactId) {
+            console.error("Cannot update contact: contactId is missing");
             result = JSON.stringify({ success: false, error: "No contact ID available" });
           } else {
             // Build update object with only provided fields
@@ -599,6 +631,8 @@ serve(async (req) => {
             if (notes !== undefined) updateData.notes = notes;
             if (tags !== undefined) updateData.tags = tags;
             
+            console.log(`Update data:`, JSON.stringify(updateData));
+            
             const { error } = await supabase
               .from("contacts")
               .update(updateData)
@@ -606,9 +640,10 @@ serve(async (req) => {
             
             if (error) {
               console.error("Error updating contact:", error);
+              console.error("Full error details:", JSON.stringify(error));
               result = JSON.stringify({ success: false, error: error.message });
             } else {
-              console.log("Contact updated:", updateData);
+              console.log("Contact updated successfully:", JSON.stringify(updateData));
               result = JSON.stringify({ success: true, updated_fields: Object.keys(updateData).filter(k => k !== 'updated_at') });
             }
           }

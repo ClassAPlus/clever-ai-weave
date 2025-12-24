@@ -120,6 +120,22 @@ const TOOLS = [
       },
       required: []
     }
+  },
+  {
+    type: "function",
+    name: "check_business_hours",
+    description: "Check if the business is currently open or closed, and get the business hours. Use this when the caller asks about business hours, opening times, or if the business is open.",
+    parameters: {
+      type: "object",
+      properties: {
+        day_of_week: {
+          type: "string",
+          enum: ["today", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+          description: "The day to check hours for. Use 'today' to check current status."
+        }
+      },
+      required: []
+    }
   }
 ];
 
@@ -293,7 +309,7 @@ serve(async (req) => {
     try {
       const { data: business } = await supabase
         .from("businesses")
-        .select("name, ai_instructions, twilio_settings, twilio_phone_number")
+        .select("name, ai_instructions, twilio_settings, twilio_phone_number, business_hours, timezone")
         .eq("id", businessId)
         .single();
       
@@ -305,6 +321,9 @@ serve(async (req) => {
         voiceLanguage = settings?.voiceLanguage || "en-US";
         const gender = settings?.voiceGender || "female";
         voice = gender === "male" ? "ash" : "alloy";
+        // Store business hours for the check_business_hours tool
+        (globalThis as any).__businessHours = business.business_hours;
+        (globalThis as any).__businessTimezone = business.timezone || "UTC";
         console.log(`Loaded business: ${businessName}, language: ${voiceLanguage}, voice: ${voice}`);
       }
       
@@ -541,6 +560,84 @@ serve(async (req) => {
               result = JSON.stringify({ success: true, updated_fields: Object.keys(updateData).filter(k => k !== 'updated_at') });
             }
           }
+          break;
+        }
+        
+        case "check_business_hours": {
+          const { day_of_week } = args;
+          const businessHours = (globalThis as any).__businessHours || {};
+          const timezone = (globalThis as any).__businessTimezone || "UTC";
+          
+          // Map day names
+          const dayMap: Record<string, string> = {
+            "monday": "mon", "tuesday": "tue", "wednesday": "wed",
+            "thursday": "thu", "friday": "fri", "saturday": "sat", "sunday": "sun"
+          };
+          
+          // Get current time in business timezone
+          const now = new Date();
+          const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: timezone,
+            weekday: 'long',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+          const parts = formatter.formatToParts(now);
+          const currentDay = parts.find(p => p.type === 'weekday')?.value?.toLowerCase() || '';
+          const currentHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+          const currentMinute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+          const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+          
+          // Determine which day to check
+          const checkDay = day_of_week === "today" || !day_of_week ? currentDay : day_of_week;
+          const dayKey = dayMap[checkDay] || checkDay.substring(0, 3).toLowerCase();
+          const hours = businessHours[dayKey];
+          
+          let isOpen = false;
+          let statusMessage = "";
+          let hoursInfo: any = { day: checkDay };
+          
+          if (!hours || !hours.start || !hours.end) {
+            statusMessage = `The business is closed on ${checkDay}`;
+            hoursInfo.closed = true;
+          } else {
+            hoursInfo.opens = hours.start;
+            hoursInfo.closes = hours.end;
+            
+            if (day_of_week === "today" || !day_of_week) {
+              // Check if currently open
+              if (currentTime >= hours.start && currentTime < hours.end) {
+                isOpen = true;
+                statusMessage = `We are currently open. We close at ${hours.end}`;
+              } else if (currentTime < hours.start) {
+                statusMessage = `We are currently closed. We open at ${hours.start} today`;
+              } else {
+                statusMessage = `We are currently closed for today. We were open from ${hours.start} to ${hours.end}`;
+              }
+              hoursInfo.is_currently_open = isOpen;
+              hoursInfo.current_time = currentTime;
+            } else {
+              statusMessage = `On ${checkDay}, we are open from ${hours.start} to ${hours.end}`;
+            }
+          }
+          
+          // Include all days for reference
+          const allHours: Record<string, string> = {};
+          const fullDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+          fullDays.forEach(day => {
+            const key = dayMap[day];
+            const h = businessHours[key];
+            if (h && h.start && h.end) {
+              allHours[day] = `${h.start} - ${h.end}`;
+            } else {
+              allHours[day] = "Closed";
+            }
+          });
+          hoursInfo.all_hours = allHours;
+          
+          console.log("Business hours check:", hoursInfo);
+          result = JSON.stringify({ success: true, ...hoursInfo, message: statusMessage });
           break;
         }
         

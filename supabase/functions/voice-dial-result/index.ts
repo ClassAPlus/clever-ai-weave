@@ -54,10 +54,16 @@ serve(async (req) => {
     const isMissedCall = ['no-answer', 'busy', 'failed', 'canceled'].includes(dialCallStatus);
     const wasAnswered = dialCallStatus === 'completed' && callDuration > 0;
 
-    // Check if ElevenLabs is configured
+    // Check if ElevenLabs is configured and language is supported
     const twilioSettings = business.twilio_settings || {};
     const voiceId = twilioSettings.voiceId;
-    const useElevenLabs = !!voiceId && !!Deno.env.get('ELEVENLABS_API_KEY');
+    const voiceLanguage = twilioSettings.voiceLanguage || 'en-US';
+    
+    // Languages that ElevenLabs supports well
+    const elevenLabsSupportedLanguages = ['en-US', 'en-GB', 'es-ES', 'fr-FR', 'de-DE', 'pt-BR', 'pt-PT', 'it-IT', 'nl-NL', 'pl-PL', 'ru-RU'];
+    const languageSupportsElevenLabs = elevenLabsSupportedLanguages.some(lang => voiceLanguage.startsWith(lang.split('-')[0]));
+    
+    const useElevenLabs = !!voiceId && !!Deno.env.get('ELEVENLABS_API_KEY') && languageSupportsElevenLabs;
     const projectId = 'wqhakzywmqirucmetnuo';
 
     console.log(`Call ${callSid}: status=${dialCallStatus}, answered=${wasAnswered}, duration=${callDuration}`);

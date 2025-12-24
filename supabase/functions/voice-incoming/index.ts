@@ -112,8 +112,12 @@ serve(async (req) => {
     const voiceLanguage = twilioSettings.voiceLanguage || 'he-IL';
     const voiceGender = twilioSettings.voiceGender || 'female';
 
-    // Check if ElevenLabs voice is configured
-    const useElevenLabs = !!voiceId && !!Deno.env.get('ELEVENLABS_API_KEY');
+    // Languages that ElevenLabs supports well (not Hebrew, Arabic, etc.)
+    const elevenLabsSupportedLanguages = ['en-US', 'en-GB', 'es-ES', 'fr-FR', 'de-DE', 'pt-BR', 'pt-PT', 'it-IT', 'nl-NL', 'pl-PL', 'ru-RU'];
+    const languageSupportsElevenLabs = elevenLabsSupportedLanguages.some(lang => voiceLanguage.startsWith(lang.split('-')[0]));
+    
+    // Only use ElevenLabs for supported languages
+    const useElevenLabs = !!voiceId && !!Deno.env.get('ELEVENLABS_API_KEY') && languageSupportsElevenLabs;
     
     // Map language codes to Twilio voice names (fallback)
     const getVoiceName = (lang: string, gender: string): string => {

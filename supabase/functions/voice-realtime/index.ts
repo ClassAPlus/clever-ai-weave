@@ -92,11 +92,39 @@ const TOOLS = [
       },
       required: ["message"]
     }
+  },
+  {
+    type: "function",
+    name: "update_contact_info",
+    description: "Update the caller's contact information. Use this whenever the caller provides their name, email, or any notes about themselves. ALWAYS call this function when you learn the caller's name or email.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "The caller's full name"
+        },
+        email: {
+          type: "string",
+          description: "The caller's email address"
+        },
+        notes: {
+          type: "string",
+          description: "Any relevant notes about this caller (preferences, special requests, etc.)"
+        },
+        tags: {
+          type: "array",
+          items: { type: "string" },
+          description: "Tags to categorize this caller (e.g., 'vip', 'new customer', 'returning')"
+        }
+      },
+      required: []
+    }
   }
 ];
 
 // System prompt for the AI receptionist
-const getSystemPrompt = (businessName: string, instructions: string, language: string) => {
+const getSystemPrompt = (businessName: string, instructions: string, language: string, contactName: string | null) => {
   const langMap: Record<string, string> = {
     "he-IL": "Hebrew",
     "en-US": "English",
@@ -109,12 +137,22 @@ const getSystemPrompt = (businessName: string, instructions: string, language: s
   };
   
   const languageName = langMap[language] || "English";
+  const knownCallerInfo = contactName ? `The caller's name is ${contactName}. Use their name naturally in conversation.` : "";
   
   return `You are a friendly and professional AI receptionist for ${businessName}. 
 Speak in ${languageName}.
 Be concise but warm. Help callers with their questions, take messages, and schedule appointments.
 
+${knownCallerInfo}
+
 ${instructions || "Answer questions helpfully and take messages when the caller wants to leave one."}
+
+CRITICAL: COLLECTING CALLER INFORMATION
+- If you don't know the caller's name, ask for it naturally early in the conversation (e.g., "May I have your name please?")
+- When the caller tells you their name, IMMEDIATELY use the update_contact_info function to save it
+- If the caller provides their email, IMMEDIATELY use update_contact_info to save it
+- Any time you learn new information about the caller (name, email, preferences), use update_contact_info
+- This information helps us provide personalized service on future calls
 
 Important guidelines:
 - Keep responses brief (1-2 sentences when possible)
@@ -124,7 +162,8 @@ Important guidelines:
 - When scheduling appointments, ALWAYS use the create_appointment function to actually book it
 - When the caller asks for a confirmation SMS, ALWAYS use the send_confirmation_sms function to send it
 - When taking a message, ALWAYS use the take_message function to record it
-- After using a function, confirm to the caller that the action was completed`;
+- After using a function, confirm to the caller that the action was completed
+- ALWAYS collect and save caller's name and email when provided using update_contact_info`;
 };
 
 // Function to send SMS via Twilio
@@ -177,6 +216,7 @@ serve(async (req) => {
   let businessPhone = "";
   let callerPhone = "";
   let contactId: string | null = null;
+  let contactName: string | null = null;
   
   if (businessId) {
     try {
@@ -197,17 +237,23 @@ serve(async (req) => {
         console.log(`Loaded business: ${businessName}, language: ${voiceLanguage}, voice: ${voice}`);
       }
       
-      // Get caller phone from the call record
+      // Get caller phone and contact info from the call record
       if (callSid) {
         const { data: callRecord } = await supabase
           .from("calls")
-          .select("caller_phone, contact_id")
+          .select("caller_phone, contact_id, contacts(name, email, notes, tags)")
           .eq("twilio_call_sid", callSid)
           .single();
         
         if (callRecord) {
           callerPhone = callRecord.caller_phone;
           contactId = callRecord.contact_id;
+          // Get contact name if we have it
+          const contactData = callRecord.contacts as any;
+          if (contactData) {
+            contactName = contactData.name;
+            console.log(`Known contact: ${contactName || 'Unknown'}, email: ${contactData.email || 'none'}`);
+          }
           console.log(`Caller phone: ${callerPhone}, contact ID: ${contactId}`);
         }
       }
@@ -343,6 +389,35 @@ serve(async (req) => {
           break;
         }
         
+        case "update_contact_info": {
+          const { name, email, notes, tags } = args;
+          
+          if (!contactId) {
+            result = JSON.stringify({ success: false, error: "No contact ID available" });
+          } else {
+            // Build update object with only provided fields
+            const updateData: any = { updated_at: new Date().toISOString() };
+            if (name !== undefined) updateData.name = name;
+            if (email !== undefined) updateData.email = email;
+            if (notes !== undefined) updateData.notes = notes;
+            if (tags !== undefined) updateData.tags = tags;
+            
+            const { error } = await supabase
+              .from("contacts")
+              .update(updateData)
+              .eq("id", contactId);
+            
+            if (error) {
+              console.error("Error updating contact:", error);
+              result = JSON.stringify({ success: false, error: error.message });
+            } else {
+              console.log("Contact updated:", updateData);
+              result = JSON.stringify({ success: true, updated_fields: Object.keys(updateData).filter(k => k !== 'updated_at') });
+            }
+          }
+          break;
+        }
+        
         default:
           result = JSON.stringify({ success: false, error: "Unknown function" });
       }
@@ -379,7 +454,7 @@ serve(async (req) => {
         input_audio_format: "g711_ulaw",
         output_audio_format: "g711_ulaw",
         voice: voice,
-        instructions: getSystemPrompt(businessName, instructions, voiceLanguage),
+        instructions: getSystemPrompt(businessName, instructions, voiceLanguage, contactName),
         modalities: ["text", "audio"],
         temperature: 0.8,
         tools: TOOLS,

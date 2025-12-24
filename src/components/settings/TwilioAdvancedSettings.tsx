@@ -247,9 +247,16 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
 
   const currentLang = VOICE_LANGUAGES.find(l => l.value === settings.voiceLanguage);
   const availableVoices = GOOGLE_VOICES[settings.voiceLanguage] || GOOGLE_VOICES['en-US'];
-  const filteredVoices = settings.voiceGender 
-    ? availableVoices.filter(v => v.gender === settings.voiceGender)
-    : availableVoices;
+  // Show all voices for the language, sorted with preferred gender first
+  const sortedVoices = [...availableVoices].sort((a, b) => {
+    // Preferred gender first
+    if (a.gender === settings.voiceGender && b.gender !== settings.voiceGender) return -1;
+    if (b.gender === settings.voiceGender && a.gender !== settings.voiceGender) return 1;
+    // Then by quality: Neural2 > Wavenet > Standard
+    const scoreA = a.type === 'Neural2' ? 3 : a.type === 'Wavenet' ? 2 : 1;
+    const scoreB = b.type === 'Neural2' ? 3 : b.type === 'Wavenet' ? 2 : 1;
+    return scoreB - scoreA;
+  });
   const selectedVoice = availableVoices.find(v => v.name === settings.googleVoiceName);
 
   return (
@@ -346,11 +353,11 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="max-h-64">
-                {filteredVoices.map((voice) => (
+                {sortedVoices.map((voice) => (
                   <SelectItem key={voice.name} value={voice.name}>
                     <div className="flex flex-col">
                       <span className="font-medium">{voice.name}</span>
-                      <span className="text-xs text-gray-400">{voice.type} - {voice.description}</span>
+                      <span className="text-xs text-gray-400">{voice.type} • {voice.gender} • {voice.description}</span>
                     </div>
                   </SelectItem>
                 ))}

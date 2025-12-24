@@ -136,6 +136,40 @@ const TOOLS = [
       },
       required: []
     }
+  },
+  {
+    type: "function",
+    name: "reschedule_appointment",
+    description: "Reschedule an existing appointment to a new date/time. Use this when the caller wants to change their appointment time. First check their upcoming appointments to find the one to reschedule.",
+    parameters: {
+      type: "object",
+      properties: {
+        new_date: {
+          type: "string",
+          description: "The new date and time for the appointment in ISO 8601 format (e.g., 2025-09-25T12:00:00)"
+        },
+        reason: {
+          type: "string",
+          description: "Optional reason for rescheduling"
+        }
+      },
+      required: ["new_date"]
+    }
+  },
+  {
+    type: "function",
+    name: "cancel_appointment",
+    description: "Cancel an existing appointment. Use this when the caller wants to cancel their appointment. Confirm the cancellation before proceeding.",
+    parameters: {
+      type: "object",
+      properties: {
+        reason: {
+          type: "string",
+          description: "Optional reason for cancellation"
+        }
+      },
+      required: []
+    }
   }
 ];
 
@@ -638,6 +672,145 @@ serve(async (req) => {
           
           console.log("Business hours check:", hoursInfo);
           result = JSON.stringify({ success: true, ...hoursInfo, message: statusMessage });
+          break;
+        }
+        
+        case "reschedule_appointment": {
+          const { new_date, reason } = args;
+          
+          if (!contactId) {
+            result = JSON.stringify({ success: false, error: "No contact found for this caller" });
+          } else {
+            // Find the caller's upcoming appointment
+            const { data: upcomingAppts, error: fetchError } = await supabase
+              .from("appointments")
+              .select("id, scheduled_at, service_type, confirmation_code")
+              .eq("contact_id", contactId)
+              .gte("scheduled_at", new Date().toISOString())
+              .neq("status", "cancelled")
+              .order("scheduled_at", { ascending: true })
+              .limit(1);
+            
+            if (fetchError || !upcomingAppts || upcomingAppts.length === 0) {
+              result = JSON.stringify({ success: false, error: "No upcoming appointment found to reschedule" });
+            } else {
+              const appointment = upcomingAppts[0];
+              const oldDate = new Date(appointment.scheduled_at).toLocaleString();
+              const newDateFormatted = new Date(new_date).toLocaleString();
+              
+              // Update the appointment
+              const updateData: any = {
+                scheduled_at: new_date,
+                status: "rescheduled",
+                updated_at: new Date().toISOString()
+              };
+              if (reason) {
+                updateData.notes = `Rescheduled: ${reason}`;
+              }
+              
+              const { error: updateError } = await supabase
+                .from("appointments")
+                .update(updateData)
+                .eq("id", appointment.id);
+              
+              if (updateError) {
+                console.error("Error rescheduling appointment:", updateError);
+                result = JSON.stringify({ success: false, error: updateError.message });
+              } else {
+                console.log("Appointment rescheduled:", appointment.id);
+                result = JSON.stringify({ 
+                  success: true, 
+                  old_date: oldDate,
+                  new_date: newDateFormatted,
+                  confirmation_code: appointment.confirmation_code,
+                  service_type: appointment.service_type,
+                  message: `Appointment rescheduled from ${oldDate} to ${newDateFormatted}`
+                });
+                
+                // Send SMS confirmation if possible
+                if (callerPhone && businessPhone) {
+                  const confirmMsg = voiceLanguage.startsWith("he") 
+                    ? `התור שלך נדחה ל-${newDateFormatted}. קוד אישור: ${appointment.confirmation_code}`
+                    : `Your appointment has been rescheduled to ${newDateFormatted}. Confirmation: ${appointment.confirmation_code}`;
+                  
+                  try {
+                    await sendSMS(businessPhone, callerPhone, confirmMsg);
+                    console.log("Reschedule SMS sent");
+                  } catch (smsErr) {
+                    console.error("Failed to send reschedule SMS:", smsErr);
+                  }
+                }
+              }
+            }
+          }
+          break;
+        }
+        
+        case "cancel_appointment": {
+          const { reason } = args;
+          
+          if (!contactId) {
+            result = JSON.stringify({ success: false, error: "No contact found for this caller" });
+          } else {
+            // Find the caller's upcoming appointment
+            const { data: upcomingAppts, error: fetchError } = await supabase
+              .from("appointments")
+              .select("id, scheduled_at, service_type, confirmation_code")
+              .eq("contact_id", contactId)
+              .gte("scheduled_at", new Date().toISOString())
+              .neq("status", "cancelled")
+              .order("scheduled_at", { ascending: true })
+              .limit(1);
+            
+            if (fetchError || !upcomingAppts || upcomingAppts.length === 0) {
+              result = JSON.stringify({ success: false, error: "No upcoming appointment found to cancel" });
+            } else {
+              const appointment = upcomingAppts[0];
+              const apptDate = new Date(appointment.scheduled_at).toLocaleString();
+              
+              // Cancel the appointment
+              const updateData: any = {
+                status: "cancelled",
+                updated_at: new Date().toISOString()
+              };
+              if (reason) {
+                updateData.notes = `Cancelled: ${reason}`;
+              }
+              
+              const { error: updateError } = await supabase
+                .from("appointments")
+                .update(updateData)
+                .eq("id", appointment.id);
+              
+              if (updateError) {
+                console.error("Error cancelling appointment:", updateError);
+                result = JSON.stringify({ success: false, error: updateError.message });
+              } else {
+                console.log("Appointment cancelled:", appointment.id);
+                result = JSON.stringify({ 
+                  success: true, 
+                  cancelled_date: apptDate,
+                  service_type: appointment.service_type,
+                  confirmation_code: appointment.confirmation_code,
+                  message: `Appointment for ${apptDate} has been cancelled`
+                });
+                
+                // Send SMS confirmation if possible
+                if (callerPhone && businessPhone) {
+                  const confirmMsg = voiceLanguage.startsWith("he") 
+                    ? `התור שלך ל-${apptDate} בוטל. נשמח לראותך בפעם הבאה!`
+                    : `Your appointment for ${apptDate} has been cancelled. We hope to see you again!`;
+                  
+                  try {
+                    await sendSMS(businessPhone, callerPhone, confirmMsg);
+                    console.log("Cancellation SMS sent");
+                  } catch (smsErr) {
+                    console.error("Failed to send cancellation SMS:", smsErr);
+                  }
+                }
+              }
+            }
+          }
           break;
         }
         

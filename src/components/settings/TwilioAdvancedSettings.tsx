@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Phone, MessageSquare, Volume2, Loader2, Square } from "lucide-react";
+import { Phone, MessageSquare, Volume2, Loader2, Square, User } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface TwilioSettings {
   voiceLanguage: string;
   voiceGender: string;
+  voiceId: string;
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;
@@ -19,6 +21,27 @@ interface TwilioAdvancedSettingsProps {
   settings: TwilioSettings;
   onChange: (settings: TwilioSettings) => void;
 }
+
+// ElevenLabs voices with human-like quality
+const ELEVENLABS_VOICES = [
+  { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah", gender: "female", description: "Warm & professional" },
+  { id: "FGY2WhTYpPnrIDTdsKH5", name: "Laura", gender: "female", description: "Friendly & clear" },
+  { id: "XrExE9yKIg1WjnnlVkGX", name: "Matilda", gender: "female", description: "Calm & reassuring" },
+  { id: "pFZP5JQG7iQjIQuC4Bku", name: "Lily", gender: "female", description: "Soft & gentle" },
+  { id: "cgSgspJ2msm6clMCkdW9", name: "Jessica", gender: "female", description: "Energetic & engaging" },
+  { id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice", gender: "female", description: "British & articulate" },
+  { id: "JBFqnCBsd6RMkjVDRZzb", name: "George", gender: "male", description: "Warm & authoritative" },
+  { id: "TX3LPaxmHKxFdv7VOQHJ", name: "Liam", gender: "male", description: "Friendly & natural" },
+  { id: "IKne3meq5aSn9XLyUdCD", name: "Charlie", gender: "male", description: "Casual & approachable" },
+  { id: "cjVigY5qzO86Huf0OWal", name: "Eric", gender: "male", description: "Professional & clear" },
+  { id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", gender: "male", description: "Deep & confident" },
+  { id: "pqHfZKP75CvOlQylNhV4", name: "Bill", gender: "male", description: "Mature & trustworthy" },
+  { id: "bIHbv24MWmeRgasZH58o", name: "Will", gender: "male", description: "Young & dynamic" },
+  { id: "nPczCjzI2devNBz1zQrb", name: "Brian", gender: "male", description: "Narrative & expressive" },
+  { id: "CwhRBWXzGAHq8TQ4Fs17", name: "Roger", gender: "male", description: "British & distinguished" },
+  { id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum", gender: "male", description: "Scottish & warm" },
+  { id: "SAz9YHcvj6GT2YYXdXww", name: "River", gender: "neutral", description: "Smooth & versatile" },
+];
 
 const VOICE_LANGUAGES = [
   { value: "he-IL", label: "Hebrew (Israel)", sampleText: "שלום! ברוכים הבאים. איך אוכל לעזור לך היום?" },
@@ -44,86 +67,86 @@ const VOICE_LANGUAGES = [
 ];
 
 export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSettingsProps) {
+  const { toast } = useToast();
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [customText, setCustomText] = useState("");
-
-  useEffect(() => {
-    // Load available voices
-    const loadVoices = () => {
-      const voices = speechSynthesis.getVoices();
-      setAvailableVoices(voices);
-    };
-
-    loadVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
-
-    return () => {
-      speechSynthesis.cancel();
-    };
-  }, []);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const updateSetting = <K extends keyof TwilioSettings>(key: K, value: TwilioSettings[K]) => {
     onChange({ ...settings, [key]: value });
   };
 
-  const getVoiceForLanguage = (lang: string, gender: string): SpeechSynthesisVoice | null => {
-    // Find a voice matching the language and gender preference
-    const langCode = lang.split("-")[0]; // e.g., "he" from "he-IL"
-    
-    // Try to find exact match first
-    let voice = availableVoices.find(v => 
-      v.lang.startsWith(lang) && 
-      v.name.toLowerCase().includes(gender)
-    );
-    
-    // Fall back to language match
-    if (!voice) {
-      voice = availableVoices.find(v => v.lang.startsWith(lang));
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
     }
-    
-    // Fall back to language code match
-    if (!voice) {
-      voice = availableVoices.find(v => v.lang.startsWith(langCode));
-    }
-    
-    // Final fallback to any voice
-    if (!voice && availableVoices.length > 0) {
-      voice = availableVoices[0];
-    }
-    
-    return voice || null;
+    setIsSpeaking(false);
   };
 
-  const playVoicePreview = () => {
+  const playVoicePreview = async () => {
     if (isSpeaking) {
-      speechSynthesis.cancel();
-      setIsSpeaking(false);
+      stopAudio();
       return;
     }
 
     const langConfig = VOICE_LANGUAGES.find(l => l.value === settings.voiceLanguage);
     const textToSpeak = customText.trim() || langConfig?.sampleText || "Hello, how can I help you today?";
-    
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = settings.voiceLanguage;
-    
-    const voice = getVoiceForLanguage(settings.voiceLanguage, settings.voiceGender);
-    if (voice) {
-      utterance.voice = voice;
+    const voiceId = settings.voiceId || "EXAVITQu4vr4xnSDxMaL";
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(
+        `https://wqhakzywmqirucmetnuo.supabase.co/functions/v1/elevenlabs-tts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: textToSpeak, voiceId }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to generate voice preview");
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      audioRef.current.onerror = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      setIsSpeaking(true);
+      await audioRef.current.play();
+    } catch (error) {
+      console.error("Voice preview error:", error);
+      toast({
+        variant: "destructive",
+        title: "Voice preview failed",
+        description: "Could not generate voice preview. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    utterance.rate = 1.0;
-    utterance.pitch = settings.voiceGender === "female" ? 1.1 : 0.9;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    speechSynthesis.speak(utterance);
   };
 
   const currentLang = VOICE_LANGUAGES.find(l => l.value === settings.voiceLanguage);
+  const selectedVoice = ELEVENLABS_VOICES.find(v => v.id === settings.voiceId);
+  const filteredVoices = settings.voiceGender === "male" 
+    ? ELEVENLABS_VOICES.filter(v => v.gender === "male")
+    : settings.voiceGender === "female"
+    ? ELEVENLABS_VOICES.filter(v => v.gender === "female")
+    : ELEVENLABS_VOICES;
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -168,7 +191,14 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
               <Label className="text-gray-300">Voice Gender</Label>
               <Select
                 value={settings.voiceGender}
-                onValueChange={(value) => updateSetting("voiceGender", value)}
+                onValueChange={(value) => {
+                  updateSetting("voiceGender", value);
+                  // Auto-select first voice of the new gender
+                  const firstVoice = ELEVENLABS_VOICES.find(v => v.gender === value);
+                  if (firstVoice) {
+                    updateSetting("voiceId", firstVoice.id);
+                  }
+                }}
               >
                 <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                   <SelectValue />
@@ -179,6 +209,43 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Voice Selection */}
+          <div className="space-y-2">
+            <Label className="text-gray-300 flex items-center gap-2">
+              <User className="h-4 w-4" />
+              AI Voice Character
+            </Label>
+            <Select
+              value={settings.voiceId || "EXAVITQu4vr4xnSDxMaL"}
+              onValueChange={(value) => updateSetting("voiceId", value)}
+            >
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <SelectValue>
+                  {selectedVoice ? (
+                    <span className="flex items-center gap-2">
+                      {selectedVoice.name} - <span className="text-gray-400 text-sm">{selectedVoice.description}</span>
+                    </span>
+                  ) : (
+                    "Select a voice"
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-64">
+                {filteredVoices.map((voice) => (
+                  <SelectItem key={voice.id} value={voice.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{voice.name}</span>
+                      <span className="text-xs text-gray-400">{voice.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              Premium human-like voices powered by ElevenLabs
+            </p>
           </div>
 
           {/* Voice Preview Section */}
@@ -192,11 +259,17 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
                 variant="outline"
                 size="sm"
                 onClick={playVoicePreview}
+                disabled={isLoading}
                 className={`border-purple-500/50 hover:bg-purple-500/10 ${
                   isSpeaking ? "text-red-400 border-red-500/50" : "text-purple-400"
                 }`}
               >
-                {isSpeaking ? (
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : isSpeaking ? (
                   <>
                     <Square className="h-4 w-4 mr-2 fill-current" />
                     Stop
@@ -286,9 +359,9 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
           </div>
         </div>
 
-        <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
-          <p className="text-sm text-yellow-300">
-            ⚠️ <strong>Note:</strong> Voice preview uses your browser's speech synthesis. Actual Twilio voices may sound slightly different.
+        <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+          <p className="text-sm text-green-300">
+            ✨ <strong>Premium Voices:</strong> Using ElevenLabs AI for natural, human-like speech. Preview the selected voice above.
           </p>
         </div>
       </CardContent>

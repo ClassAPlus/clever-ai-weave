@@ -31,6 +31,14 @@ interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
 }
 
+interface TwilioSettings {
+  voiceLanguage: string;
+  voiceGender: string;
+  ringTimeout: number;
+  dailyMessageLimit: number;
+  rateLimitWindow: number;
+}
+
 interface Business {
   id: string;
   name: string;
@@ -51,6 +59,7 @@ interface Business {
   greeting_messages: GreetingMessages | null;
   custom_tools: string[] | null;
   knowledge_base: KnowledgeBase | null;
+  twilio_settings: TwilioSettings | null;
 }
 
 const DAYS = [
@@ -175,6 +184,13 @@ export default function Settings() {
     pricing: [],
     staff: [],
   });
+  const [twilioSettings, setTwilioSettings] = useState<TwilioSettings>({
+    voiceLanguage: "he-IL",
+    voiceGender: "female",
+    ringTimeout: 30,
+    dailyMessageLimit: 10,
+    rateLimitWindow: 5,
+  });
 
   // Handle owner phone change with validation
   const handleOwnerPhoneChange = (value: string) => {
@@ -231,6 +247,7 @@ export default function Settings() {
         ai_personality: data.ai_personality as unknown as AIPersonality | null,
         greeting_messages: data.greeting_messages as unknown as GreetingMessages | null,
         knowledge_base: data.knowledge_base as unknown as KnowledgeBase | null,
+        twilio_settings: data.twilio_settings as unknown as TwilioSettings | null,
       });
       setForwardPhones(data.forward_to_phones?.join(", ") || "");
       setServices(data.services?.join(", ") || "");
@@ -269,6 +286,9 @@ export default function Settings() {
       setCustomTools(data.custom_tools || []);
       if (data.knowledge_base) {
         setKnowledgeBase(data.knowledge_base as unknown as KnowledgeBase);
+      }
+      if (data.twilio_settings) {
+        setTwilioSettings(data.twilio_settings as unknown as TwilioSettings);
       }
     } catch (error) {
       console.error("Error fetching business:", error);
@@ -323,6 +343,7 @@ export default function Settings() {
           greeting_messages: greetingMessages as unknown as Json,
           custom_tools: customTools,
           knowledge_base: knowledgeBase as unknown as Json,
+          twilio_settings: twilioSettings as unknown as Json,
         })
         .eq("id", business.id);
 
@@ -1111,17 +1132,8 @@ export default function Settings() {
 
           {/* Advanced Twilio Settings */}
           <TwilioAdvancedSettings
-            settings={{
-              voiceLanguage: "he-IL",
-              voiceGender: "female",
-              ringTimeout: 30,
-              dailyMessageLimit: 10,
-              rateLimitWindow: 5,
-            }}
-            onChange={(settings) => {
-              // These could be saved to the database if needed
-              console.log("Twilio settings changed:", settings);
-            }}
+            settings={twilioSettings}
+            onChange={setTwilioSettings}
           />
         </TabsContent>
       </Tabs>

@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Phone, MessageSquare, Calendar, Bell, Settings as SettingsIcon, LogOut, PhoneMissed, PhoneIncoming, Users, BarChart3, Menu, FileText } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { EditPhoneDialog } from "@/components/EditPhoneDialog";
@@ -221,61 +222,81 @@ export default function Dashboard() {
 
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <Card className="bg-gray-800/50 border-gray-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-500/20 rounded-lg">
-                        <PhoneIncoming className="h-5 w-5 text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-white">{stats.totalCalls}</p>
-                        <p className="text-sm text-gray-400">Total Calls</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {isLoading ? (
+                  <>
+                    {[...Array(4)].map((_, i) => (
+                      <Card key={i} className="bg-gray-800/50 border-gray-700">
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="h-9 w-9 rounded-lg bg-gray-700" />
+                            <div className="space-y-2">
+                              <Skeleton className="h-6 w-12 bg-gray-700" />
+                              <Skeleton className="h-4 w-20 bg-gray-700" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <Card className="bg-gray-800/50 border-gray-700">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-500/20 rounded-lg">
+                            <PhoneIncoming className="h-5 w-5 text-blue-400" />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold text-white">{stats.totalCalls}</p>
+                            <p className="text-sm text-gray-400">Total Calls</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                <Card className="bg-gray-800/50 border-gray-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-red-500/20 rounded-lg">
-                        <PhoneMissed className="h-5 w-5 text-red-400" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-white">{stats.missedCalls}</p>
-                        <p className="text-sm text-gray-400">Missed Calls</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    <Card className="bg-gray-800/50 border-gray-700">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-red-500/20 rounded-lg">
+                            <PhoneMissed className="h-5 w-5 text-red-400" />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold text-white">{stats.missedCalls}</p>
+                            <p className="text-sm text-gray-400">Missed Calls</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                <Card className="bg-gray-800/50 border-gray-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-500/20 rounded-lg">
-                        <MessageSquare className="h-5 w-5 text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-white">{stats.conversations}</p>
-                        <p className="text-sm text-gray-400">Conversations</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    <Card className="bg-gray-800/50 border-gray-700">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-purple-500/20 rounded-lg">
+                            <MessageSquare className="h-5 w-5 text-purple-400" />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold text-white">{stats.conversations}</p>
+                            <p className="text-sm text-gray-400">Conversations</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                <Card className="bg-gray-800/50 border-gray-700">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-500/20 rounded-lg">
-                        <Calendar className="h-5 w-5 text-green-400" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-white">{stats.appointments}</p>
-                        <p className="text-sm text-gray-400">Appointments</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    <Card className="bg-gray-800/50 border-gray-700">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-green-500/20 rounded-lg">
+                            <Calendar className="h-5 w-5 text-green-400" />
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold text-white">{stats.appointments}</p>
+                            <p className="text-sm text-gray-400">Appointments</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
               </div>
 
               {/* Quick Actions */}

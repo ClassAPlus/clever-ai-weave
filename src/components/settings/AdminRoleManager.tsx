@@ -5,14 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Shield, UserPlus, Trash2, Loader2 } from "lucide-react";
 
+type AppRole = "admin" | "moderator" | "user";
+
 interface UserRole {
   id: string;
   user_id: string;
-  role: "admin" | "moderator" | "user";
+  role: AppRole;
   created_at: string;
   email?: string;
 }
@@ -20,7 +23,8 @@ interface UserRole {
 export function AdminRoleManager() {
   const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [selectedRole, setSelectedRole] = useState<AppRole>("moderator");
   const [isAssigning, setIsAssigning] = useState(false);
 
   const fetchUserRoles = async () => {
@@ -45,23 +49,19 @@ export function AdminRoleManager() {
     fetchUserRoles();
   }, []);
 
-  const handleAssignAdmin = async () => {
-    if (!newAdminEmail.trim()) {
+  const handleAssignRole = async () => {
+    if (!newUserEmail.trim()) {
       toast.error("Please enter an email address");
       return;
     }
 
     setIsAssigning(true);
     try {
-      // First, find the user by email in auth.users via a lookup
-      // We need to use the assign_admin_role function which takes user_id
-      // But we have email, so we need to look up the user first
-      
       // Check if user exists in businesses table by owner_email
       const { data: business, error: businessError } = await supabase
         .from("businesses")
         .select("owner_user_id")
-        .eq("owner_email", newAdminEmail.trim())
+        .eq("owner_email", newUserEmail.trim())
         .single();
 
       if (businessError || !business?.owner_user_id) {
@@ -69,26 +69,29 @@ export function AdminRoleManager() {
         return;
       }
 
-      // Use the assign_admin_role function
-      const { error } = await supabase.rpc("assign_admin_role", {
-        target_user_id: business.owner_user_id,
-      });
+      // Insert the role directly
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: business.owner_user_id,
+          role: selectedRole,
+        });
 
       if (error) {
-        if (error.message.includes("duplicate")) {
-          toast.error("This user is already an admin");
+        if (error.message.includes("duplicate") || error.code === "23505") {
+          toast.error(`This user already has the ${selectedRole} role`);
         } else {
           throw error;
         }
         return;
       }
 
-      toast.success(`Admin role assigned to ${newAdminEmail}`);
-      setNewAdminEmail("");
+      toast.success(`${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} role assigned to ${newUserEmail}`);
+      setNewUserEmail("");
       fetchUserRoles();
     } catch (error) {
-      console.error("Error assigning admin role:", error);
-      toast.error("Failed to assign admin role");
+      console.error("Error assigning role:", error);
+      toast.error("Failed to assign role");
     } finally {
       setIsAssigning(false);
     }
@@ -140,18 +143,27 @@ export function AdminRoleManager() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Add New Admin */}
+        {/* Add New Role */}
         <div className="space-y-3">
-          <Label>Assign Admin Role</Label>
+          <Label>Assign Role</Label>
           <div className="flex gap-2">
             <Input
               type="email"
               placeholder="Enter user email address"
-              value={newAdminEmail}
-              onChange={(e) => setNewAdminEmail(e.target.value)}
+              value={newUserEmail}
+              onChange={(e) => setNewUserEmail(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={handleAssignAdmin} disabled={isAssigning}>
+            <Select value={selectedRole} onValueChange={(v) => setSelectedRole(v as AppRole)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="moderator">Moderator</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={handleAssignRole} disabled={isAssigning}>
               {isAssigning ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -163,7 +175,7 @@ export function AdminRoleManager() {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
-            The user must have already signed up and created a business to be assigned an admin role.
+            The user must have already signed up and created a business to be assigned a role.
           </p>
         </div>
 

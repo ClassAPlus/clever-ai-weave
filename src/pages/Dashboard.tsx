@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Phone, MessageSquare, Calendar, Bell, Settings as SettingsIcon, LogOut, PhoneMissed, PhoneIncoming, Users, BarChart3, Menu, FileText } from "lucide-react";
+import { Loader2, Phone, MessageSquare, Calendar, Bell, Settings as SettingsIcon, LogOut, PhoneMissed, PhoneIncoming, Users, BarChart3, Menu, FileText, RefreshCw } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { EditPhoneDialog } from "@/components/EditPhoneDialog";
 import { ChangeAIPhoneDialog } from "@/components/ChangeAIPhoneDialog";
@@ -333,12 +333,23 @@ export default function Dashboard() {
                   <h1 className="text-2xl font-bold text-white">Dashboard</h1>
                   <p className="text-gray-400">Welcome back, {user?.email}</p>
                 </div>
-                {lastUpdated && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span>Updated {formatLastUpdated(lastUpdated)}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  {lastUpdated && (
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <span>Updated {formatLastUpdated(lastUpdated)}</span>
+                    </div>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => fetchBusiness()}
+                    disabled={isLoading}
+                    className="text-gray-400 hover:text-white hover:bg-gray-700"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
               </div>
 
               {/* Stats Grid */}

@@ -301,43 +301,64 @@ export default function Dashboard() {
 
               {/* Quick Actions */}
               <div className="grid lg:grid-cols-2 gap-6">
-                <Card className="bg-gray-800/50 border-gray-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Bell className="h-5 w-5 text-yellow-400" />
-                      New Inquiries
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      {stats.inquiries > 0 ? `${stats.inquiries} inquiry needs your attention` : "No new inquiries"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Link to="/dashboard/inquiries">
-                      <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
-                        View Inquiries
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+                {isLoading ? (
+                  <>
+                    {[...Array(2)].map((_, i) => (
+                      <Card key={i} className="bg-gray-800/50 border-gray-700">
+                        <CardHeader>
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-5 w-5 rounded bg-gray-700" />
+                            <Skeleton className="h-5 w-32 bg-gray-700" />
+                          </div>
+                          <Skeleton className="h-4 w-48 mt-2 bg-gray-700" />
+                        </CardHeader>
+                        <CardContent>
+                          <Skeleton className="h-10 w-32 bg-gray-700" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <Card className="bg-gray-800/50 border-gray-700">
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                          <Bell className="h-5 w-5 text-yellow-400" />
+                          New Inquiries
+                        </CardTitle>
+                        <CardDescription className="text-gray-400">
+                          {stats.inquiries > 0 ? `${stats.inquiries} inquiry needs your attention` : "No new inquiries"}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Link to="/dashboard/inquiries">
+                          <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
+                            View Inquiries
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
 
-                <Card className="bg-gray-800/50 border-gray-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Users className="h-5 w-5 text-blue-400" />
-                      Recent Activity
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      View your recent calls and conversations
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Link to="/dashboard/calls">
-                      <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
-                        View Calls
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+                    <Card className="bg-gray-800/50 border-gray-700">
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center gap-2">
+                          <Users className="h-5 w-5 text-blue-400" />
+                          Recent Activity
+                        </CardTitle>
+                        <CardDescription className="text-gray-400">
+                          View your recent calls and conversations
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Link to="/dashboard/calls">
+                          <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white">
+                            View Calls
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
               </div>
 
               {/* Setup reminder if no phone number */}

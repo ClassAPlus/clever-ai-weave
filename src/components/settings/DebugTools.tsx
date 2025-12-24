@@ -77,7 +77,7 @@ export function DebugTools({ businessId, businessName, ownerPhone, twilioPhoneNu
       const { data, error } = await supabase.functions.invoke('ai-preview', {
         body: { 
           businessName,
-          message: aiTestMessage,
+          sampleMessage: aiTestMessage,
         }
       });
 

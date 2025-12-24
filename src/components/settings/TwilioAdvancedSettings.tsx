@@ -147,6 +147,12 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
     : settings.voiceGender === "female"
     ? ELEVENLABS_VOICES.filter(v => v.gender === "female")
     : ELEVENLABS_VOICES;
+  
+  // Languages that ElevenLabs supports well
+  const elevenLabsSupportedLanguages = ['en-US', 'en-GB', 'es-ES', 'fr-FR', 'de-DE', 'pt-BR', 'pt-PT', 'it-IT', 'nl-NL', 'pl-PL', 'ru-RU'];
+  const isElevenLabsSupported = elevenLabsSupportedLanguages.some(lang => 
+    settings.voiceLanguage.startsWith(lang.split('-')[0])
+  );
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -359,11 +365,19 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
           </div>
         </div>
 
-        <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/30">
-          <p className="text-sm text-green-300">
-            ✨ <strong>Premium Voices:</strong> Using ElevenLabs AI for natural, human-like speech. Preview the selected voice above.
-          </p>
-        </div>
+        {isElevenLabsSupported ? (
+          <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+            <p className="text-sm text-green-300">
+              ✨ <strong>Premium Voices:</strong> Using ElevenLabs AI for natural, human-like speech in {currentLang?.label}.
+            </p>
+          </div>
+        ) : (
+          <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30">
+            <p className="text-sm text-yellow-300">
+              ⚠️ <strong>Native Voice:</strong> {currentLang?.label} uses Twilio's native voice engine for best pronunciation. The preview above uses ElevenLabs for demonstration only.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

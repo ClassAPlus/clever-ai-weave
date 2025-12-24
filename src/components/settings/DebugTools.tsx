@@ -78,6 +78,7 @@ export function DebugTools({ businessId, businessName, ownerPhone, twilioPhoneNu
         body: { 
           businessName,
           sampleMessage: aiTestMessage,
+          autoDetectLanguage: true, // Enable auto-detection for preview
         }
       });
 

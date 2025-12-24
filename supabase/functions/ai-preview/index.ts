@@ -22,16 +22,29 @@ serve(async (req) => {
       knowledgeBase,
       customTools,
       sampleMessage,
-      language = 'hebrew'
+      language = 'hebrew',
+      autoDetectLanguage = true
     } = await req.json();
 
-    console.log("AI Preview request:", { businessName, sampleMessage, personality });
+    console.log("AI Preview request:", { businessName, sampleMessage, personality, autoDetectLanguage });
 
     // Build personality instructions
     const personalityInstructions = buildPersonalityInstructions(personality);
     const knowledgeContext = buildKnowledgeContext(knowledgeBase);
 
-    const isHebrew = language === 'hebrew';
+    // Language instruction based on auto-detect setting
+    let languageInstruction: string;
+    if (autoDetectLanguage) {
+      languageInstruction = `LANGUAGE DETECTION: 
+- Detect the language of the customer's message
+- ALWAYS respond in the SAME language as the customer's message
+- If customer writes in English, respond in English
+- If customer writes in Hebrew, respond in Hebrew
+- If customer writes in any other language, respond in that language`;
+    } else {
+      const isHebrew = language === 'hebrew';
+      languageInstruction = `Respond ONLY in ${isHebrew ? 'Hebrew' : 'English'}`;
+    }
 
     const systemPrompt = `You are a helpful AI assistant for ${businessName || 'this business'}${industryType ? ` (${industryType} business)` : ''}.
 ${personalityInstructions}
@@ -40,7 +53,7 @@ ${knowledgeContext}
 
 IMPORTANT INSTRUCTIONS:
 - This is a PREVIEW mode - generate a realistic response as you would to a real customer
-- Respond in ${isHebrew ? 'Hebrew' : 'English'}
+- ${languageInstruction}
 - Match the personality settings exactly
 - Use the knowledge base to answer questions when relevant
 - Keep your response natural and helpful

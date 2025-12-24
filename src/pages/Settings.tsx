@@ -27,6 +27,7 @@ import { DebugTools } from "@/components/settings/DebugTools";
 import { DataExport } from "@/components/settings/DataExport";
 import { TwilioAdvancedSettings } from "@/components/settings/TwilioAdvancedSettings";
 import { AdminRoleManager } from "@/components/settings/AdminRoleManager";
+import { BusinessStaffManager } from "@/components/settings/BusinessStaffManager";
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -779,6 +780,9 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Business Team Members */}
+          {business && <BusinessStaffManager businessId={business.id} />}
         </TabsContent>
 
         {/* AI Assistant Tab */}

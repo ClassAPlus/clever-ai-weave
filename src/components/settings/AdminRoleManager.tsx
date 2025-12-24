@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, UserPlus, Trash2, Loader2 } from "lucide-react";
+import { Shield, UserPlus, Trash2, Loader2, AlertTriangle } from "lucide-react";
 
 type AppRole = "admin" | "moderator" | "user";
 
@@ -132,20 +133,29 @@ export function AdminRoleManager() {
   };
 
   return (
-    <Card>
+    <Card className="border-amber-500/30 bg-amber-950/10">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5" />
-          Admin Role Management
+          <Shield className="h-5 w-5 text-amber-500" />
+          Platform Administration
         </CardTitle>
         <CardDescription>
-          Assign or remove admin roles for users. Admins have access to developer settings and Twilio configuration.
+          Manage platform-wide administrator roles. <strong>This is NOT for business team members.</strong>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Warning Alert */}
+        <Alert variant="destructive" className="bg-amber-950/30 border-amber-500/50">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="text-amber-200">
+            <strong>Platform roles</strong> have access to ALL businesses, Twilio settings, and developer tools. 
+            Only assign these to trusted platform operators. For your business team, use "Business Team Members" in the General tab.
+          </AlertDescription>
+        </Alert>
+
         {/* Add New Role */}
         <div className="space-y-3">
-          <Label>Assign Role</Label>
+          <Label>Assign Platform Role</Label>
           <div className="flex gap-2">
             <Input
               type="email"
@@ -181,7 +191,7 @@ export function AdminRoleManager() {
 
         {/* Current Roles Table */}
         <div className="space-y-3">
-          <Label>Current User Roles</Label>
+          <Label>Current Platform Roles</Label>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

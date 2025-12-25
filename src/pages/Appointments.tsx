@@ -273,6 +273,13 @@ export default function Appointments() {
             Cancelled
           </Badge>
         );
+      case "rescheduled":
+        return (
+          <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+            <Calendar className="h-3 w-3 mr-1" />
+            Rescheduled
+          </Badge>
+        );
       default:
         return (
           <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">
@@ -549,9 +556,9 @@ export default function Appointments() {
                     {getReminderBadge(appointment)}
                     {getStatusBadge(appointment.status)}
                     
-                    {/* Send/Resend Reminder Button - show for upcoming pending/confirmed appointments */}
+                    {/* Send/Resend Reminder Button - show for upcoming non-completed/cancelled appointments */}
                     {!isPast(new Date(appointment.scheduled_at)) &&
-                     (appointment.status === "pending" || appointment.status === "confirmed") && (
+                     appointment.status !== "completed" && appointment.status !== "cancelled" && (
                       <Button
                         size="sm"
                         variant="ghost"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Phone, ArrowRight, ArrowLeft, Check, AlertCircle, Info, CheckCircle } from "lucide-react";
+import { Loader2, Phone, ArrowRight, ArrowLeft, Check, AlertCircle, Info, CheckCircle, Upload, X, FileText } from "lucide-react";
 
 interface PortNumberDialogProps {
   businessId: string;
@@ -21,7 +21,7 @@ interface PortNumberDialogProps {
   trigger?: React.ReactNode;
 }
 
-type Step = "enter" | "carrier" | "address" | "confirm" | "success";
+type Step = "enter" | "carrier" | "address" | "documents" | "confirm" | "success";
 
 interface PortFormData {
   phoneNumber: string;
@@ -46,13 +46,23 @@ interface PortabilityResult {
   pin_required?: boolean;
 }
 
+interface UploadedDocument {
+  name: string;
+  path: string;
+  size: number;
+  type: string;
+}
+
 export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDialogProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("enter");
   const [isChecking, setIsChecking] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [portabilityResult, setPortabilityResult] = useState<PortabilityResult | null>(null);
   const [portRequestId, setPortRequestId] = useState<string | null>(null);
+  const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<PortFormData>({
     phoneNumber: "",
@@ -76,6 +86,7 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
     setStep("enter");
     setPortabilityResult(null);
     setPortRequestId(null);
+    setUploadedDocs([]);
     setFormData({
       phoneNumber: "",
       customerName: "",
@@ -127,10 +138,6 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
         not_supported: data.not_supported,
         pin_required: data.pin_required,
       });
-
-      if (data.portable || data.not_supported) {
-        // Allow to proceed if portable or if check is not supported (manual verification needed)
-      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -140,6 +147,102 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
     } finally {
       setIsChecking(false);
     }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+
+    try {
+      const newDocs: UploadedDocument[] = [];
+      
+      for (const file of Array.from(files)) {
+        // Validate file type
+        const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+          toast({
+            variant: "destructive",
+            title: "Invalid file type",
+            description: `${file.name} is not supported. Please upload PDF, JPG, or PNG files.`,
+          });
+          continue;
+        }
+
+        // Validate file size (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            variant: "destructive",
+            title: "File too large",
+            description: `${file.name} is larger than 10MB.`,
+          });
+          continue;
+        }
+
+        // Generate unique path - use temp folder until we have port request ID
+        const timestamp = Date.now();
+        const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const path = `temp/${businessId}/${timestamp}_${sanitizedName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('port-documents')
+          .upload(path, file);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast({
+            variant: "destructive",
+            title: "Upload failed",
+            description: `Failed to upload ${file.name}: ${uploadError.message}`,
+          });
+          continue;
+        }
+
+        newDocs.push({
+          name: file.name,
+          path,
+          size: file.size,
+          type: file.type,
+        });
+      }
+
+      setUploadedDocs(prev => [...prev, ...newDocs]);
+      
+      if (newDocs.length > 0) {
+        toast({
+          title: "Documents uploaded",
+          description: `${newDocs.length} document(s) uploaded successfully.`,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Upload failed",
+        description: error.message,
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const removeDocument = async (doc: UploadedDocument) => {
+    try {
+      await supabase.storage.from('port-documents').remove([doc.path]);
+      setUploadedDocs(prev => prev.filter(d => d.path !== doc.path));
+    } catch (error) {
+      console.error('Error removing document:', error);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const submitPortRequest = async () => {
@@ -164,6 +267,11 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
           notification_emails: formData.notificationEmails
             ? formData.notificationEmails.split(",").map(e => e.trim()).filter(Boolean)
             : [],
+          uploaded_documents: uploadedDocs.map(d => ({
+            name: d.name,
+            path: d.path,
+            type: d.type,
+          })),
         },
       });
 
@@ -482,8 +590,118 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
                 Back
               </Button>
               <Button
-                onClick={() => setStep("confirm")}
+                onClick={() => setStep("documents")}
                 disabled={!formData.street || !formData.city || !formData.state || !formData.zip}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                Continue
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {/* Step 4: Documents */}
+        {step === "documents" && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5 text-purple-400" />
+                Supporting Documents
+              </DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Upload verification documents to help speed up the porting process.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                <div className="flex gap-2">
+                  <Info className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-gray-300">
+                    <p className="font-medium text-blue-400 mb-1">Recommended Documents</p>
+                    <ul className="list-disc list-inside text-xs space-y-1">
+                      <li>Recent phone bill (showing your name and address)</li>
+                      <li>Utility bill matching service address</li>
+                      <li>Government-issued ID</li>
+                      <li>Business license (if applicable)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Upload Area */}
+              <div className="space-y-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="w-full h-24 border-dashed border-2 border-gray-600 hover:border-purple-500 hover:bg-gray-700/50"
+                >
+                  {isUploading ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-purple-400" />
+                      <span className="text-gray-300">Uploading...</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="h-6 w-6 text-gray-400" />
+                      <span className="text-gray-400">Click to upload PDF, JPG, or PNG (max 10MB)</span>
+                    </div>
+                  )}
+                </Button>
+
+                {/* Uploaded Files List */}
+                {uploadedDocs.length > 0 && (
+                  <div className="space-y-2">
+                    {uploadedDocs.map((doc, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-5 w-5 text-purple-400" />
+                          <div>
+                            <p className="text-sm text-white truncate max-w-[200px]">{doc.name}</p>
+                            <p className="text-xs text-gray-500">{formatFileSize(doc.size)}</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeDocument(doc)}
+                          className="text-gray-400 hover:text-red-400 hover:bg-transparent p-1"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-500 italic">
+                Documents are optional but can help expedite the porting process.
+              </p>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => setStep("address")}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <Button
+                onClick={() => setStep("confirm")}
                 className="bg-purple-600 hover:bg-purple-700"
               >
                 Review & Submit
@@ -493,7 +711,7 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
           </>
         )}
 
-        {/* Step 4: Confirm */}
+        {/* Step 5: Confirm */}
         {step === "confirm" && (
           <>
             <DialogHeader>
@@ -502,7 +720,7 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
                 Please review your information before submitting.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4 space-y-4">
+            <div className="py-4 space-y-4 max-h-[400px] overflow-y-auto">
               <div className="bg-gray-700/50 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Phone Number:</span>
@@ -534,6 +752,19 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
                     <span className="text-white">{formData.targetDate}</span>
                   </div>
                 )}
+                {uploadedDocs.length > 0 && (
+                  <div className="border-t border-gray-600 pt-3">
+                    <span className="text-gray-400">Documents:</span>
+                    <div className="mt-2 space-y-1">
+                      {uploadedDocs.map((doc, index) => (
+                        <div key={index} className="flex items-center gap-2 text-sm">
+                          <FileText className="h-4 w-4 text-purple-400" />
+                          <span className="text-white">{doc.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
@@ -554,7 +785,7 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
             <DialogFooter className="gap-2 sm:gap-0">
               <Button
                 variant="outline"
-                onClick={() => setStep("address")}
+                onClick={() => setStep("documents")}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -572,7 +803,7 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
           </>
         )}
 
-        {/* Step 5: Success */}
+        {/* Step 6: Success */}
         {step === "success" && (
           <>
             <DialogHeader>
@@ -588,6 +819,15 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
                   Check your email ({formData.authorizedRepEmail}) for the Letter of Authorization (LOA) to sign.
                 </p>
               </div>
+
+              {uploadedDocs.length > 0 && (
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                  <p className="text-sm text-purple-400">
+                    <FileText className="h-4 w-4 inline mr-1" />
+                    {uploadedDocs.length} document(s) uploaded for verification
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <h4 className="text-white font-medium">Next Steps:</h4>

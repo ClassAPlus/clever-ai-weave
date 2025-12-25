@@ -698,6 +698,7 @@ export type Database = {
           street: string | null
           target_port_date: string | null
           updated_at: string | null
+          uploaded_documents: Json | null
           zip: string | null
         }
         Insert: {
@@ -722,6 +723,7 @@ export type Database = {
           street?: string | null
           target_port_date?: string | null
           updated_at?: string | null
+          uploaded_documents?: Json | null
           zip?: string | null
         }
         Update: {
@@ -746,6 +748,7 @@ export type Database = {
           street?: string | null
           target_port_date?: string | null
           updated_at?: string | null
+          uploaded_documents?: Json | null
           zip?: string | null
         }
         Relationships: []

@@ -43,6 +43,7 @@ Deno.serve(async (req) => {
       country = 'US',
       target_port_date,
       notification_emails = [],
+      uploaded_documents = [],
     } = body;
 
     // Validate required fields
@@ -178,6 +179,7 @@ Deno.serve(async (req) => {
         target_port_date: portDate,
         notification_emails,
         rejection_reason: errorMessage,
+        uploaded_documents: uploaded_documents,
       });
       
       return new Response(
@@ -206,6 +208,7 @@ Deno.serve(async (req) => {
         country,
         target_port_date: portDate,
         notification_emails,
+        uploaded_documents: uploaded_documents,
       })
       .select()
       .single();

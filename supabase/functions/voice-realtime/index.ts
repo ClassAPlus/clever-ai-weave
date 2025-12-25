@@ -1046,7 +1046,7 @@ serve(async (req) => {
     console.log("Twilio WebSocket connected");
   };
   
-  twilioWs.onmessage = (event) => {
+  twilioWs.onmessage = async (event) => {
     try {
       const msg = JSON.parse(event.data);
       

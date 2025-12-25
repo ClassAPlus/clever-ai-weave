@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Loader2, Calendar, Clock, User, RefreshCw, Filter,
   CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare, Send,
-  ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid, Plus, GripVertical
+  ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid, Plus, GripVertical, AlignJustify
 } from "lucide-react";
 import { CreateAppointmentDialog } from "@/components/CreateAppointmentDialog";
 import { DraggableAppointment } from "@/components/appointments/DraggableAppointment";
@@ -60,7 +60,7 @@ interface AppointmentStats {
   customerCancelled: number;
 }
 
-type ViewMode = "day" | "week" | "month";
+type ViewMode = "day" | "week" | "month" | "agenda";
 
 export default function Appointments() {
   const { user } = useAuth();
@@ -157,6 +157,7 @@ export default function Appointments() {
   const getDateRange = useCallback(() => {
     switch (viewMode) {
       case "day":
+      case "agenda":
         return { start: startOfDay(currentDate), end: endOfDay(currentDate) };
       case "week":
         return { start: startOfWeek(currentDate, { weekStartsOn: 0 }), end: endOfWeek(currentDate, { weekStartsOn: 0 }) };
@@ -356,6 +357,7 @@ export default function Appointments() {
     setCurrentDate(prev => {
       switch (viewMode) {
         case "day":
+        case "agenda":
           return direction === "prev" ? subDays(prev, 1) : addDays(prev, 1);
         case "week":
           return direction === "prev" ? subWeeks(prev, 1) : addWeeks(prev, 1);
@@ -371,6 +373,7 @@ export default function Appointments() {
     const { start, end } = getDateRange();
     switch (viewMode) {
       case "day":
+      case "agenda":
         return format(currentDate, "EEEE, MMMM d, yyyy");
       case "week":
         return `${format(start, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
@@ -670,6 +673,127 @@ export default function Appointments() {
     );
   };
 
+  const renderAgendaView = () => {
+    // Generate hour slots from 6 AM to 10 PM
+    const hourSlots = Array.from({ length: 17 }, (_, i) => i + 6);
+    
+    const getAppointmentsForHour = (hour: number) => {
+      return appointments.filter(apt => {
+        const aptHour = getHours(new Date(apt.scheduled_at));
+        return aptHour === hour;
+      });
+    };
+
+    return (
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div>
+            <CardTitle className="text-white flex items-center gap-2">
+              <AlignJustify className="h-5 w-5 text-purple-400" />
+              {format(currentDate, "EEEE, MMMM d")}
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              {appointments.length} appointment{appointments.length !== 1 ? 's' : ''} today
+            </CardDescription>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => handleDayClick(currentDate)}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-gray-700/50">
+            {hourSlots.map(hour => {
+              const hourAppointments = getAppointmentsForHour(hour);
+              const timeLabel = format(setHours(new Date(), hour), "h a");
+              const isCurrentHour = isToday(currentDate) && getHours(new Date()) === hour;
+              
+              return (
+                <div 
+                  key={hour} 
+                  className={`flex min-h-[60px] hover:bg-gray-700/20 transition-colors cursor-pointer ${
+                    isCurrentHour ? 'bg-purple-500/10 border-l-2 border-purple-500' : ''
+                  }`}
+                  onClick={() => {
+                    const dateWithHour = setHours(currentDate, hour);
+                    setSelectedDateForCreate(dateWithHour);
+                    setCreateDialogOpen(true);
+                  }}
+                >
+                  {/* Time column */}
+                  <div className={`w-20 flex-shrink-0 p-3 text-right border-r border-gray-700/50 ${
+                    isCurrentHour ? 'text-purple-400 font-medium' : 'text-gray-500'
+                  }`}>
+                    <span className="text-sm">{timeLabel}</span>
+                  </div>
+                  
+                  {/* Appointments column */}
+                  <div className="flex-1 p-2">
+                    {hourAppointments.length === 0 ? (
+                      <div className="h-full flex items-center justify-center">
+                        <span className="text-xs text-gray-600 opacity-0 hover:opacity-100 transition-opacity">
+                          Click to add
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {hourAppointments.map(apt => (
+                          <div
+                            key={apt.id}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:ring-1 hover:ring-purple-400 ${
+                              apt.status === 'confirmed' ? 'bg-green-500/10 border-green-500/30' :
+                              apt.status === 'cancelled' ? 'bg-red-500/10 border-red-500/30' :
+                              apt.status === 'completed' ? 'bg-blue-500/10 border-blue-500/30' :
+                              'bg-gray-700/30 border-gray-600/50'
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAppointmentClick(apt);
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-white truncate">
+                                    {apt.contact?.name || apt.contact?.phone_number || "Unknown"}
+                                  </span>
+                                  {getStatusBadge(apt.status)}
+                                </div>
+                                <div className="flex items-center gap-3 mt-1 text-sm text-gray-400">
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {format(new Date(apt.scheduled_at), "h:mm a")}
+                                  </span>
+                                  {apt.duration_minutes && (
+                                    <span>{apt.duration_minutes} min</span>
+                                  )}
+                                  {apt.service_type && (
+                                    <Badge variant="outline" className="border-gray-600 text-gray-300 text-xs">
+                                      {apt.service_type}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              {getReminderBadge(apt)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -757,6 +881,13 @@ export default function Appointments() {
             >
               <LayoutGrid className="h-4 w-4 mr-1" />
               Month
+            </ToggleGroupItem>
+            <ToggleGroupItem 
+              value="agenda"
+              className="data-[state=on]:bg-purple-500/20 data-[state=on]:text-purple-300"
+            >
+              <AlignJustify className="h-4 w-4 mr-1" />
+              Agenda
             </ToggleGroupItem>
           </ToggleGroup>
           
@@ -858,6 +989,7 @@ export default function Appointments() {
         {viewMode === "day" && renderDayView()}
         {viewMode === "week" && renderWeekView()}
         {viewMode === "month" && renderMonthView()}
+        {viewMode === "agenda" && renderAgendaView()}
         
         <DragOverlay>
           {activeAppointment ? (

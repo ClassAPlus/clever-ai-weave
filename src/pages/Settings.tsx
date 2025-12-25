@@ -46,6 +46,7 @@ interface TwilioSettings {
   dailyMessageLimit: number;
   rateLimitWindow: number;
   enableAiReceptionist?: boolean;
+  enableAppointmentReminders?: boolean;
 }
 
 interface Business {
@@ -232,6 +233,7 @@ export default function Settings() {
     dailyMessageLimit: 10,
     rateLimitWindow: 5,
     enableAiReceptionist: true,
+    enableAppointmentReminders: true,
   });
   const [notificationEmailFrom, setNotificationEmailFrom] = useState("");
   const [notificationEmailError, setNotificationEmailError] = useState("");
@@ -1183,6 +1185,20 @@ export default function Settings() {
                   <p className="text-xs text-gray-500">Receive email summaries and alerts</p>
                 </div>
                 <Switch checked={notifyEmail} onCheckedChange={setNotifyEmail} disabled={!isEditingNotifications} />
+              </div>
+              
+              <div className="pt-4 border-t border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-gray-300">Appointment Reminders</Label>
+                    <p className="text-xs text-gray-500">Send SMS reminders 1 day before appointments</p>
+                  </div>
+                  <Switch 
+                    checked={twilioSettings.enableAppointmentReminders ?? true} 
+                    onCheckedChange={(checked) => setTwilioSettings(prev => ({ ...prev, enableAppointmentReminders: checked }))} 
+                    disabled={!isEditingNotifications} 
+                  />
+                </div>
               </div>
               
               <div className="pt-4 border-t border-gray-700 space-y-2">

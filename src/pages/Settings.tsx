@@ -1640,6 +1640,7 @@ export default function Settings() {
           <TwilioAdvancedSettings
             settings={twilioSettings}
             onChange={setTwilioSettings}
+            primaryLanguage={primaryLanguage}
           />
 
           {/* Admin Role Management - Admin Only */}

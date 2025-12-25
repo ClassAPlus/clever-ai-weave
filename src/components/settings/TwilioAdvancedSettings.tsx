@@ -23,7 +23,30 @@ interface TwilioSettings {
 interface TwilioAdvancedSettingsProps {
   settings: TwilioSettings;
   onChange: (settings: TwilioSettings) => void;
+  primaryLanguage?: string; // From AI Configuration - auto-syncs voice language
 }
+
+// Map AI language names to Google TTS language codes
+const AI_LANGUAGE_TO_VOICE_CODE: Record<string, string> = {
+  hebrew: 'he-IL',
+  english: 'en-US',
+  arabic: 'ar-XA',
+  russian: 'ru-RU',
+  spanish: 'es-ES',
+  french: 'fr-FR',
+  german: 'de-DE',
+  portuguese: 'pt-BR',
+  italian: 'it-IT',
+  dutch: 'nl-NL',
+  polish: 'pl-PL',
+  turkish: 'tr-TR',
+  chinese: 'zh-CN',
+  japanese: 'ja-JP',
+  korean: 'ko-KR',
+  hindi: 'hi-IN',
+  thai: 'th-TH',
+  vietnamese: 'vi-VN',
+};
 
 // Google Cloud TTS voices organized by language
 const GOOGLE_VOICES: Record<string, { name: string; gender: string; type: string; description: string }[]> = {
@@ -156,12 +179,17 @@ const VOICE_LANGUAGES = [
   { value: "vi-VN", label: "Vietnamese", sampleText: "Xin chào! Chào mừng. Tôi có thể giúp gì cho bạn?" },
 ];
 
-export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSettingsProps) {
+export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: TwilioAdvancedSettingsProps) {
   const { toast } = useToast();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [customText, setCustomText] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Auto-sync voice language from primary AI language
+  const effectiveVoiceLanguage = primaryLanguage 
+    ? (AI_LANGUAGE_TO_VOICE_CODE[primaryLanguage] || 'en-US')
+    : settings.voiceLanguage;
 
   const updateSettings = (patch: Partial<TwilioSettings>) => {
     onChange({ ...settings, ...patch });
@@ -181,9 +209,9 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
       return;
     }
 
-    const langConfig = VOICE_LANGUAGES.find(l => l.value === settings.voiceLanguage);
+    const langConfig = VOICE_LANGUAGES.find(l => l.value === effectiveVoiceLanguage);
     const textToSpeak = customText.trim() || langConfig?.sampleText || "Hello, how can I help you today?";
-    const voiceName = settings.googleVoiceName || getDefaultVoice(settings.voiceLanguage, settings.voiceGender);
+    const voiceName = settings.googleVoiceName || getDefaultVoice(effectiveVoiceLanguage, settings.voiceGender);
 
     setIsLoading(true);
 
@@ -197,7 +225,7 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
           },
           body: JSON.stringify({ 
             text: textToSpeak, 
-            languageCode: settings.voiceLanguage,
+            languageCode: effectiveVoiceLanguage,
             gender: settings.voiceGender,
             voiceName: voiceName 
           }),
@@ -247,8 +275,8 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
     return sorted.find(v => v.gender === targetGender)?.name || sorted[0]?.name || 'en-US-Neural2-C';
   };
 
-  const currentLang = VOICE_LANGUAGES.find(l => l.value === settings.voiceLanguage);
-  const availableVoices = GOOGLE_VOICES[settings.voiceLanguage] || GOOGLE_VOICES['en-US'];
+  const currentLang = VOICE_LANGUAGES.find(l => l.value === effectiveVoiceLanguage);
+  const availableVoices = GOOGLE_VOICES[effectiveVoiceLanguage] || GOOGLE_VOICES['en-US'];
   // Show all voices for the language, sorted with preferred gender first
   const sortedVoices = [...availableVoices].sort((a, b) => {
     // Preferred gender first
@@ -305,29 +333,13 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-gray-300">Voice Language</Label>
-              <Select
-                value={settings.voiceLanguage}
-                onValueChange={(value) => {
-                  // Auto-select first voice of the current gender for new language
-                  const newVoices = GOOGLE_VOICES[value] || GOOGLE_VOICES["en-US"];
-                  const firstVoice = newVoices.find((v) => v.gender === settings.voiceGender) || newVoices[0];
-                  updateSettings({
-                    voiceLanguage: value,
-                    googleVoiceName: firstVoice?.name || getDefaultVoice(value, settings.voiceGender),
-                  });
-                }}
-              >
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {VOICE_LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2 h-10 px-3 bg-gray-700/50 border border-gray-600 rounded-md">
+                <span className="text-white">{currentLang?.label || effectiveVoiceLanguage}</span>
+                <span className="text-xs text-purple-400 ml-auto">Synced from AI Config</span>
+              </div>
+              <p className="text-xs text-gray-500">
+                Automatically set from your Primary Language in AI Configuration
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -336,12 +348,12 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
                 value={settings.voiceGender}
                 onValueChange={(value) => {
                   // Auto-select first voice of the new gender
-                  const voices = GOOGLE_VOICES[settings.voiceLanguage] || GOOGLE_VOICES["en-US"];
+                  const voices = GOOGLE_VOICES[effectiveVoiceLanguage] || GOOGLE_VOICES["en-US"];
                   const firstVoice = voices.find((v) => v.gender === value) || voices[0];
                   updateSettings({
                     voiceGender: value,
                     googleVoiceName:
-                      firstVoice?.name || getDefaultVoice(settings.voiceLanguage, value),
+                      firstVoice?.name || getDefaultVoice(effectiveVoiceLanguage, value),
                   });
                 }}
               >
@@ -363,7 +375,7 @@ export function TwilioAdvancedSettings({ settings, onChange }: TwilioAdvancedSet
               AI Voice Character
             </Label>
             <Select
-              value={settings.googleVoiceName || getDefaultVoice(settings.voiceLanguage, settings.voiceGender)}
+              value={settings.googleVoiceName || getDefaultVoice(effectiveVoiceLanguage, settings.voiceGender)}
               onValueChange={(value) => updateSettings({ googleVoiceName: value })}
             >
               <SelectTrigger className="bg-gray-700 border-gray-600 text-white">

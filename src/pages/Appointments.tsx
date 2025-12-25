@@ -12,6 +12,7 @@ import {
 import { CreateAppointmentDialog } from "@/components/CreateAppointmentDialog";
 import { DraggableAppointment } from "@/components/appointments/DraggableAppointment";
 import { DroppableDayCell } from "@/components/appointments/DroppableDayCell";
+import { AppointmentDetailsDialog } from "@/components/appointments/AppointmentDetailsDialog";
 import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { 
   format, formatDistanceToNow, isPast, isToday, isTomorrow, 
@@ -77,7 +78,14 @@ export default function Appointments() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedDateForCreate, setSelectedDateForCreate] = useState<Date>(new Date());
   const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const isInitialLoad = useRef(true);
+
+  const handleAppointmentClick = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setDetailsDialogOpen(true);
+  };
 
   // DnD sensors with activation constraint to prevent accidental drags
   const sensors = useSensors(
@@ -449,7 +457,8 @@ export default function Appointments() {
   const renderAppointmentCard = (appointment: Appointment, compact = false) => (
     <div 
       key={appointment.id} 
-      className={`flex flex-col p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors ${compact ? 'text-xs' : ''}`}
+      className={`flex flex-col p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 hover:ring-1 hover:ring-purple-400 transition-colors cursor-pointer ${compact ? 'text-xs' : ''}`}
+      onClick={() => handleAppointmentClick(appointment)}
     >
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className={`font-medium text-white ${compact ? 'text-xs truncate' : ''}`}>
@@ -468,7 +477,7 @@ export default function Appointments() {
         </Badge>
       )}
       {!compact && (
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
+        <div className="flex items-center gap-2 mt-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
           {getReminderBadge(appointment)}
           {!isPast(new Date(appointment.scheduled_at)) &&
            appointment.status !== "completed" && appointment.status !== "cancelled" && (
@@ -591,7 +600,12 @@ export default function Appointments() {
                 <p className="text-xs text-gray-500 text-center py-4">Drag here or click to add</p>
               ) : (
                 dayAppointments.map(apt => (
-                  <DraggableAppointment key={apt.id} appointment={apt} compact />
+                  <DraggableAppointment 
+                    key={apt.id} 
+                    appointment={apt} 
+                    compact 
+                    onClick={handleAppointmentClick}
+                  />
                 ))
               )}
             </DroppableDayCell>
@@ -636,7 +650,12 @@ export default function Appointments() {
                 variant="month"
               >
                 {dayAppointments.slice(0, 3).map(apt => (
-                  <DraggableAppointment key={apt.id} appointment={apt} compact />
+                  <DraggableAppointment 
+                    key={apt.id} 
+                    appointment={apt} 
+                    compact 
+                    onClick={handleAppointmentClick}
+                  />
                 ))}
                 {dayAppointments.length > 3 && (
                   <div className="text-xs text-gray-400 text-center">
@@ -867,6 +886,14 @@ export default function Appointments() {
           onAppointmentCreated={fetchAppointments}
         />
       )}
+
+      {/* Appointment Details Dialog */}
+      <AppointmentDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        appointment={selectedAppointment}
+        onAppointmentUpdated={fetchAppointments}
+      />
     </div>
   );
 }

@@ -1240,6 +1240,37 @@ export default function Settings() {
                       <p className="text-xs text-gray-500">
                         Available placeholders: <code className="bg-gray-700 px-1 rounded">{"{name}"}</code> <code className="bg-gray-700 px-1 rounded">{"{business}"}</code> <code className="bg-gray-700 px-1 rounded">{"{service}"}</code> <code className="bg-gray-700 px-1 rounded">{"{time}"}</code> <code className="bg-gray-700 px-1 rounded">{"{date}"}</code>
                       </p>
+                      
+                      {/* Message Preview */}
+                      <div className="mt-3 p-3 bg-gray-900/50 rounded-lg border border-gray-600">
+                        <div className="flex items-center gap-2 mb-2">
+                          <MessageSquare className="h-4 w-4 text-purple-400" />
+                          <span className="text-xs font-medium text-gray-400">Message Preview</span>
+                        </div>
+                        <p className="text-sm text-gray-200 whitespace-pre-wrap">
+                          {(() => {
+                            const template = twilioSettings.appointmentReminderTemplate || 
+                              (primaryLanguage === "hebrew" 
+                                ? "שלום {name}! תזכורת מ{business}: יש לך {service} מחר ב-{time}. השב \"כן\" לאישור או \"ביטול\" לביטול התור."
+                                : "Hi {name}! Reminder from {business}: You have an {service} tomorrow at {time}. Reply YES to confirm or CANCEL to cancel.");
+                            
+                            const sampleData = {
+                              name: primaryLanguage === "hebrew" ? "ישראל ישראלי" : "John Smith",
+                              business: name || "Your Business",
+                              service: primaryLanguage === "hebrew" ? "תספורת" : "Haircut",
+                              time: primaryLanguage === "hebrew" ? "14:30" : "2:30 PM",
+                              date: primaryLanguage === "hebrew" ? "יום שלישי, 15 בינואר" : "Tuesday, January 15"
+                            };
+                            
+                            return template
+                              .replace(/\{name\}/gi, sampleData.name)
+                              .replace(/\{business\}/gi, sampleData.business)
+                              .replace(/\{service\}/gi, sampleData.service)
+                              .replace(/\{time\}/gi, sampleData.time)
+                              .replace(/\{date\}/gi, sampleData.date);
+                          })()}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}

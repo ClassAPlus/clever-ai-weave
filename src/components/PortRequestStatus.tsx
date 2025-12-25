@@ -27,6 +27,7 @@ interface PortRequest {
 
 interface PortRequestStatusProps {
   businessId: string;
+  onPortNumberClick?: () => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -43,7 +44,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   cancelled: { label: "Cancelled", color: "bg-gray-500", icon: <XCircle className="h-3 w-3" /> },
 };
 
-export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
+export function PortRequestStatus({ businessId, onPortNumberClick }: PortRequestStatusProps) {
   const [portRequests, setPortRequests] = useState<PortRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -260,9 +261,20 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
           <div className="text-center py-8 text-gray-400">
             <Phone className="h-10 w-10 mx-auto mb-3 opacity-50" />
             <p className="text-sm">No port requests yet</p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 mt-1 mb-4">
               Use "Port Existing Number" to transfer your phone number
             </p>
+            {onPortNumberClick && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onPortNumberClick}
+                className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Port My Number
+              </Button>
+            )}
           </div>
         ) : (
           portRequests.map((request) => {

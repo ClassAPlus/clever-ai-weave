@@ -144,6 +144,7 @@ export default function Settings() {
   const [isTestingForwardPhones, setIsTestingForwardPhones] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPortDialogOpen, setIsPortDialogOpen] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -627,7 +628,7 @@ export default function Settings() {
                 <div className="p-3 bg-gray-700/50 rounded-lg border border-gray-600">
                   <p className="text-sm text-gray-400 mb-3">No AI phone number configured yet.</p>
                   <div className="flex flex-wrap gap-2">
-                    <PortNumberDialog businessId={business?.id || ""} onUpdate={fetchBusiness} />
+                    <PortNumberDialog businessId={business?.id || ""} onUpdate={fetchBusiness} open={isPortDialogOpen} onOpenChange={setIsPortDialogOpen} />
                   </div>
                 </div>
               )}
@@ -819,7 +820,7 @@ export default function Settings() {
           </Card>
 
           {/* Port Request Status */}
-          {business && <PortRequestStatus businessId={business.id} />}
+          {business && <PortRequestStatus businessId={business.id} onPortNumberClick={() => setIsPortDialogOpen(true)} />}
 
           {/* Business Team Members */}
           {business && <BusinessStaffManager businessId={business.id} />}

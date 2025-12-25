@@ -19,6 +19,8 @@ interface PortNumberDialogProps {
   businessId: string;
   onUpdate: () => void;
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 type Step = "enter" | "carrier" | "address" | "documents" | "confirm" | "success";
@@ -53,8 +55,9 @@ interface UploadedDocument {
   type: string;
 }
 
-export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDialogProps) {
-  const [open, setOpen] = useState(false);
+export function PortNumberDialog({ businessId, onUpdate, trigger, open: controlledOpen, onOpenChange }: PortNumberDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const [step, setStep] = useState<Step>("enter");
   const [isChecking, setIsChecking] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -105,7 +108,11 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
   };
 
   const handleOpenChange = (isOpen: boolean) => {
-    setOpen(isOpen);
+    if (onOpenChange) {
+      onOpenChange(isOpen);
+    } else {
+      setInternalOpen(isOpen);
+    }
     if (!isOpen) {
       resetState();
     }
@@ -386,7 +393,7 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
             <DialogFooter className="gap-2 sm:gap-0">
               <Button
                 variant="outline"
-                onClick={() => setOpen(false)}
+                onClick={() => handleOpenChange(false)}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 Cancel
@@ -841,7 +848,7 @@ export function PortNumberDialog({ businessId, onUpdate, trigger }: PortNumberDi
             </div>
             <DialogFooter>
               <Button
-                onClick={() => setOpen(false)}
+                onClick={() => handleOpenChange(false)}
                 className="bg-purple-600 hover:bg-purple-700 w-full"
               >
                 <Check className="h-4 w-4 mr-2" />

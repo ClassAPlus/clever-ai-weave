@@ -840,7 +840,14 @@ export default function Settings() {
                 <div className="p-3 bg-gray-700/50 rounded-lg border border-gray-600">
                   <p className="text-sm text-gray-400 mb-3">No AI phone number configured yet.</p>
                   <div className="flex flex-wrap gap-2">
-                    <PortNumberDialog businessId={business?.id || ""} onUpdate={fetchBusiness} open={isPortDialogOpen} onOpenChange={setIsPortDialogOpen} />
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsPortDialogOpen(true)}
+                      className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Port My Number
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1439,6 +1446,14 @@ export default function Settings() {
         </Button>
       </div>
 
+      {/* Port Number Dialog - rendered outside conditionals so it's always available */}
+      <PortNumberDialog 
+        businessId={business?.id || ""} 
+        onUpdate={fetchBusiness} 
+        open={isPortDialogOpen} 
+        onOpenChange={setIsPortDialogOpen}
+        trigger={<span />}
+      />
     </div>
   );
 }

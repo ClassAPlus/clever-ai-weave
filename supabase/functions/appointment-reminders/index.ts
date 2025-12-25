@@ -149,7 +149,18 @@ serve(async (req) => {
         const serviceText = appointment.service_type || (isHebrew ? 'תור' : 'appointment');
 
         let reminderMessage: string;
-        if (isHebrew) {
+        
+        // Check for custom template
+        const customTemplate = twilioSettings.appointmentReminderTemplate;
+        if (customTemplate && customTemplate.trim()) {
+          // Use custom template with placeholder substitution
+          reminderMessage = customTemplate
+            .replace(/\{name\}/gi, customerName || (isHebrew ? 'לקוח/ה יקר/ה' : 'Valued Customer'))
+            .replace(/\{business\}/gi, business.name)
+            .replace(/\{service\}/gi, serviceText)
+            .replace(/\{time\}/gi, timeStr)
+            .replace(/\{date\}/gi, dateStr);
+        } else if (isHebrew) {
           reminderMessage = `שלום${customerName ? ` ${customerName}` : ''}! תזכורת מ${business.name}: יש לך ${serviceText} מחר ב-${timeStr}. ` +
             `השב "כן" לאישור או "ביטול" לביטול התור.`;
         } else {

@@ -2,9 +2,16 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw, Phone, Clock, CheckCircle, XCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { Loader2, RefreshCw, Phone, Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, FileText, Download, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+
+interface UploadedDocument {
+  name: string;
+  path: string;
+  type: string;
+}
 
 interface PortRequest {
   id: string;
@@ -15,6 +22,7 @@ interface PortRequest {
   rejection_reason: string | null;
   created_at: string;
   authorized_rep_email: string | null;
+  uploaded_documents: UploadedDocument[] | null;
 }
 
 interface PortRequestStatusProps {
@@ -39,6 +47,8 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
   const [portRequests, setPortRequests] = useState<PortRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
+  const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchPortRequests = async (showRefreshToast = false) => {
@@ -79,6 +89,43 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
     fetchPortRequests(true);
   };
 
+  const toggleExpanded = (requestId: string) => {
+    setExpandedRequests(prev => {
+      const next = new Set(prev);
+      if (next.has(requestId)) {
+        next.delete(requestId);
+      } else {
+        next.add(requestId);
+      }
+      return next;
+    });
+  };
+
+  const handleDownloadDocument = async (doc: UploadedDocument) => {
+    setDownloadingDoc(doc.path);
+    try {
+      // Create a signed URL for download (valid for 1 hour)
+      const { data, error } = await supabase.storage
+        .from('port-documents')
+        .createSignedUrl(doc.path, 3600);
+
+      if (error) throw error;
+      if (!data?.signedUrl) throw new Error('Failed to generate download URL');
+
+      // Open in new tab or trigger download
+      window.open(data.signedUrl, '_blank');
+    } catch (error: any) {
+      console.error('Download error:', error);
+      toast({
+        variant: "destructive",
+        title: "Download failed",
+        description: error.message,
+      });
+    } finally {
+      setDownloadingDoc(null);
+    }
+  };
+
   const getStatusInfo = (status: string) => {
     return STATUS_CONFIG[status.toLowerCase()] || STATUS_CONFIG.pending;
   };
@@ -90,6 +137,12 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const getFileIcon = (type: string) => {
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('image')) return '🖼️';
+    return '📎';
   };
 
   if (isLoading) {
@@ -139,6 +192,8 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
           const statusInfo = getStatusInfo(request.status);
           const isComplete = ['completed', 'ported'].includes(request.status.toLowerCase());
           const isFailed = ['rejected', 'failed', 'cancelled'].includes(request.status.toLowerCase());
+          const hasDocuments = request.uploaded_documents && request.uploaded_documents.length > 0;
+          const isExpanded = expandedRequests.has(request.id);
 
           return (
             <div
@@ -189,6 +244,62 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
                     <p className="text-sm text-red-400">{request.rejection_reason}</p>
                   </div>
                 </div>
+              )}
+
+              {/* Documents Section */}
+              {hasDocuments && (
+                <Collapsible open={isExpanded} onOpenChange={() => toggleExpanded(request.id)}>
+                  <div className="mt-3 pt-3 border-t border-gray-600">
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-between text-gray-400 hover:text-white hover:bg-gray-600/50 p-2 h-auto"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-purple-400" />
+                          <span className="text-sm">
+                            {request.uploaded_documents!.length} Document{request.uploaded_documents!.length !== 1 ? 's' : ''} Attached
+                          </span>
+                        </div>
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2 space-y-2">
+                      {request.uploaded_documents!.map((doc, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-gray-700/50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-lg">{getFileIcon(doc.type)}</span>
+                            <span className="text-sm text-white truncate max-w-[180px]" title={doc.name}>
+                              {doc.name}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDownloadDocument(doc)}
+                            disabled={downloadingDoc === doc.path}
+                            className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 p-1 h-8 w-8"
+                            title="Download document"
+                          >
+                            {downloadingDoc === doc.path ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <ExternalLink className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
               )}
 
               {/* Progress indicator for active requests */}

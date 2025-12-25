@@ -221,9 +221,7 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
     );
   }
 
-  if (portRequests.length === 0) {
-    return null; // Don't show the card if there are no port requests
-  }
+  const isEmpty = portRequests.length === 0;
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -258,7 +256,16 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        {portRequests.map((request) => {
+        {isEmpty ? (
+          <div className="text-center py-8 text-gray-400">
+            <Phone className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">No port requests yet</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Use "Port Existing Number" to transfer your phone number
+            </p>
+          </div>
+        ) : (
+          portRequests.map((request) => {
           const statusInfo = getStatusInfo(request.status);
           const isComplete = ['completed', 'ported'].includes(request.status.toLowerCase());
           const isFailed = ['rejected', 'failed', 'cancelled'].includes(request.status.toLowerCase());
@@ -386,7 +393,8 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
               )}
             </div>
           );
-        })}
+        })
+        )}
       </CardContent>
     </Card>
   );

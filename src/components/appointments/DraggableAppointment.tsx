@@ -10,6 +10,12 @@ interface Appointment {
   duration_minutes: number | null;
   service_type: string | null;
   status: string | null;
+  notes?: string | null;
+  confirmation_code?: string | null;
+  created_at?: string | null;
+  reminder_sent_at?: string | null;
+  reminder_response?: string | null;
+  reminder_response_at?: string | null;
   contact: {
     id: string;
     name: string | null;
@@ -20,9 +26,10 @@ interface Appointment {
 interface DraggableAppointmentProps {
   appointment: Appointment;
   compact?: boolean;
+  onClick?: (appointment: Appointment) => void;
 }
 
-export function DraggableAppointment({ appointment, compact = false }: DraggableAppointmentProps) {
+export function DraggableAppointment({ appointment, compact = false, onClick }: DraggableAppointmentProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: appointment.id,
     data: {
@@ -45,19 +52,30 @@ export function DraggableAppointment({ appointment, compact = false }: Draggable
 
   const statusColor = statusColors[appointment.status as keyof typeof statusColors] || statusColors.pending;
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Only trigger click if not dragging and there's a click handler
+    if (!isDragging && onClick) {
+      e.stopPropagation();
+      onClick(appointment);
+    }
+  };
+
   if (compact) {
     return (
       <div
         ref={setNodeRef}
         style={style}
-        className={`text-xs p-1.5 rounded cursor-grab active:cursor-grabbing select-none ${statusColor} ${
-          isDragging ? 'shadow-lg ring-2 ring-purple-500' : ''
+        className={`text-xs p-1.5 rounded select-none ${statusColor} ${
+          isDragging ? 'shadow-lg ring-2 ring-purple-500 cursor-grabbing' : 'cursor-pointer hover:ring-1 hover:ring-purple-400'
         }`}
-        {...listeners}
-        {...attributes}
+        onClick={handleClick}
       >
-        <div className="flex items-center gap-1">
-          <GripVertical className="h-3 w-3 opacity-50 flex-shrink-0" />
+        <div 
+          className="flex items-center gap-1"
+          {...listeners}
+          {...attributes}
+        >
+          <GripVertical className="h-3 w-3 opacity-50 flex-shrink-0 cursor-grab" />
           <div className="truncate flex-1">
             <span className="font-medium">
               {format(new Date(appointment.scheduled_at), "h:mm a")}
@@ -79,14 +97,17 @@ export function DraggableAppointment({ appointment, compact = false }: Draggable
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex flex-col p-3 rounded-lg cursor-grab active:cursor-grabbing select-none transition-all ${statusColor} ${
-        isDragging ? 'shadow-xl ring-2 ring-purple-500' : 'hover:ring-1 hover:ring-gray-500'
+      className={`flex flex-col p-3 rounded-lg select-none transition-all ${statusColor} ${
+        isDragging ? 'shadow-xl ring-2 ring-purple-500 cursor-grabbing' : 'cursor-pointer hover:ring-1 hover:ring-purple-400'
       }`}
-      {...listeners}
-      {...attributes}
+      onClick={handleClick}
     >
-      <div className="flex items-center gap-2 mb-1">
-        <GripVertical className="h-4 w-4 opacity-50 flex-shrink-0" />
+      <div 
+        className="flex items-center gap-2 mb-1"
+        {...listeners}
+        {...attributes}
+      >
+        <GripVertical className="h-4 w-4 opacity-50 flex-shrink-0 cursor-grab" />
         <span className="font-medium text-white truncate">
           {appointment.contact?.name || appointment.contact?.phone_number || "Unknown"}
         </span>

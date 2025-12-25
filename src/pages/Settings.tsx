@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen, Code, ArrowRightLeft } from "lucide-react";
+import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen, Code, ArrowRightLeft, Mail } from "lucide-react";
 import { PortNumberDialog } from "@/components/PortNumberDialog";
 import { PortRequestStatus } from "@/components/PortRequestStatus";
 import { Json } from "@/integrations/supabase/types";
@@ -157,6 +157,7 @@ export default function Settings() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingTestSms, setIsSendingTestSms] = useState(false);
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
   const [isTestingForwardPhones, setIsTestingForwardPhones] = useState(false);
   const [business, setBusiness] = useState<Business | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -472,6 +473,54 @@ export default function Settings() {
       });
     } finally {
       setIsSendingTestSms(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!business || !ownerEmail) {
+      toast({
+        variant: "destructive",
+        title: "Missing email",
+        description: "Please enter an owner email address to receive the test email",
+      });
+      return;
+    }
+
+    if (notificationEmailError) {
+      toast({
+        variant: "destructive",
+        title: "Invalid sender email",
+        description: "Please fix the sender email format before testing",
+      });
+      return;
+    }
+
+    setIsSendingTestEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-test-email', {
+        body: {
+          to_email: ownerEmail,
+          from_email: notificationEmailFrom || undefined,
+          business_name: name || 'Your Business',
+        }
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      toast({
+        title: "Test Email Sent",
+        description: `Check your inbox at ${ownerEmail}`,
+      });
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to send test email",
+        description: error instanceof Error ? error.message : "Please check your email configuration and try again",
+      });
+    } finally {
+      setIsSendingTestEmail(false);
     }
   };
 
@@ -837,20 +886,38 @@ export default function Settings() {
                 <Label htmlFor="notification-email-from" className="text-gray-300">
                   Sender Email Address
                 </Label>
-                <Input
-                  id="notification-email-from"
-                  type="email"
-                  placeholder="notifications@yourdomain.com"
-                  value={notificationEmailFrom}
-                  onChange={(e) => handleNotificationEmailChange(e.target.value)}
-                  className={`bg-gray-700 border-gray-600 text-white ${notificationEmailError ? 'border-red-500' : ''}`}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="notification-email-from"
+                    type="email"
+                    placeholder="notifications@yourdomain.com"
+                    value={notificationEmailFrom}
+                    onChange={(e) => handleNotificationEmailChange(e.target.value)}
+                    className={`bg-gray-700 border-gray-600 text-white flex-1 ${notificationEmailError ? 'border-red-500' : ''}`}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSendTestEmail}
+                    disabled={isSendingTestEmail || !ownerEmail || !!notificationEmailError}
+                    className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 shrink-0"
+                  >
+                    {isSendingTestEmail ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4 mr-1" />
+                        Test
+                      </>
+                    )}
+                  </Button>
+                </div>
                 {notificationEmailError && (
                   <p className="text-xs text-red-400">{notificationEmailError}</p>
                 )}
                 <p className="text-xs text-gray-500">
                   Email address used to send port status notifications. Must be verified in your Resend account. 
-                  If left empty, uses Resend's default sender.
+                  If left empty, uses Resend's default sender. Test sends to your owner email.
                 </p>
               </div>
             </CardContent>

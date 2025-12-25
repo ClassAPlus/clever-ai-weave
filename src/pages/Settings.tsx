@@ -766,12 +766,10 @@ export default function Settings() {
             <Bot className="h-4 w-4 mr-2" />
             AI Assistant
           </TabsTrigger>
-          {isAdmin && (
-            <TabsTrigger value="developer" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
-              <Code className="h-4 w-4 mr-2" />
-              Developer
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="developer" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+            <Code className="h-4 w-4 mr-2" />
+            Developer
+          </TabsTrigger>
         </TabsList>
 
         {/* General Settings Tab */}
@@ -1404,38 +1402,36 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
-        {/* Developer Tab - Admin Only */}
-        {isAdmin && (
-          <TabsContent value="developer" className="space-y-6">
-            {/* API Status Dashboard */}
-            {business && <APIStatusDashboard businessId={business.id} />}
+        {/* Developer Tab */}
+        <TabsContent value="developer" className="space-y-6">
+          {/* API Status Dashboard */}
+          {business && <APIStatusDashboard businessId={business.id} />}
 
-            {/* Webhook URLs */}
-            <WebhookURLs />
+          {/* Webhook URLs */}
+          <WebhookURLs />
 
-            {/* Debug Tools */}
-            {business && (
-              <DebugTools
-                businessId={business.id}
-                businessName={name}
-                ownerPhone={ownerPhone}
-                twilioPhoneNumber={business.twilio_phone_number}
-              />
-            )}
-
-            {/* Data Export */}
-            {business && <DataExport businessId={business.id} />}
-
-            {/* Advanced Twilio Settings */}
-            <TwilioAdvancedSettings
-              settings={twilioSettings}
-              onChange={setTwilioSettings}
+          {/* Debug Tools */}
+          {business && (
+            <DebugTools
+              businessId={business.id}
+              businessName={name}
+              ownerPhone={ownerPhone}
+              twilioPhoneNumber={business.twilio_phone_number}
             />
+          )}
 
-            {/* Admin Role Management */}
-            <AdminRoleManager />
-          </TabsContent>
-        )}
+          {/* Data Export */}
+          {business && <DataExport businessId={business.id} />}
+
+          {/* Advanced Twilio Settings */}
+          <TwilioAdvancedSettings
+            settings={twilioSettings}
+            onChange={setTwilioSettings}
+          />
+
+          {/* Admin Role Management - Admin Only */}
+          {isAdmin && <AdminRoleManager />}
+        </TabsContent>
       </Tabs>
 
       {/* Bottom Save Button */}

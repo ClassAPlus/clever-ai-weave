@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -194,6 +194,33 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
   const updateSettings = (patch: Partial<TwilioSettings>) => {
     onChange({ ...settings, ...patch });
   };
+
+  // Auto-update voice character when primary language changes
+  useEffect(() => {
+    if (!primaryLanguage) return;
+    
+    const newVoiceLanguage = AI_LANGUAGE_TO_VOICE_CODE[primaryLanguage] || 'en-US';
+    const currentVoiceLanguage = settings.voiceLanguage;
+    
+    // Only update if language actually changed
+    if (newVoiceLanguage !== currentVoiceLanguage) {
+      const voices = GOOGLE_VOICES[newVoiceLanguage] || GOOGLE_VOICES['en-US'];
+      const targetGender = settings.voiceGender || 'female';
+      // Prefer Neural2 > Wavenet > Standard
+      const sorted = [...voices].sort((a, b) => {
+        const scoreA = a.type === 'Neural2' ? 3 : a.type === 'Wavenet' ? 2 : 1;
+        const scoreB = b.type === 'Neural2' ? 3 : b.type === 'Wavenet' ? 2 : 1;
+        return scoreB - scoreA;
+      });
+      const bestVoice = sorted.find(v => v.gender === targetGender)?.name || sorted[0]?.name || 'en-US-Neural2-C';
+      
+      onChange({
+        ...settings,
+        voiceLanguage: newVoiceLanguage,
+        googleVoiceName: bestVoice,
+      });
+    }
+  }, [primaryLanguage]);
 
   const stopAudio = () => {
     if (audioRef.current) {

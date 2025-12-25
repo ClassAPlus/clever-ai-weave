@@ -21,6 +21,9 @@ verify_jwt = true
 [functions.twilio-get-port-status]
 verify_jwt = true
 
+[functions.send-port-status-email]
+verify_jwt = false
+
 [functions.voice-incoming]
 verify_jwt = false
 

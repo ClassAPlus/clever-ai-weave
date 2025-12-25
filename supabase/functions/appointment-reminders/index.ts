@@ -22,25 +22,10 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Calculate the target date (next workday)
     const now = new Date();
-    const targetDate = getNextWorkday(now);
     
-    console.log(`Looking for appointments on: ${targetDate.toISOString().split('T')[0]}`);
-
-    // Get start and end of target day
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // Query appointments that:
-    // 1. Are scheduled for the target day
-    // 2. Haven't had a reminder sent yet
-    // 3. Are pending or confirmed status
-    // 4. Contact hasn't opted out
-    // 5. Business has reminders enabled
+    // We need to query appointments for different timing windows based on business settings
+    // Get all pending/confirmed appointments that haven't been reminded yet
     const { data: appointments, error: apptsError } = await supabase
       .from('appointments')
       .select(`
@@ -66,11 +51,11 @@ serve(async (req) => {
           twilio_settings
         )
       `)
-      .gte('scheduled_at', startOfDay.toISOString())
-      .lte('scheduled_at', endOfDay.toISOString())
       .is('reminder_sent_at', null)
       .in('status', ['pending', 'confirmed'])
-      .eq('contacts.opted_out', false);
+      .eq('contacts.opted_out', false)
+      .gte('scheduled_at', now.toISOString()) // Only future appointments
+      .order('scheduled_at', { ascending: true });
 
     if (apptsError) {
       console.error("Error fetching appointments:", apptsError);
@@ -80,7 +65,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Found ${appointments?.length || 0} appointments needing reminders`);
+    console.log(`Found ${appointments?.length || 0} pending appointments to evaluate`);
 
     const results = {
       sent: 0,
@@ -106,14 +91,16 @@ serve(async (req) => {
 
         // Check if business has appointment reminders enabled (default to true)
         if (twilioSettings.enableAppointmentReminders === false) {
-          console.log(`Skipping appointment ${appointment.id} - reminders disabled for business ${business.name}`);
-          results.skipped++;
-          results.details.push({ 
-            appointmentId: appointment.id, 
-            status: 'skipped',
-            error: 'Appointment reminders disabled for this business'
-          });
-          continue;
+          continue; // Silently skip - don't count as skipped
+        }
+
+        // Determine reminder timing (default to 1 day before)
+        const reminderTiming = twilioSettings.appointmentReminderTiming || '1_day';
+        const scheduledAt = new Date(appointment.scheduled_at);
+        
+        // Check if this appointment should be reminded based on timing setting
+        if (!shouldSendReminder(now, scheduledAt, reminderTiming)) {
+          continue; // Not time yet - silently skip
         }
 
         // Skip if no phone number or no Twilio number configured
@@ -223,25 +210,31 @@ serve(async (req) => {
 });
 
 /**
- * Get the next workday (skipping Saturday in Israel)
- * - Thursday → Friday
- * - Friday → Sunday (skip Saturday)
- * - Saturday → Sunday
- * - Otherwise → tomorrow
+ * Determine if a reminder should be sent based on the timing setting
+ * @param now Current time
+ * @param scheduledAt Appointment scheduled time
+ * @param timing Reminder timing setting ('same_day', '1_day', '2_days')
  */
-function getNextWorkday(now: Date): Date {
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const dayOfWeek = now.getDay(); // 0=Sunday, 5=Friday, 6=Saturday
-  
-  // If today is Friday (5), next workday is Sunday
-  if (dayOfWeek === 5) {
-    tomorrow.setDate(tomorrow.getDate() + 1); // Skip Saturday
+function shouldSendReminder(now: Date, scheduledAt: Date, timing: string): boolean {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diffMs = scheduledAt.getTime() - now.getTime();
+  const diffDays = diffMs / msPerDay;
+
+  switch (timing) {
+    case 'same_day':
+      // Send reminder on the morning of the appointment (0-12 hours before, if scheduled after noon)
+      // Or if appointment is within 0-24 hours and we're in the morning (before 10 AM local)
+      return diffDays >= 0 && diffDays <= 1 && now.getHours() >= 7 && now.getHours() <= 10;
+    
+    case '2_days':
+      // Send reminder 2 days before (between 24-48 hours before)
+      return diffDays >= 1.5 && diffDays <= 2.5;
+    
+    case '1_day':
+    default:
+      // Send reminder 1 day before (between 12-36 hours before)
+      return diffDays >= 0.5 && diffDays <= 1.5;
   }
-  // If today is Saturday (6), next workday is Sunday (already tomorrow)
-  
-  return tomorrow;
 }
 
 async function sendSMS(from: string, to: string, body: string): Promise<{ sid: string }> {

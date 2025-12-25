@@ -48,6 +48,7 @@ interface TwilioSettings {
   enableAiReceptionist?: boolean;
   enableAppointmentReminders?: boolean;
   appointmentReminderTemplate?: string;
+  appointmentReminderTiming?: 'same_day' | '1_day' | '2_days';
 }
 
 interface Business {
@@ -1192,7 +1193,7 @@ export default function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-gray-300">Appointment Reminders</Label>
-                    <p className="text-xs text-gray-500">Send SMS reminders 1 day before appointments</p>
+                    <p className="text-xs text-gray-500">Send SMS reminders before appointments</p>
                   </div>
                   <Switch 
                     checked={twilioSettings.enableAppointmentReminders ?? true} 
@@ -1202,21 +1203,44 @@ export default function Settings() {
                 </div>
                 
                 {(twilioSettings.enableAppointmentReminders ?? true) && (
-                  <div className="space-y-2 pl-4 border-l-2 border-purple-500/30">
-                    <Label htmlFor="reminder-template" className="text-gray-300">
-                      Custom Reminder Message
-                    </Label>
-                    <Textarea
-                      id="reminder-template"
-                      placeholder="Hi {name}! Reminder from {business}: You have an appointment for {service} tomorrow at {time}. Reply YES to confirm or CANCEL to cancel."
-                      value={twilioSettings.appointmentReminderTemplate || ""}
-                      onChange={(e) => setTwilioSettings(prev => ({ ...prev, appointmentReminderTemplate: e.target.value }))}
-                      disabled={!isEditingNotifications}
-                      className={`bg-gray-700 border-gray-600 text-white min-h-[80px] ${!isEditingNotifications ? "opacity-70 cursor-not-allowed" : ""}`}
-                    />
-                    <p className="text-xs text-gray-500">
-                      Available placeholders: <code className="bg-gray-700 px-1 rounded">{"{name}"}</code> <code className="bg-gray-700 px-1 rounded">{"{business}"}</code> <code className="bg-gray-700 px-1 rounded">{"{service}"}</code> <code className="bg-gray-700 px-1 rounded">{"{time}"}</code> <code className="bg-gray-700 px-1 rounded">{"{date}"}</code>
-                    </p>
+                  <div className="space-y-4 pl-4 border-l-2 border-purple-500/30">
+                    <div className="space-y-2">
+                      <Label className="text-gray-300">Reminder Timing</Label>
+                      <Select
+                        value={twilioSettings.appointmentReminderTiming || "1_day"}
+                        onValueChange={(value) => setTwilioSettings(prev => ({ 
+                          ...prev, 
+                          appointmentReminderTiming: value as 'same_day' | '1_day' | '2_days' 
+                        }))}
+                        disabled={!isEditingNotifications}
+                      >
+                        <SelectTrigger className={`w-full bg-gray-700 border-gray-600 text-white ${!isEditingNotifications ? "opacity-70 cursor-not-allowed" : ""}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700">
+                          <SelectItem value="same_day" className="text-white hover:bg-gray-700">Same day (morning of appointment)</SelectItem>
+                          <SelectItem value="1_day" className="text-white hover:bg-gray-700">1 day before</SelectItem>
+                          <SelectItem value="2_days" className="text-white hover:bg-gray-700">2 days before</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="reminder-template" className="text-gray-300">
+                        Custom Reminder Message
+                      </Label>
+                      <Textarea
+                        id="reminder-template"
+                        placeholder="Hi {name}! Reminder from {business}: You have an appointment for {service} tomorrow at {time}. Reply YES to confirm or CANCEL to cancel."
+                        value={twilioSettings.appointmentReminderTemplate || ""}
+                        onChange={(e) => setTwilioSettings(prev => ({ ...prev, appointmentReminderTemplate: e.target.value }))}
+                        disabled={!isEditingNotifications}
+                        className={`bg-gray-700 border-gray-600 text-white min-h-[80px] ${!isEditingNotifications ? "opacity-70 cursor-not-allowed" : ""}`}
+                      />
+                      <p className="text-xs text-gray-500">
+                        Available placeholders: <code className="bg-gray-700 px-1 rounded">{"{name}"}</code> <code className="bg-gray-700 px-1 rounded">{"{business}"}</code> <code className="bg-gray-700 px-1 rounded">{"{service}"}</code> <code className="bg-gray-700 px-1 rounded">{"{time}"}</code> <code className="bg-gray-700 px-1 rounded">{"{date}"}</code>
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

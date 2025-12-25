@@ -220,10 +220,10 @@ Deno.serve(async (req) => {
 
     // Send initial submission email notification
     if (portRecord && authorized_rep_email) {
-      // Get business name for email
+      // Get business name and notification email
       const { data: businessData } = await serviceClient
         .from('businesses')
-        .select('name')
+        .select('name, notification_email_from')
         .eq('id', business_id)
         .single();
 
@@ -241,6 +241,7 @@ Deno.serve(async (req) => {
             phone_number: cleanNumber,
             status: 'submitted',
             target_port_date: portDate,
+            from_email: businessData?.notification_email_from || null,
           }),
         }).then(res => res.json()).then(emailData => {
           console.log('Port submission email sent:', emailData);

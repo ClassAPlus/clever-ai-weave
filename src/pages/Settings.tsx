@@ -67,6 +67,7 @@ interface Business {
   custom_tools: string[] | null;
   knowledge_base: KnowledgeBase | null;
   twilio_settings: TwilioSettings | null;
+  notification_email_from: string | null;
 }
 
 const DAYS = [
@@ -201,6 +202,7 @@ export default function Settings() {
     rateLimitWindow: 5,
     enableAiReceptionist: true,
   });
+  const [notificationEmailFrom, setNotificationEmailFrom] = useState("");
 
   // Handle owner phone change with validation
   const handleOwnerPhoneChange = (value: string) => {
@@ -258,7 +260,9 @@ export default function Settings() {
         greeting_messages: data.greeting_messages as unknown as GreetingMessages | null,
         knowledge_base: data.knowledge_base as unknown as KnowledgeBase | null,
         twilio_settings: data.twilio_settings as unknown as TwilioSettings | null,
+        notification_email_from: data.notification_email_from,
       });
+      setNotificationEmailFrom(data.notification_email_from || "");
       setForwardPhones(data.forward_to_phones?.join(", ") || "");
       setServices(data.services?.join(", ") || "");
       // Parse ai_language - format: "primary:lang1,lang2,lang3:autodetect" or legacy formats
@@ -360,6 +364,7 @@ export default function Settings() {
           custom_tools: customTools,
           knowledge_base: knowledgeBase as unknown as Json,
           twilio_settings: twilioSettings as unknown as Json,
+          notification_email_from: notificationEmailFrom || null,
         })
         .eq("id", business.id);
 
@@ -791,6 +796,24 @@ export default function Settings() {
                   <p className="text-xs text-gray-500">Receive email summaries and alerts</p>
                 </div>
                 <Switch checked={notifyEmail} onCheckedChange={setNotifyEmail} />
+              </div>
+              
+              <div className="pt-4 border-t border-gray-700 space-y-2">
+                <Label htmlFor="notification-email-from" className="text-gray-300">
+                  Sender Email Address
+                </Label>
+                <Input
+                  id="notification-email-from"
+                  type="email"
+                  placeholder="notifications@yourdomain.com"
+                  value={notificationEmailFrom}
+                  onChange={(e) => setNotificationEmailFrom(e.target.value)}
+                  className="bg-gray-700 border-gray-600 text-white"
+                />
+                <p className="text-xs text-gray-500">
+                  Email address used to send port status notifications. Must be verified in your Resend account. 
+                  If left empty, uses Resend's default sender.
+                </p>
               </div>
             </CardContent>
           </Card>

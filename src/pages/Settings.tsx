@@ -165,8 +165,16 @@ export default function Settings() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPortDialogOpen, setIsPortDialogOpen] = useState(false);
 
-  // Edit mode state
-  const [isEditing, setIsEditing] = useState(false);
+  // Edit mode states for each section
+  const [isEditingBusiness, setIsEditingBusiness] = useState(false);
+  const [isEditingForwarding, setIsEditingForwarding] = useState(false);
+  const [isEditingHours, setIsEditingHours] = useState(false);
+  const [isEditingNotifications, setIsEditingNotifications] = useState(false);
+  const [isEditingAI, setIsEditingAI] = useState(false);
+  const [isEditingPersonality, setIsEditingPersonality] = useState(false);
+  const [isEditingGreetings, setIsEditingGreetings] = useState(false);
+  const [isEditingTools, setIsEditingTools] = useState(false);
+  const [isEditingKnowledge, setIsEditingKnowledge] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -794,12 +802,12 @@ export default function Settings() {
                 </CardDescription>
               </div>
               <div className="flex gap-2">
-                {isEditing && (
+                {isEditingBusiness && (
                   <Button
                     size="sm"
                     onClick={() => {
                       handleSave();
-                      setIsEditing(false);
+                      setIsEditingBusiness(false);
                     }}
                     disabled={isSaving || !!ownerPhoneError}
                     className="bg-purple-600 hover:bg-purple-700"
@@ -811,10 +819,10 @@ export default function Settings() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsEditing(!isEditing)}
+                  onClick={() => setIsEditingBusiness(!isEditingBusiness)}
                   className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
                 >
-                  {isEditing ? (
+                  {isEditingBusiness ? (
                     <>
                       <X className="h-4 w-4 mr-2" />
                       Cancel
@@ -835,8 +843,8 @@ export default function Settings() {
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    disabled={!isEditing}
-                    className={`bg-gray-700 border-gray-600 text-white ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
+                    disabled={!isEditingBusiness}
+                    className={`bg-gray-700 border-gray-600 text-white ${!isEditingBusiness ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -845,8 +853,8 @@ export default function Settings() {
                     type="email"
                     value={ownerEmail}
                     onChange={(e) => setOwnerEmail(e.target.value)}
-                    disabled={!isEditing}
-                    className={`bg-gray-700 border-gray-600 text-white ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
+                    disabled={!isEditingBusiness}
+                    className={`bg-gray-700 border-gray-600 text-white ${!isEditingBusiness ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -855,8 +863,8 @@ export default function Settings() {
                     value={ownerPhone}
                     onChange={(e) => handleOwnerPhoneChange(e.target.value)}
                     placeholder="+972501234567"
-                    disabled={!isEditing}
-                    className={`bg-gray-700 border-gray-600 text-white ${ownerPhoneError ? "border-red-500 focus-visible:ring-red-500" : ""} ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
+                    disabled={!isEditingBusiness}
+                    className={`bg-gray-700 border-gray-600 text-white ${ownerPhoneError ? "border-red-500 focus-visible:ring-red-500" : ""} ${!isEditingBusiness ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                   {ownerPhoneError && (
                     <p className="text-xs text-red-400">{ownerPhoneError}</p>
@@ -868,8 +876,8 @@ export default function Settings() {
                     value={services}
                     onChange={(e) => setServices(e.target.value)}
                     placeholder="Haircut, Coloring, Styling"
-                    disabled={!isEditing}
-                    className={`bg-gray-700 border-gray-600 text-white ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
+                    disabled={!isEditingBusiness}
+                    className={`bg-gray-700 border-gray-600 text-white ${!isEditingBusiness ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                 </div>
               </div>
@@ -901,14 +909,50 @@ export default function Settings() {
 
           {/* Call Forwarding */}
           <Card className="bg-gray-800/50 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Phone className="h-5 w-5 text-purple-400" />
-                Call Forwarding
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Phone numbers to forward calls to before AI takes over
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Phone className="h-5 w-5 text-purple-400" />
+                  Call Forwarding
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Phone numbers to forward calls to before AI takes over
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                {isEditingForwarding && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      handleSave();
+                      setIsEditingForwarding(false);
+                    }}
+                    disabled={isSaving || !!forwardPhonesError}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingForwarding(!isEditingForwarding)}
+                  className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                >
+                  {isEditingForwarding ? (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel
+                    </>
+                  ) : (
+                    <>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -917,7 +961,8 @@ export default function Settings() {
                   value={forwardPhones}
                   onChange={(e) => handleForwardPhonesChange(e.target.value)}
                   placeholder="+972501234567, +972509876543"
-                  className={`bg-gray-700 border-gray-600 text-white ${forwardPhonesError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  disabled={!isEditingForwarding}
+                  className={`bg-gray-700 border-gray-600 text-white ${forwardPhonesError ? "border-red-500 focus-visible:ring-red-500" : ""} ${!isEditingForwarding ? "opacity-70 cursor-not-allowed" : ""}`}
                 />
                 {forwardPhonesError ? (
                   <p className="text-xs text-red-400">{forwardPhonesError}</p>
@@ -945,11 +990,11 @@ export default function Settings() {
               ) : (
                 <p className="text-xs text-gray-500 italic">
                   {!business?.twilio_phone_number
-                    ? "💡 To test forward phones, first configure an AI phone number in your business setup."
+                    ? "To test forward phones, first configure an AI phone number in your business setup."
                     : !forwardPhones.trim()
-                      ? "💡 Enter phone numbers above to enable testing."
+                      ? "Enter phone numbers above to enable testing."
                       : forwardPhonesError
-                        ? "💡 Fix the phone format errors above to enable testing."
+                        ? "Fix the phone format errors above to enable testing."
                         : null}
                 </p>
               )}
@@ -958,20 +1003,56 @@ export default function Settings() {
 
           {/* Business Hours */}
           <Card className="bg-gray-800/50 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Clock className="h-5 w-5 text-purple-400" />
-                Business Hours
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Set your operating hours for each day
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-purple-400" />
+                  Business Hours
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Set your operating hours for each day
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                {isEditingHours && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      handleSave();
+                      setIsEditingHours(false);
+                    }}
+                    disabled={isSaving}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingHours(!isEditingHours)}
+                  className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                >
+                  {isEditingHours ? (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel
+                    </>
+                  ) : (
+                    <>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-gray-300">Timezone</Label>
-                <Select value={timezone} onValueChange={setTimezone}>
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                <Select value={timezone} onValueChange={setTimezone} disabled={!isEditingHours}>
+                  <SelectTrigger className={`bg-gray-700 border-gray-600 text-white ${!isEditingHours ? "opacity-70 cursor-not-allowed" : ""}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -989,8 +1070,9 @@ export default function Settings() {
                       <Switch
                         checked={!!businessHours[day.key]}
                         onCheckedChange={() => toggleDayEnabled(day.key)}
+                        disabled={!isEditingHours}
                       />
-                      <span className="text-sm text-gray-300">{day.label.slice(0, 3)}</span>
+                      <span className={`text-sm text-gray-300 ${!isEditingHours ? "opacity-70" : ""}`}>{day.label.slice(0, 3)}</span>
                     </div>
                     {businessHours[day.key] ? (
                       <div className="flex items-center gap-2">
@@ -998,14 +1080,16 @@ export default function Settings() {
                           type="time"
                           value={businessHours[day.key]?.start || "09:00"}
                           onChange={(e) => updateBusinessHours(day.key, "start", e.target.value)}
-                          className="w-28 bg-gray-700 border-gray-600 text-white"
+                          disabled={!isEditingHours}
+                          className={`w-28 bg-gray-700 border-gray-600 text-white ${!isEditingHours ? "opacity-70 cursor-not-allowed" : ""}`}
                         />
                         <span className="text-gray-500">to</span>
                         <Input
                           type="time"
                           value={businessHours[day.key]?.end || "18:00"}
                           onChange={(e) => updateBusinessHours(day.key, "end", e.target.value)}
-                          className="w-28 bg-gray-700 border-gray-600 text-white"
+                          disabled={!isEditingHours}
+                          className={`w-28 bg-gray-700 border-gray-600 text-white ${!isEditingHours ? "opacity-70 cursor-not-allowed" : ""}`}
                         />
                       </div>
                     ) : (
@@ -1022,14 +1106,16 @@ export default function Settings() {
                     type="time"
                     value={quietHoursStart}
                     onChange={(e) => setQuietHoursStart(e.target.value)}
-                    className="w-28 bg-gray-700 border-gray-600 text-white"
+                    disabled={!isEditingHours}
+                    className={`w-28 bg-gray-700 border-gray-600 text-white ${!isEditingHours ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                   <span className="text-gray-500">to</span>
                   <Input
                     type="time"
                     value={quietHoursEnd}
                     onChange={(e) => setQuietHoursEnd(e.target.value)}
-                    className="w-28 bg-gray-700 border-gray-600 text-white"
+                    disabled={!isEditingHours}
+                    className={`w-28 bg-gray-700 border-gray-600 text-white ${!isEditingHours ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                 </div>
               </div>
@@ -1038,14 +1124,50 @@ export default function Settings() {
 
           {/* Notification Settings */}
           <Card className="bg-gray-800/50 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Bell className="h-5 w-5 text-purple-400" />
-                Notifications
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                How you want to receive alerts about inquiries and appointments
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-purple-400" />
+                  Notifications
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  How you want to receive alerts about inquiries and appointments
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                {isEditingNotifications && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      handleSave();
+                      setIsEditingNotifications(false);
+                    }}
+                    disabled={isSaving || !!notificationEmailError}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingNotifications(!isEditingNotifications)}
+                  className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                >
+                  {isEditingNotifications ? (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel
+                    </>
+                  ) : (
+                    <>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -1053,14 +1175,14 @@ export default function Settings() {
                   <Label className="text-gray-300">SMS Notifications</Label>
                   <p className="text-xs text-gray-500">Receive text messages for new inquiries</p>
                 </div>
-                <Switch checked={notifySms} onCheckedChange={setNotifySms} />
+                <Switch checked={notifySms} onCheckedChange={setNotifySms} disabled={!isEditingNotifications} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
                   <Label className="text-gray-300">Email Notifications</Label>
                   <p className="text-xs text-gray-500">Receive email summaries and alerts</p>
                 </div>
-                <Switch checked={notifyEmail} onCheckedChange={setNotifyEmail} />
+                <Switch checked={notifyEmail} onCheckedChange={setNotifyEmail} disabled={!isEditingNotifications} />
               </div>
               
               <div className="pt-4 border-t border-gray-700 space-y-2">
@@ -1074,7 +1196,8 @@ export default function Settings() {
                     placeholder="notifications@yourdomain.com"
                     value={notificationEmailFrom}
                     onChange={(e) => handleNotificationEmailChange(e.target.value)}
-                    className={`bg-gray-700 border-gray-600 text-white flex-1 ${notificationEmailError ? 'border-red-500' : ''}`}
+                    disabled={!isEditingNotifications}
+                    className={`bg-gray-700 border-gray-600 text-white flex-1 ${notificationEmailError ? 'border-red-500' : ''} ${!isEditingNotifications ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                   <Button
                     variant="outline"
@@ -1098,7 +1221,7 @@ export default function Settings() {
                 )}
                 <p className="text-xs text-gray-500">
                   Email address used to send port status notifications. Must be verified in your Resend account. 
-                  If left empty, uses Resend's default sender. Test sends to your owner email.
+                  If left empty, uses Resend default sender. Test sends to your owner email.
                 </p>
               </div>
             </CardContent>
@@ -1115,14 +1238,50 @@ export default function Settings() {
         <TabsContent value="ai" className="space-y-6">
           {/* AI Configuration */}
           <Card className="bg-gray-800/50 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Bot className="h-5 w-5 text-purple-400" />
-                AI Configuration
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Customize how your AI assistant behaves
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Bot className="h-5 w-5 text-purple-400" />
+                  AI Configuration
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Customize how your AI assistant behaves
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                {isEditingAI && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      handleSave();
+                      setIsEditingAI(false);
+                    }}
+                    disabled={isSaving}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingAI(!isEditingAI)}
+                  className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                >
+                  {isEditingAI ? (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel
+                    </>
+                  ) : (
+                    <>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -1134,7 +1293,8 @@ export default function Settings() {
                   <PopoverTrigger asChild>
                     <Button 
                       variant="outline" 
-                      className="w-full justify-start bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                      disabled={!isEditingAI}
+                      className={`w-full justify-start bg-gray-700 border-gray-600 text-white hover:bg-gray-600 ${!isEditingAI ? "opacity-70 cursor-not-allowed" : ""}`}
                     >
                       {aiLanguages.length === 0 
                         ? "Select languages..." 
@@ -1181,13 +1341,15 @@ export default function Settings() {
                           className="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-xs"
                         >
                           {lang?.label || langValue}
-                          <button
-                            type="button"
-                            onClick={() => setAiLanguages(prev => prev.filter(l => l !== langValue))}
-                            className="hover:text-white"
-                          >
-                            ×
-                          </button>
+                          {isEditingAI && (
+                            <button
+                              type="button"
+                              onClick={() => setAiLanguages(prev => prev.filter(l => l !== langValue))}
+                              className="hover:text-white"
+                            >
+                              ×
+                            </button>
+                          )}
                         </span>
                       );
                     })}
@@ -1204,8 +1366,9 @@ export default function Settings() {
                   <Select 
                     value={primaryLanguage} 
                     onValueChange={setPrimaryLanguage}
+                    disabled={!isEditingAI}
                   >
-                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                    <SelectTrigger className={`bg-gray-700 border-gray-600 text-white ${!isEditingAI ? "opacity-70 cursor-not-allowed" : ""}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1231,7 +1394,8 @@ export default function Settings() {
                 </div>
                 <Switch 
                   checked={autoDetectLanguage} 
-                  onCheckedChange={setAutoDetectLanguage} 
+                  onCheckedChange={setAutoDetectLanguage}
+                  disabled={!isEditingAI}
                 />
               </div>
               
@@ -1241,7 +1405,8 @@ export default function Settings() {
                   value={aiInstructions}
                   onChange={(e) => setAiInstructions(e.target.value)}
                   placeholder="Special instructions for the AI assistant..."
-                  className="bg-gray-700 border-gray-600 text-white min-h-[100px]"
+                  disabled={!isEditingAI}
+                  className={`bg-gray-700 border-gray-600 text-white min-h-[100px] ${!isEditingAI ? "opacity-70 cursor-not-allowed" : ""}`}
                 />
                 <p className="text-xs text-gray-500">
                   Provide specific guidelines for how the AI should handle calls and messages.

@@ -862,7 +862,8 @@ async function handleAppointmentReply(
     .eq('business_id', business.id)
     .not('reminder_sent_at', 'is', null)
     .is('reminder_response', null)
-    .not('status', 'in', '("cancelled","completed")')
+    .neq('status', 'cancelled')
+    .neq('status', 'completed')
     .order('scheduled_at', { ascending: true })
     .limit(1)
     .single();

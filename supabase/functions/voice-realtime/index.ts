@@ -1320,14 +1320,27 @@ serve(async (req) => {
         break;
         
       case "input_audio_buffer.speech_started":
+        // Only attempt truncation if we have valid state
+        // The truncation error is non-fatal - OpenAI may have already finished the audio
         if (markQueue.length > 0 && responseStartTimestamp !== null && lastAssistantItem) {
           const elapsed = latestMediaTimestamp - responseStartTimestamp;
-          openaiWs?.send(JSON.stringify({
-            type: "conversation.item.truncate",
-            item_id: lastAssistantItem,
-            content_index: 0,
-            audio_end_ms: elapsed
-          }));
+          
+          // Only truncate if elapsed time is positive and reasonable (less than 60 seconds)
+          if (elapsed > 0 && elapsed < 60000) {
+            try {
+              openaiWs?.send(JSON.stringify({
+                type: "conversation.item.truncate",
+                item_id: lastAssistantItem,
+                content_index: 0,
+                audio_end_ms: elapsed
+              }));
+            } catch (truncateErr) {
+              // Truncation errors are non-fatal - the audio may have already completed
+              console.log("Truncation skipped - audio may have completed");
+            }
+          }
+          
+          // Always clear Twilio's audio buffer when user starts speaking
           if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
             twilioWs.send(JSON.stringify({ event: "clear", streamSid }));
           }

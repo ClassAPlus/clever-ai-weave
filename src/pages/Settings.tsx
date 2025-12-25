@@ -47,6 +47,7 @@ interface TwilioSettings {
   rateLimitWindow: number;
   enableAiReceptionist?: boolean;
   enableAppointmentReminders?: boolean;
+  appointmentReminderTemplate?: string;
 }
 
 interface Business {
@@ -1187,7 +1188,7 @@ export default function Settings() {
                 <Switch checked={notifyEmail} onCheckedChange={setNotifyEmail} disabled={!isEditingNotifications} />
               </div>
               
-              <div className="pt-4 border-t border-gray-700">
+              <div className="pt-4 border-t border-gray-700 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-gray-300">Appointment Reminders</Label>
@@ -1199,6 +1200,25 @@ export default function Settings() {
                     disabled={!isEditingNotifications} 
                   />
                 </div>
+                
+                {(twilioSettings.enableAppointmentReminders ?? true) && (
+                  <div className="space-y-2 pl-4 border-l-2 border-purple-500/30">
+                    <Label htmlFor="reminder-template" className="text-gray-300">
+                      Custom Reminder Message
+                    </Label>
+                    <Textarea
+                      id="reminder-template"
+                      placeholder="Hi {name}! Reminder from {business}: You have an appointment for {service} tomorrow at {time}. Reply YES to confirm or CANCEL to cancel."
+                      value={twilioSettings.appointmentReminderTemplate || ""}
+                      onChange={(e) => setTwilioSettings(prev => ({ ...prev, appointmentReminderTemplate: e.target.value }))}
+                      disabled={!isEditingNotifications}
+                      className={`bg-gray-700 border-gray-600 text-white min-h-[80px] ${!isEditingNotifications ? "opacity-70 cursor-not-allowed" : ""}`}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Available placeholders: <code className="bg-gray-700 px-1 rounded">{"{name}"}</code> <code className="bg-gray-700 px-1 rounded">{"{business}"}</code> <code className="bg-gray-700 px-1 rounded">{"{service}"}</code> <code className="bg-gray-700 px-1 rounded">{"{time}"}</code> <code className="bg-gray-700 px-1 rounded">{"{date}"}</code>
+                    </p>
+                  </div>
+                )}
               </div>
               
               <div className="pt-4 border-t border-gray-700 space-y-2">

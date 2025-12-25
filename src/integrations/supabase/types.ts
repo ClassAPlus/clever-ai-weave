@@ -24,6 +24,9 @@ export type Database = {
           duration_minutes: number | null
           id: string
           notes: string | null
+          recurrence_end_date: string | null
+          recurrence_parent_id: string | null
+          recurrence_pattern: string | null
           reminder_response: string | null
           reminder_response_at: string | null
           reminder_sent_at: string | null
@@ -41,6 +44,9 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           notes?: string | null
+          recurrence_end_date?: string | null
+          recurrence_parent_id?: string | null
+          recurrence_pattern?: string | null
           reminder_response?: string | null
           reminder_response_at?: string | null
           reminder_sent_at?: string | null
@@ -58,6 +64,9 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           notes?: string | null
+          recurrence_end_date?: string | null
+          recurrence_parent_id?: string | null
+          recurrence_pattern?: string | null
           reminder_response?: string | null
           reminder_response_at?: string | null
           reminder_sent_at?: string | null
@@ -86,6 +95,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_recurrence_parent_id_fkey"
+            columns: ["recurrence_parent_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
         ]

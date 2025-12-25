@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useNavigate, useBlocker } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,16 @@ import { TwilioAdvancedSettings } from "@/components/settings/TwilioAdvancedSett
 import { AdminRoleManager } from "@/components/settings/AdminRoleManager";
 import { BusinessStaffManager } from "@/components/settings/BusinessStaffManager";
 import { SettingsSkeleton } from "@/components/settings/SettingsSkeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -224,6 +234,61 @@ export default function Settings() {
   const [notificationEmailFrom, setNotificationEmailFrom] = useState("");
   const [notificationEmailError, setNotificationEmailError] = useState("");
 
+  // Track initial values for dirty checking
+  const [initialValues, setInitialValues] = useState<Record<string, any> | null>(null);
+
+  // Check if form has unsaved changes
+  const hasUnsavedChanges = useMemo(() => {
+    if (!initialValues || !business) return false;
+    
+    return (
+      name !== initialValues.name ||
+      ownerEmail !== initialValues.ownerEmail ||
+      ownerPhone !== initialValues.ownerPhone ||
+      forwardPhones !== initialValues.forwardPhones ||
+      services !== initialValues.services ||
+      primaryLanguage !== initialValues.primaryLanguage ||
+      JSON.stringify(aiLanguages) !== JSON.stringify(initialValues.aiLanguages) ||
+      autoDetectLanguage !== initialValues.autoDetectLanguage ||
+      aiInstructions !== initialValues.aiInstructions ||
+      timezone !== initialValues.timezone ||
+      quietHoursStart !== initialValues.quietHoursStart ||
+      quietHoursEnd !== initialValues.quietHoursEnd ||
+      notifySms !== initialValues.notifySms ||
+      notifyEmail !== initialValues.notifyEmail ||
+      JSON.stringify(businessHours) !== JSON.stringify(initialValues.businessHours) ||
+      industryType !== initialValues.industryType ||
+      JSON.stringify(aiPersonality) !== JSON.stringify(initialValues.aiPersonality) ||
+      JSON.stringify(greetingMessages) !== JSON.stringify(initialValues.greetingMessages) ||
+      JSON.stringify(customTools) !== JSON.stringify(initialValues.customTools) ||
+      JSON.stringify(knowledgeBase) !== JSON.stringify(initialValues.knowledgeBase) ||
+      JSON.stringify(twilioSettings) !== JSON.stringify(initialValues.twilioSettings) ||
+      notificationEmailFrom !== initialValues.notificationEmailFrom
+    );
+  }, [
+    initialValues, business, name, ownerEmail, ownerPhone, forwardPhones, services,
+    primaryLanguage, aiLanguages, autoDetectLanguage, aiInstructions, timezone,
+    quietHoursStart, quietHoursEnd, notifySms, notifyEmail, businessHours,
+    industryType, aiPersonality, greetingMessages, customTools, knowledgeBase,
+    twilioSettings, notificationEmailFrom
+  ]);
+
+  // Block navigation when there are unsaved changes
+  const blocker = useBlocker(hasUnsavedChanges);
+
+  // Handle browser beforeunload event
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   // Handle owner phone change with validation
   const handleOwnerPhoneChange = (value: string) => {
     setOwnerPhone(value);
@@ -331,6 +396,48 @@ export default function Settings() {
       if (data.twilio_settings) {
         setTwilioSettings(data.twilio_settings as unknown as TwilioSettings);
       }
+
+      // Set initial values for dirty checking
+      const parsedLanguageData = data.ai_language || "hebrew";
+      const parsedParts = parsedLanguageData.split(":");
+      let parsedPrimaryLang = "hebrew";
+      let parsedAiLangs = ["hebrew"];
+      let parsedAutoDetect = true;
+      
+      if (parsedParts.length >= 2) {
+        parsedPrimaryLang = parsedParts[0];
+        parsedAiLangs = parsedParts[1].split(",").map((l: string) => l.trim()).filter(Boolean);
+        parsedAutoDetect = parsedParts[2] !== "false";
+      } else {
+        const langs = parsedLanguageData.split(",").map((l: string) => l.trim()).filter(Boolean);
+        parsedAiLangs = langs;
+        parsedPrimaryLang = langs[0] || "hebrew";
+      }
+
+      setInitialValues({
+        name: data.name || "",
+        ownerEmail: data.owner_email || "",
+        ownerPhone: data.owner_phone || "",
+        forwardPhones: data.forward_to_phones?.join(", ") || "",
+        services: data.services?.join(", ") || "",
+        primaryLanguage: parsedPrimaryLang,
+        aiLanguages: parsedAiLangs,
+        autoDetectLanguage: parsedAutoDetect,
+        aiInstructions: data.ai_instructions || "",
+        timezone: data.timezone || "Asia/Jerusalem",
+        quietHoursStart: data.quiet_hours_start || "22:00",
+        quietHoursEnd: data.quiet_hours_end || "07:00",
+        notifySms: data.owner_notification_channels?.includes("sms") ?? true,
+        notifyEmail: data.owner_notification_channels?.includes("email") ?? false,
+        businessHours: data.business_hours || {},
+        industryType: data.industry_type || "",
+        aiPersonality: data.ai_personality || { tone: "friendly", style: "conversational", emoji_usage: "minimal", response_length: "medium" },
+        greetingMessages: data.greeting_messages || { new_conversation: "", missed_call: "", returning_customer: "", after_hours: "" },
+        customTools: data.custom_tools || [],
+        knowledgeBase: data.knowledge_base || { faqs: [], policies: {}, pricing: [], staff: [] },
+        twilioSettings: data.twilio_settings || { voiceLanguage: "he-IL", voiceGender: "female", voiceId: "EXAVITQu4vr4xnSDxMaL", ringTimeout: 30, dailyMessageLimit: 10, rateLimitWindow: 5, enableAiReceptionist: true },
+        notificationEmailFrom: data.notification_email_from || "",
+      });
     } catch (error) {
       console.error("Error fetching business:", error);
       toast({
@@ -406,6 +513,32 @@ export default function Settings() {
         .eq("id", business.id);
 
       if (error) throw error;
+
+      // Update initial values to current values after successful save
+      setInitialValues({
+        name,
+        ownerEmail,
+        ownerPhone,
+        forwardPhones,
+        services,
+        primaryLanguage,
+        aiLanguages,
+        autoDetectLanguage,
+        aiInstructions,
+        timezone,
+        quietHoursStart,
+        quietHoursEnd,
+        notifySms,
+        notifyEmail,
+        businessHours,
+        industryType,
+        aiPersonality,
+        greetingMessages,
+        customTools,
+        knowledgeBase,
+        twilioSettings,
+        notificationEmailFrom,
+      });
 
       toast({
         title: "Settings saved",
@@ -1306,6 +1439,32 @@ export default function Settings() {
           Save All Changes
         </Button>
       </div>
+
+      {/* Unsaved Changes Dialog */}
+      <AlertDialog open={blocker.state === 'blocked'}>
+        <AlertDialogContent className="bg-gray-800 border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              You have unsaved changes. Are you sure you want to leave this page? Your changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => blocker.reset?.()}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+            >
+              Stay on Page
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => blocker.proceed?.()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Leave Page
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

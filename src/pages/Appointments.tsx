@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { 
   Loader2, Calendar, Clock, User, RefreshCw, Filter,
   CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare, Send,
-  ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid
+  ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid, Plus
 } from "lucide-react";
+import { CreateAppointmentDialog } from "@/components/CreateAppointmentDialog";
 import { 
   format, formatDistanceToNow, isPast, isToday, isTomorrow, 
   startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
@@ -70,7 +71,14 @@ export default function Appointments() {
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedDateForCreate, setSelectedDateForCreate] = useState<Date>(new Date());
   const isInitialLoad = useRef(true);
+
+  const handleDayClick = (day: Date) => {
+    setSelectedDateForCreate(day);
+    setCreateDialogOpen(true);
+  };
 
   const getDateRange = useCallback(() => {
     switch (viewMode) {
@@ -457,20 +465,34 @@ export default function Appointments() {
 
   const renderDayView = () => (
     <Card className="bg-gray-800/50 border-gray-700">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-purple-400" />
-          {format(currentDate, "EEEE, MMMM d")}
-        </CardTitle>
-        <CardDescription className="text-gray-400">
-          {appointments.length} appointment{appointments.length !== 1 ? 's' : ''}
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-purple-400" />
+            {format(currentDate, "EEEE, MMMM d")}
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            {appointments.length} appointment{appointments.length !== 1 ? 's' : ''}
+          </CardDescription>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => handleDayClick(currentDate)}
+          className="bg-purple-600 hover:bg-purple-700"
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Add
+        </Button>
       </CardHeader>
       <CardContent>
         {appointments.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
+          <div 
+            className="text-center py-8 text-gray-400 cursor-pointer hover:bg-gray-700/30 rounded-lg transition-colors"
+            onClick={() => handleDayClick(currentDate)}
+          >
             <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>No appointments for this day</p>
+            <p className="text-sm text-purple-400 mt-2">Click to add one</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -494,23 +516,27 @@ export default function Appointments() {
           return (
             <div 
               key={day.toISOString()} 
-              className={`min-h-[200px] rounded-lg border ${
+              className={`min-h-[200px] rounded-lg border cursor-pointer transition-colors ${
                 isCurrentDay 
-                  ? 'border-purple-500 bg-purple-500/10' 
-                  : 'border-gray-700 bg-gray-800/50'
+                  ? 'border-purple-500 bg-purple-500/10 hover:bg-purple-500/20' 
+                  : 'border-gray-700 bg-gray-800/50 hover:bg-gray-700/50'
               }`}
+              onClick={() => handleDayClick(day)}
             >
-              <div className={`p-2 border-b ${isCurrentDay ? 'border-purple-500/50' : 'border-gray-700'}`}>
-                <p className={`text-xs ${isCurrentDay ? 'text-purple-300' : 'text-gray-400'}`}>
-                  {format(day, "EEE")}
-                </p>
-                <p className={`text-lg font-bold ${isCurrentDay ? 'text-purple-300' : 'text-white'}`}>
-                  {format(day, "d")}
-                </p>
+              <div className={`p-2 border-b flex items-center justify-between ${isCurrentDay ? 'border-purple-500/50' : 'border-gray-700'}`}>
+                <div>
+                  <p className={`text-xs ${isCurrentDay ? 'text-purple-300' : 'text-gray-400'}`}>
+                    {format(day, "EEE")}
+                  </p>
+                  <p className={`text-lg font-bold ${isCurrentDay ? 'text-purple-300' : 'text-white'}`}>
+                    {format(day, "d")}
+                  </p>
+                </div>
+                <Plus className="h-4 w-4 text-gray-500 opacity-0 group-hover:opacity-100 hover:text-purple-400" />
               </div>
-              <div className="p-2 space-y-2 max-h-[300px] overflow-y-auto">
+              <div className="p-2 space-y-2 max-h-[300px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                 {dayAppointments.length === 0 ? (
-                  <p className="text-xs text-gray-500 text-center py-4">No appointments</p>
+                  <p className="text-xs text-gray-500 text-center py-4">Click to add</p>
                 ) : (
                   dayAppointments.map(apt => renderAppointmentCard(apt, true))
                 )}
@@ -550,20 +576,22 @@ export default function Appointments() {
             return (
               <div 
                 key={day.toISOString()} 
-                className={`min-h-[100px] p-1 border-b border-r border-gray-700 ${
+                className={`min-h-[100px] p-1 border-b border-r border-gray-700 cursor-pointer transition-colors hover:bg-gray-700/30 ${
                   !isCurrentMonth ? 'bg-gray-900/50' : ''
                 } ${isCurrentDay ? 'bg-purple-500/10' : ''}`}
+                onClick={() => handleDayClick(day)}
               >
-                <div className={`text-sm font-medium mb-1 ${
+                <div className={`text-sm font-medium mb-1 flex items-center justify-between ${
                   isCurrentDay 
                     ? 'text-purple-300' 
                     : isCurrentMonth 
                     ? 'text-white' 
                     : 'text-gray-600'
                 }`}>
-                  {format(day, "d")}
+                  <span>{format(day, "d")}</span>
+                  <Plus className="h-3 w-3 opacity-0 hover:opacity-100 text-purple-400" />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
                   {dayAppointments.slice(0, 3).map(apt => (
                     <div 
                       key={apt.id}
@@ -608,6 +636,13 @@ export default function Appointments() {
           <p className="text-gray-400">View and manage scheduled appointments</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => handleDayClick(currentDate)}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Appointment
+          </Button>
           <Button 
             onClick={fetchAppointments} 
             variant="outline" 
@@ -767,6 +802,17 @@ export default function Appointments() {
       {viewMode === "day" && renderDayView()}
       {viewMode === "week" && renderWeekView()}
       {viewMode === "month" && renderMonthView()}
+
+      {/* Create Appointment Dialog */}
+      {businessId && (
+        <CreateAppointmentDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          selectedDate={selectedDateForCreate}
+          businessId={businessId}
+          onAppointmentCreated={fetchAppointments}
+        />
+      )}
     </div>
   );
 }

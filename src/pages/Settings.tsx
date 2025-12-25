@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen, Code, ArrowRightLeft, Mail } from "lucide-react";
+import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen, Code, ArrowRightLeft, Mail, Pencil, X } from "lucide-react";
 import { PortNumberDialog } from "@/components/PortNumberDialog";
 import { PortRequestStatus } from "@/components/PortRequestStatus";
 import { Json } from "@/integrations/supabase/types";
@@ -164,6 +164,9 @@ export default function Settings() {
   const [business, setBusiness] = useState<Business | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPortDialogOpen, setIsPortDialogOpen] = useState(false);
+
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
 
   // Form state
   const [name, setName] = useState("");
@@ -342,6 +345,10 @@ export default function Settings() {
         twilio_settings: data.twilio_settings as unknown as TwilioSettings | null,
         notification_email_from: data.notification_email_from,
       });
+      // Populate form fields from database
+      setName(data.name || "");
+      setOwnerEmail(data.owner_email || "");
+      setOwnerPhone(data.owner_phone || "");
       setNotificationEmailFrom(data.notification_email_from || "");
       setForwardPhones(data.forward_to_phones?.join(", ") || "");
       setServices(data.services?.join(", ") || "");
@@ -776,14 +783,34 @@ export default function Settings() {
         <TabsContent value="general" className="space-y-6">
           {/* Business Information */}
           <Card className="bg-gray-800/50 border-gray-700">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-purple-400" />
-                Business Information
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Basic details about your business
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-purple-400" />
+                  Business Information
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Basic details about your business
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(!isEditing)}
+                className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+              >
+                {isEditing ? (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </>
+                ) : (
+                  <>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit
+                  </>
+                )}
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -792,7 +819,8 @@ export default function Settings() {
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="bg-gray-700 border-gray-600 text-white"
+                    disabled={!isEditing}
+                    className={`bg-gray-700 border-gray-600 text-white ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -801,7 +829,8 @@ export default function Settings() {
                     type="email"
                     value={ownerEmail}
                     onChange={(e) => setOwnerEmail(e.target.value)}
-                    className="bg-gray-700 border-gray-600 text-white"
+                    disabled={!isEditing}
+                    className={`bg-gray-700 border-gray-600 text-white ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -810,7 +839,8 @@ export default function Settings() {
                     value={ownerPhone}
                     onChange={(e) => handleOwnerPhoneChange(e.target.value)}
                     placeholder="+972501234567"
-                    className={`bg-gray-700 border-gray-600 text-white ${ownerPhoneError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                    disabled={!isEditing}
+                    className={`bg-gray-700 border-gray-600 text-white ${ownerPhoneError ? "border-red-500 focus-visible:ring-red-500" : ""} ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                   {ownerPhoneError && (
                     <p className="text-xs text-red-400">{ownerPhoneError}</p>
@@ -822,7 +852,8 @@ export default function Settings() {
                     value={services}
                     onChange={(e) => setServices(e.target.value)}
                     placeholder="Haircut, Coloring, Styling"
-                    className="bg-gray-700 border-gray-600 text-white"
+                    disabled={!isEditing}
+                    className={`bg-gray-700 border-gray-600 text-white ${!isEditing ? "opacity-70 cursor-not-allowed" : ""}`}
                   />
                 </div>
               </div>

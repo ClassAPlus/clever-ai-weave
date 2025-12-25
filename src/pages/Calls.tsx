@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   Loader2, Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, 
-  Clock, MessageSquare, RefreshCw, Filter, FileText, ChevronDown, ChevronUp
+  Clock, MessageSquare, RefreshCw, Filter, FileText, ChevronDown, ChevronUp,
+  Pencil, Save, X
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   Select,
@@ -35,6 +37,7 @@ interface Call {
   textback_sent: boolean | null;
   created_at: string | null;
   call_summary: CallSummary | null;
+  manual_notes: string | null;
   contact: {
     name: string | null;
     phone_number: string;
@@ -56,6 +59,9 @@ export default function Calls() {
   const [filter, setFilter] = useState<"all" | "answered" | "missed">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [expandedCallId, setExpandedCallId] = useState<string | null>(null);
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [notesValue, setNotesValue] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
   const isInitialLoad = useRef(true);
 
   const fetchCalls = useCallback(async () => {
@@ -89,6 +95,7 @@ export default function Calls() {
           textback_sent,
           created_at,
           call_summary,
+          manual_notes,
           contact:contacts(name, phone_number)
         `)
         .eq("business_id", business.id)
@@ -211,6 +218,44 @@ export default function Calls() {
       return phone;
     }
     return phone;
+  };
+
+  const startEditingNotes = (call: Call) => {
+    setEditingNotesId(call.id);
+    setNotesValue(call.manual_notes || "");
+  };
+
+  const cancelEditingNotes = () => {
+    setEditingNotesId(null);
+    setNotesValue("");
+  };
+
+  const saveNotes = async (callId: string) => {
+    setSavingNotes(true);
+    try {
+      const { error } = await supabase
+        .from("calls")
+        .update({ manual_notes: notesValue || null })
+        .eq("id", callId);
+
+      if (error) {
+        console.error("Error saving notes:", error);
+        toast.error("Failed to save notes");
+      } else {
+        toast.success("Notes saved");
+        // Update local state
+        setCalls(calls.map(c => 
+          c.id === callId ? { ...c, manual_notes: notesValue || null } : c
+        ));
+        setEditingNotesId(null);
+        setNotesValue("");
+      }
+    } catch (err) {
+      console.error("Error:", err);
+      toast.error("Failed to save notes");
+    } finally {
+      setSavingNotes(false);
+    }
   };
 
   if (isLoading) {
@@ -397,40 +442,120 @@ export default function Calls() {
                       >
                         {call.was_answered ? "Answered" : "Missed"}
                       </Badge>
-                      {call.call_summary && (
+                      {(call.call_summary || call.manual_notes !== null) && (
                         expandedCallId === call.id 
                           ? <ChevronUp className="h-4 w-4 text-gray-400" />
                           : <ChevronDown className="h-4 w-4 text-gray-400" />
                       )}
+                      {!call.call_summary && call.manual_notes === null && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-gray-400 hover:text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedCallId(call.id);
+                            startEditingNotes(call);
+                          }}
+                        >
+                          <Pencil className="h-3 w-3 mr-1" />
+                          Add Notes
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
-                  {/* Expandable Call Summary */}
-                  {expandedCallId === call.id && call.call_summary && (
+                  {/* Expandable Call Summary & Notes */}
+                  {expandedCallId === call.id && (
                     <div className="px-4 pb-4 pt-0 border-t border-gray-600/50">
-                      <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-gray-800/50 p-3 rounded-lg">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Reason</p>
-                          <p className="text-white font-medium">{call.call_summary.reason}</p>
+                      {/* AI Summary Section */}
+                      {call.call_summary && (
+                        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-gray-800/50 p-3 rounded-lg">
+                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Reason</p>
+                            <p className="text-white font-medium">{call.call_summary.reason}</p>
+                          </div>
+                          <div className="bg-gray-800/50 p-3 rounded-lg">
+                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Outcome</p>
+                            <p className="text-white font-medium">{call.call_summary.outcome}</p>
+                          </div>
+                          <div className="bg-gray-800/50 p-3 rounded-lg">
+                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Next Steps</p>
+                            {call.call_summary.next_steps && call.call_summary.next_steps.length > 0 ? (
+                              <ul className="text-white text-sm space-y-1">
+                                {call.call_summary.next_steps.map((step, idx) => (
+                                  <li key={idx} className="flex items-center gap-1">
+                                    <span className="text-blue-400">•</span> {step}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-gray-400 text-sm">No follow-up required</p>
+                            )}
+                          </div>
                         </div>
-                        <div className="bg-gray-800/50 p-3 rounded-lg">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Outcome</p>
-                          <p className="text-white font-medium">{call.call_summary.outcome}</p>
-                        </div>
-                        <div className="bg-gray-800/50 p-3 rounded-lg">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Next Steps</p>
-                          {call.call_summary.next_steps && call.call_summary.next_steps.length > 0 ? (
-                            <ul className="text-white text-sm space-y-1">
-                              {call.call_summary.next_steps.map((step, idx) => (
-                                <li key={idx} className="flex items-center gap-1">
-                                  <span className="text-blue-400">•</span> {step}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-gray-400 text-sm">No follow-up required</p>
+                      )}
+                      
+                      {/* Manual Notes Section */}
+                      <div className={`${call.call_summary ? 'mt-4' : 'mt-3'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Manual Notes</p>
+                          {editingNotesId !== call.id && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-gray-400 hover:text-white h-6 px-2"
+                              onClick={() => startEditingNotes(call)}
+                            >
+                              <Pencil className="h-3 w-3 mr-1" />
+                              {call.manual_notes ? "Edit" : "Add"}
+                            </Button>
                           )}
                         </div>
+                        
+                        {editingNotesId === call.id ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={notesValue}
+                              onChange={(e) => setNotesValue(e.target.value)}
+                              placeholder="Add notes about this call..."
+                              className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-500 min-h-[80px]"
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={cancelEditingNotes}
+                                disabled={savingNotes}
+                                className="text-gray-400 hover:text-white"
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => saveNotes(call.id)}
+                                disabled={savingNotes}
+                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                              >
+                                {savingNotes ? (
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                ) : (
+                                  <Save className="h-3 w-3 mr-1" />
+                                )}
+                                Save
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-800/50 p-3 rounded-lg">
+                            {call.manual_notes ? (
+                              <p className="text-white text-sm whitespace-pre-wrap">{call.manual_notes}</p>
+                            ) : (
+                              <p className="text-gray-500 text-sm italic">No notes added yet</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

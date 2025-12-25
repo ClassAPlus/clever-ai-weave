@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate, useBlocker } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -31,16 +31,7 @@ import { TwilioAdvancedSettings } from "@/components/settings/TwilioAdvancedSett
 import { AdminRoleManager } from "@/components/settings/AdminRoleManager";
 import { BusinessStaffManager } from "@/components/settings/BusinessStaffManager";
 import { SettingsSkeleton } from "@/components/settings/SettingsSkeleton";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -273,10 +264,7 @@ export default function Settings() {
     twilioSettings, notificationEmailFrom
   ]);
 
-  // Block navigation when there are unsaved changes
-  const blocker = useBlocker(hasUnsavedChanges);
-
-  // Handle browser beforeunload event
+  // Handle browser beforeunload event (warns when closing/refreshing browser)
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasUnsavedChanges) {
@@ -747,13 +735,24 @@ export default function Settings() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Settings</h1>
-          <p className="text-gray-400">Manage your business configuration</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Settings</h1>
+            <p className="text-gray-400">Manage your business configuration</p>
+          </div>
+          {hasUnsavedChanges && (
+            <Badge variant="outline" className="border-yellow-500/50 text-yellow-400 bg-yellow-500/10">
+              Unsaved changes
+            </Badge>
+          )}
         </div>
-        <Button onClick={handleSave} disabled={isSaving || !!ownerPhoneError || !!forwardPhonesError} className="bg-purple-600 hover:bg-purple-700">
+        <Button 
+          onClick={handleSave} 
+          disabled={isSaving || !!ownerPhoneError || !!forwardPhonesError}
+          className={hasUnsavedChanges ? "bg-yellow-600 hover:bg-yellow-700" : "bg-purple-600 hover:bg-purple-700"}
+        >
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-          Save Changes
+          {hasUnsavedChanges ? "Save Changes" : "Saved"}
         </Button>
       </div>
 
@@ -1440,31 +1439,6 @@ export default function Settings() {
         </Button>
       </div>
 
-      {/* Unsaved Changes Dialog */}
-      <AlertDialog open={blocker.state === 'blocked'}>
-        <AlertDialogContent className="bg-gray-800 border-gray-700">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Unsaved Changes</AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-400">
-              You have unsaved changes. Are you sure you want to leave this page? Your changes will be lost.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel 
-              onClick={() => blocker.reset?.()}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
-            >
-              Stay on Page
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => blocker.proceed?.()}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              Leave Page
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

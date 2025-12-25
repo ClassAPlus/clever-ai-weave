@@ -24,6 +24,9 @@ export type Database = {
           duration_minutes: number | null
           id: string
           notes: string | null
+          reminder_response: string | null
+          reminder_response_at: string | null
+          reminder_sent_at: string | null
           scheduled_at: string
           service_type: string | null
           status: string | null
@@ -38,6 +41,9 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           notes?: string | null
+          reminder_response?: string | null
+          reminder_response_at?: string | null
+          reminder_sent_at?: string | null
           scheduled_at: string
           service_type?: string | null
           status?: string | null
@@ -52,6 +58,9 @@ export type Database = {
           duration_minutes?: number | null
           id?: string
           notes?: string | null
+          reminder_response?: string | null
+          reminder_response_at?: string | null
+          reminder_sent_at?: string | null
           scheduled_at?: string
           service_type?: string | null
           status?: string | null

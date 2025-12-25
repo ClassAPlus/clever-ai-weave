@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   Loader2, Calendar, Clock, User, RefreshCw, Filter,
-  CheckCircle, XCircle, AlertCircle, CalendarCheck
+  CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isToday, isTomorrow } from "date-fns";
 import {
@@ -27,6 +27,9 @@ interface Appointment {
   notes: string | null;
   confirmation_code: string | null;
   created_at: string | null;
+  reminder_sent_at: string | null;
+  reminder_response: string | null;
+  reminder_response_at: string | null;
   contact: {
     id: string;
     name: string | null;
@@ -89,6 +92,9 @@ export default function Appointments() {
           notes,
           confirmation_code,
           created_at,
+          reminder_sent_at,
+          reminder_response,
+          reminder_response_at,
           contact:contacts(id, name, phone_number)
         `)
         .eq("business_id", business.id)
@@ -242,6 +248,36 @@ export default function Appointments() {
     if (isTomorrow(date)) return "Tomorrow";
     if (isPast(date)) return "Past";
     return format(date, "EEE, MMM d");
+  };
+
+  const getReminderBadge = (appointment: Appointment) => {
+    if (!appointment.reminder_sent_at) return null;
+    
+    if (appointment.reminder_response === 'confirmed') {
+      return (
+        <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-xs">
+          <MessageSquare className="h-3 w-3 mr-1" />
+          Customer Confirmed
+        </Badge>
+      );
+    }
+    
+    if (appointment.reminder_response === 'cancelled') {
+      return (
+        <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30 text-xs">
+          <MessageSquare className="h-3 w-3 mr-1" />
+          Customer Cancelled
+        </Badge>
+      );
+    }
+    
+    // Reminder sent but no response yet
+    return (
+      <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30 text-xs">
+        <Bell className="h-3 w-3 mr-1" />
+        Reminder Sent
+      </Badge>
+    );
   };
 
   if (isLoading) {
@@ -428,7 +464,8 @@ export default function Appointments() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-11 sm:ml-0">
+                  <div className="flex items-center gap-2 ml-11 sm:ml-0 flex-wrap">
+                    {getReminderBadge(appointment)}
                     {getStatusBadge(appointment.status)}
                     {appointment.status === "pending" && (
                       <div className="flex gap-1">

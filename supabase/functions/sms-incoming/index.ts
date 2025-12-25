@@ -14,6 +14,10 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')!;
 // Hebrew opt-out keywords
 const OPT_OUT_KEYWORDS = ['stop', 'unsubscribe', 'עצור', 'הסר', 'הפסק'];
 
+// Appointment confirmation keywords
+const CONFIRM_KEYWORDS = ['yes', 'confirm', 'כן', 'אישור', 'מאשר', 'אשר'];
+const CANCEL_KEYWORDS = ['cancel', 'no', 'ביטול', 'לא', 'בטל'];
+
 // AI Tools for function calling
 const AI_TOOLS = [
   {
@@ -178,6 +182,24 @@ serve(async (req) => {
     // Check if contact has opted out
     if (contact?.opted_out) {
       console.log("Contact has opted out, ignoring message");
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
+        { headers: { ...corsHeaders, 'Content-Type': 'text/xml' } }
+      );
+    }
+
+    // Check for appointment confirmation/cancellation replies
+    const appointmentReplyResult = await handleAppointmentReply(
+      supabase,
+      business,
+      contact,
+      messageBody,
+      toNumber,
+      fromNumber
+    );
+    
+    if (appointmentReplyResult.handled) {
+      console.log("Handled as appointment reply:", appointmentReplyResult.action);
       return new Response(
         `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
         { headers: { ...corsHeaders, 'Content-Type': 'text/xml' } }
@@ -808,4 +830,112 @@ async function sendSMS(from: string, to: string, body: string): Promise<{ sid: s
   }
 
   return await response.json();
+}
+
+/**
+ * Handle appointment confirmation/cancellation replies
+ * Returns { handled: true, action: string } if this was an appointment reply
+ */
+async function handleAppointmentReply(
+  supabase: any,
+  business: any,
+  contact: any,
+  messageBody: string,
+  fromNumber: string,
+  toNumber: string
+): Promise<{ handled: boolean; action?: string }> {
+  const lowerMessage = messageBody.toLowerCase().trim();
+  
+  // Check if message matches confirmation or cancellation keywords
+  const isConfirm = CONFIRM_KEYWORDS.some(kw => lowerMessage === kw);
+  const isCancel = CANCEL_KEYWORDS.some(kw => lowerMessage === kw);
+  
+  if (!isConfirm && !isCancel) {
+    return { handled: false };
+  }
+
+  // Find a recent appointment that has had a reminder sent but no response yet
+  const { data: appointment, error: appError } = await supabase
+    .from('appointments')
+    .select('id, scheduled_at, service_type, status, reminder_sent_at')
+    .eq('contact_id', contact?.id)
+    .eq('business_id', business.id)
+    .not('reminder_sent_at', 'is', null)
+    .is('reminder_response', null)
+    .in('status', ['pending', 'confirmed'])
+    .order('scheduled_at', { ascending: true })
+    .limit(1)
+    .single();
+
+  if (appError || !appointment) {
+    console.log("No pending appointment found for confirmation reply");
+    return { handled: false };
+  }
+
+  console.log(`Processing appointment reply for appointment ${appointment.id}: ${isConfirm ? 'CONFIRM' : 'CANCEL'}`);
+
+  const isHebrew = business.ai_language === 'hebrew';
+  const now = new Date().toISOString();
+
+  if (isConfirm) {
+    // Update appointment as confirmed by customer
+    await supabase
+      .from('appointments')
+      .update({
+        status: 'confirmed',
+        reminder_response: 'confirmed',
+        reminder_response_at: now,
+      })
+      .eq('id', appointment.id);
+
+    // Send confirmation SMS
+    const scheduledDate = new Date(appointment.scheduled_at);
+    const timeStr = scheduledDate.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: !isHebrew
+    });
+
+    const confirmMessage = isHebrew
+      ? `✅ תודה! התור שלך ל-${appointment.service_type || 'תור'} ב-${timeStr} אושר. נתראה!`
+      : `✅ Thank you! Your ${appointment.service_type || 'appointment'} at ${timeStr} is confirmed. See you then!`;
+
+    await sendSMS(fromNumber, toNumber, confirmMessage);
+
+    return { handled: true, action: 'confirmed' };
+
+  } else {
+    // Update appointment as cancelled by customer
+    await supabase
+      .from('appointments')
+      .update({
+        status: 'cancelled',
+        reminder_response: 'cancelled',
+        reminder_response_at: now,
+      })
+      .eq('id', appointment.id);
+
+    // Send cancellation confirmation SMS
+    const cancelMessage = isHebrew
+      ? `❌ התור שלך בוטל בהצלחה. אם תרצה לקבוע תור חדש, אנחנו כאן לעזור.`
+      : `❌ Your appointment has been cancelled. If you'd like to reschedule, we're here to help.`;
+
+    await sendSMS(fromNumber, toNumber, cancelMessage);
+
+    // Notify business owner about cancellation
+    if (business.owner_phone && business.owner_notification_channels?.includes('sms')) {
+      const scheduledDate = new Date(appointment.scheduled_at);
+      const notifyMessage = isHebrew
+        ? `⚠️ ביטול תור: ${contact?.name || contact?.phone_number} ביטל/ה את התור ל-${scheduledDate.toLocaleDateString('he-IL')} ${scheduledDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}`
+        : `⚠️ Cancellation: ${contact?.name || contact?.phone_number} cancelled their appointment for ${scheduledDate.toLocaleDateString()} at ${scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+      try {
+        await sendSMS(fromNumber, business.owner_phone, notifyMessage);
+      } catch (err) {
+        console.error("Failed to notify owner of cancellation:", err);
+      }
+    }
+
+    return { handled: true, action: 'cancelled' };
+  }
 }

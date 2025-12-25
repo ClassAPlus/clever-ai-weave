@@ -13,7 +13,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen, Code } from "lucide-react";
+import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen, Code, ArrowRightLeft } from "lucide-react";
+import { PortNumberDialog } from "@/components/PortNumberDialog";
+import { PortRequestStatus } from "@/components/PortRequestStatus";
 import { Json } from "@/integrations/supabase/types";
 import { IndustryTemplateSelector, INDUSTRY_TEMPLATES } from "@/components/settings/IndustryTemplateSelector";
 import { AIPersonalitySettings, AIPersonality } from "@/components/settings/AIPersonalitySettings";
@@ -608,12 +610,19 @@ export default function Settings() {
                   />
                 </div>
               </div>
-              {business?.twilio_phone_number && (
+              {business?.twilio_phone_number ? (
                 <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-purple-400" />
                     <span className="text-sm text-gray-400">AI Phone Number:</span>
                     <span className="text-purple-400 font-mono">{business.twilio_phone_number}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+                  <p className="text-sm text-gray-400 mb-3">No AI phone number configured yet.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <PortNumberDialog businessId={business?.id || ""} onUpdate={fetchBusiness} />
                   </div>
                 </div>
               )}
@@ -785,6 +794,9 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Port Request Status */}
+          {business && <PortRequestStatus businessId={business.id} />}
 
           {/* Business Team Members */}
           {business && <BusinessStaffManager businessId={business.id} />}

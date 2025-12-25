@@ -380,7 +380,7 @@ serve(async (req) => {
     try {
       const { data: business, error: bizError } = await supabase
         .from("businesses")
-        .select("name, ai_instructions, twilio_settings, twilio_phone_number, business_hours, timezone, services, knowledge_base")
+        .select("name, ai_instructions, ai_language, twilio_settings, twilio_phone_number, business_hours, timezone, services, knowledge_base")
         .eq("id", bizId)
         .single();
       
@@ -394,7 +394,28 @@ serve(async (req) => {
         instructions = business.ai_instructions || "";
         businessPhone = business.twilio_phone_number || "";
         const settings = business.twilio_settings as any;
-        voiceLanguage = settings?.voiceLanguage || "en-US";
+        
+        // Map ai_language to voice language code
+        const aiLang = business.ai_language || "english";
+        const langMapping: Record<string, string> = {
+          "hebrew": "he-IL",
+          "english": "en-US",
+          "arabic": "ar-XA",
+          "spanish": "es-ES",
+          "french": "fr-FR",
+          "german": "de-DE",
+          "russian": "ru-RU",
+          "portuguese": "pt-BR",
+          "italian": "it-IT",
+          "japanese": "ja-JP",
+          "chinese": "zh-CN",
+          "korean": "ko-KR"
+        };
+        
+        // Parse ai_language - could be "hebrew" or "english:hebrew,english:true" format
+        let primaryLang = aiLang.split(":")[0].toLowerCase().trim();
+        voiceLanguage = langMapping[primaryLang] || settings?.voiceLanguage || "en-US";
+        
         const gender = settings?.voiceGender || "female";
         voice = gender === "male" ? "ash" : "alloy";
         // Store business hours for the check_business_hours tool
@@ -403,7 +424,7 @@ serve(async (req) => {
         // Store services and knowledge base for the get_services_info tool
         (globalThis as any).__businessServices = business.services || [];
         (globalThis as any).__knowledgeBase = business.knowledge_base || {};
-        console.log(`Loaded business: ${businessName}, language: ${voiceLanguage}, voice: ${voice}, services: ${(business.services || []).length}`);
+        console.log(`Loaded business: ${businessName}, aiLang: ${aiLang}, voiceLanguage: ${voiceLanguage}, voice: ${voice}, services: ${(business.services || []).length}`);
         console.log(`Business hours loaded:`, JSON.stringify(business.business_hours));
       }
       

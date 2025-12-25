@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   Loader2, Calendar, Clock, User, RefreshCw, Filter,
-  CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare
+  CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare, Send
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, isToday, isTomorrow } from "date-fns";
 import {
@@ -58,6 +58,7 @@ export default function Appointments() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "completed" | "cancelled">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
   const isInitialLoad = useRef(true);
 
   const fetchAppointments = useCallback(async () => {
@@ -209,6 +210,39 @@ export default function Appointments() {
       fetchAppointments();
     } catch (error) {
       console.error("Error:", error);
+    }
+  };
+
+  const sendManualReminder = async (appointmentId: string) => {
+    setSendingReminderId(appointmentId);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-appointment-reminder', {
+        body: { appointmentId }
+      });
+
+      if (error) {
+        console.error("Error sending reminder:", error);
+        toast.error("Failed to send reminder", {
+          description: error.message
+        });
+        return;
+      }
+
+      if (data?.success) {
+        toast.success("Reminder sent!", {
+          description: "The customer has been notified via SMS"
+        });
+        fetchAppointments();
+      } else {
+        toast.error("Failed to send reminder", {
+          description: data?.error || "Unknown error"
+        });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to send reminder");
+    } finally {
+      setSendingReminderId(null);
     }
   };
 
@@ -514,6 +548,27 @@ export default function Appointments() {
                   <div className="flex items-center gap-2 ml-11 sm:ml-0 flex-wrap">
                     {getReminderBadge(appointment)}
                     {getStatusBadge(appointment.status)}
+                    
+                    {/* Send Reminder Button - show if no reminder sent yet and appointment is upcoming */}
+                    {!appointment.reminder_sent_at && 
+                     !isPast(new Date(appointment.scheduled_at)) &&
+                     (appointment.status === "pending" || appointment.status === "confirmed") && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20"
+                        onClick={() => sendManualReminder(appointment.id)}
+                        disabled={sendingReminderId === appointment.id}
+                        title="Send reminder SMS now"
+                      >
+                        {sendingReminderId === appointment.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
+                    
                     {appointment.status === "pending" && (
                       <div className="flex gap-1">
                         <Button

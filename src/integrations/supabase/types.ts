@@ -243,6 +243,7 @@ export type Database = {
         Row: {
           business_id: string
           call_status: string
+          call_summary: Json | null
           caller_phone: string
           contact_id: string | null
           created_at: string | null
@@ -256,6 +257,7 @@ export type Database = {
         Insert: {
           business_id: string
           call_status: string
+          call_summary?: Json | null
           caller_phone: string
           contact_id?: string | null
           created_at?: string | null
@@ -269,6 +271,7 @@ export type Database = {
         Update: {
           business_id?: string
           call_status?: string
+          call_summary?: Json | null
           caller_phone?: string
           contact_id?: string | null
           created_at?: string | null

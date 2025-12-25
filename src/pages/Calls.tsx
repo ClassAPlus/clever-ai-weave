@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   Loader2, Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, 
-  Clock, MessageSquare, RefreshCw, Filter
+  Clock, MessageSquare, RefreshCw, Filter, FileText, ChevronDown, ChevronUp
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import {
@@ -18,6 +18,14 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
+interface CallSummary {
+  reason: string;
+  outcome: string;
+  next_steps: string[];
+  caller_name?: string;
+  functions_used?: string[];
+}
+
 interface Call {
   id: string;
   caller_phone: string;
@@ -26,6 +34,7 @@ interface Call {
   duration_seconds: number | null;
   textback_sent: boolean | null;
   created_at: string | null;
+  call_summary: CallSummary | null;
   contact: {
     name: string | null;
     phone_number: string;
@@ -46,6 +55,7 @@ export default function Calls() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "answered" | "missed">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [expandedCallId, setExpandedCallId] = useState<string | null>(null);
   const isInitialLoad = useRef(true);
 
   const fetchCalls = useCallback(async () => {
@@ -78,6 +88,7 @@ export default function Calls() {
           duration_seconds,
           textback_sent,
           created_at,
+          call_summary,
           contact:contacts(name, phone_number)
         `)
         .eq("business_id", business.id)
@@ -96,7 +107,12 @@ export default function Calls() {
         return;
       }
 
-      setCalls(callsData || []);
+      // Map data to properly type call_summary
+      const typedCalls: Call[] = (callsData || []).map((call: any) => ({
+        ...call,
+        call_summary: call.call_summary as CallSummary | null
+      }));
+      setCalls(typedCalls);
 
       // Fetch stats
       const { data: allCalls } = await supabase
@@ -317,61 +333,107 @@ export default function Calls() {
               {calls.map((call) => (
                 <div 
                   key={call.id} 
-                  className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors"
+                  className="bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors overflow-hidden"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-full ${
-                      call.was_answered 
-                        ? "bg-green-500/20" 
-                        : "bg-red-500/20"
-                    }`}>
-                      {call.was_answered ? (
-                        <PhoneIncoming className="h-5 w-5 text-green-400" />
-                      ) : (
-                        <PhoneMissed className="h-5 w-5 text-red-400" />
+                  <div 
+                    className="flex items-center justify-between p-4 cursor-pointer"
+                    onClick={() => setExpandedCallId(expandedCallId === call.id ? null : call.id)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-full ${
+                        call.was_answered 
+                          ? "bg-green-500/20" 
+                          : "bg-red-500/20"
+                      }`}>
+                        {call.was_answered ? (
+                          <PhoneIncoming className="h-5 w-5 text-green-400" />
+                        ) : (
+                          <PhoneMissed className="h-5 w-5 text-red-400" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-white">
+                            {call.contact?.name || formatPhoneNumber(call.caller_phone)}
+                          </span>
+                          {call.contact?.name && (
+                            <span className="text-sm text-gray-400 font-mono">
+                              {formatPhoneNumber(call.caller_phone)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {call.created_at 
+                              ? formatDistanceToNow(new Date(call.created_at), { addSuffix: true })
+                              : "Unknown"}
+                          </span>
+                          {call.duration_seconds !== null && call.duration_seconds > 0 && (
+                            <span>Duration: {formatDuration(call.duration_seconds)}</span>
+                          )}
+                          {call.call_summary && (
+                            <span className="flex items-center gap-1 text-blue-400">
+                              <FileText className="h-3 w-3" />
+                              {call.call_summary.reason}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {call.textback_sent && (
+                        <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                          <MessageSquare className="h-3 w-3 mr-1" />
+                          Textback Sent
+                        </Badge>
+                      )}
+                      <Badge 
+                        variant={call.was_answered ? "default" : "destructive"}
+                        className={call.was_answered 
+                          ? "bg-green-500/20 text-green-300 border-green-500/30" 
+                          : "bg-red-500/20 text-red-300 border-red-500/30"
+                        }
+                      >
+                        {call.was_answered ? "Answered" : "Missed"}
+                      </Badge>
+                      {call.call_summary && (
+                        expandedCallId === call.id 
+                          ? <ChevronUp className="h-4 w-4 text-gray-400" />
+                          : <ChevronDown className="h-4 w-4 text-gray-400" />
                       )}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-white">
-                          {call.contact?.name || formatPhoneNumber(call.caller_phone)}
-                        </span>
-                        {call.contact?.name && (
-                          <span className="text-sm text-gray-400 font-mono">
-                            {formatPhoneNumber(call.caller_phone)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {call.created_at 
-                            ? formatDistanceToNow(new Date(call.created_at), { addSuffix: true })
-                            : "Unknown"}
-                        </span>
-                        {call.duration_seconds !== null && call.duration_seconds > 0 && (
-                          <span>Duration: {formatDuration(call.duration_seconds)}</span>
-                        )}
+                  </div>
+                  
+                  {/* Expandable Call Summary */}
+                  {expandedCallId === call.id && call.call_summary && (
+                    <div className="px-4 pb-4 pt-0 border-t border-gray-600/50">
+                      <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-gray-800/50 p-3 rounded-lg">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Reason</p>
+                          <p className="text-white font-medium">{call.call_summary.reason}</p>
+                        </div>
+                        <div className="bg-gray-800/50 p-3 rounded-lg">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Outcome</p>
+                          <p className="text-white font-medium">{call.call_summary.outcome}</p>
+                        </div>
+                        <div className="bg-gray-800/50 p-3 rounded-lg">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Next Steps</p>
+                          {call.call_summary.next_steps && call.call_summary.next_steps.length > 0 ? (
+                            <ul className="text-white text-sm space-y-1">
+                              {call.call_summary.next_steps.map((step, idx) => (
+                                <li key={idx} className="flex items-center gap-1">
+                                  <span className="text-blue-400">•</span> {step}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-gray-400 text-sm">No follow-up required</p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {call.textback_sent && (
-                      <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
-                        <MessageSquare className="h-3 w-3 mr-1" />
-                        Textback Sent
-                      </Badge>
-                    )}
-                    <Badge 
-                      variant={call.was_answered ? "default" : "destructive"}
-                      className={call.was_answered 
-                        ? "bg-green-500/20 text-green-300 border-green-500/30" 
-                        : "bg-red-500/20 text-red-300 border-red-500/30"
-                      }
-                    >
-                      {call.was_answered ? "Answered" : "Missed"}
-                    </Badge>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>

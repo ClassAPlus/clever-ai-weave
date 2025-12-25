@@ -497,6 +497,14 @@ serve(async (req) => {
     console.log(`Context: businessId=${businessId}, contactId=${contactId}, callerPhone=${callerPhone}, businessPhone=${businessPhone}`);
     let result = "";
     
+    // Track functions called for summary
+    if (!(globalThis as any).__functionsCalledInCall) {
+      (globalThis as any).__functionsCalledInCall = [];
+    }
+    if (!(globalThis as any).__functionsCalledInCall.includes(functionName)) {
+      (globalThis as any).__functionsCalledInCall.push(functionName);
+    }
+    
     try {
       switch (functionName) {
         case "create_appointment": {
@@ -1158,7 +1166,87 @@ serve(async (req) => {
           break;
           
         case "stop":
-          console.log("Stream stopped");
+          console.log("Stream stopped - generating call summary...");
+          
+          // Generate call summary before closing
+          if (businessId && callSid) {
+            try {
+              // Collect conversation context for summary
+              const summaryData = {
+                caller_name: callerContext.name || "Unknown caller",
+                caller_phone: callerPhone,
+                business_name: businessName,
+                had_appointments: callerContext.appointments.length > 0,
+                functions_called: (globalThis as any).__functionsCalledInCall || []
+              };
+              
+              console.log("Summary context:", JSON.stringify(summaryData));
+              
+              // Determine call reason, outcome, and next steps based on functions called
+              let reason = "General inquiry";
+              let outcome = "Call completed";
+              let next_steps: string[] = [];
+              
+              const functionsCalled = summaryData.functions_called;
+              
+              if (functionsCalled.includes("create_appointment")) {
+                reason = "Appointment booking";
+                outcome = "Appointment scheduled";
+                next_steps.push("Send appointment reminder");
+              } else if (functionsCalled.includes("reschedule_appointment")) {
+                reason = "Appointment rescheduling";
+                outcome = "Appointment rescheduled";
+                next_steps.push("Update calendar");
+              } else if (functionsCalled.includes("cancel_appointment")) {
+                reason = "Appointment cancellation";
+                outcome = "Appointment cancelled";
+              } else if (functionsCalled.includes("take_message")) {
+                reason = "Left message";
+                outcome = "Message recorded";
+                next_steps.push("Return customer call");
+              } else if (functionsCalled.includes("check_business_hours")) {
+                reason = "Hours inquiry";
+                outcome = "Provided business hours";
+              } else if (functionsCalled.includes("get_services_info")) {
+                reason = "Service inquiry";
+                outcome = "Provided service information";
+                next_steps.push("Follow up on interest");
+              }
+              
+              if (functionsCalled.includes("send_confirmation_sms")) {
+                next_steps.push("SMS confirmation sent");
+              }
+              
+              if (functionsCalled.includes("update_contact_info")) {
+                outcome += " - Contact info updated";
+              }
+              
+              const callSummary = {
+                reason,
+                outcome,
+                next_steps,
+                caller_name: callerContext.name,
+                functions_used: functionsCalled
+              };
+              
+              console.log("Saving call summary:", JSON.stringify(callSummary));
+              
+              // Update the call record with the summary
+              const { error: updateError } = await supabase
+                .from("calls")
+                .update({ call_summary: callSummary })
+                .eq("twilio_call_sid", callSid);
+              
+              if (updateError) {
+                console.error("Error saving call summary:", updateError);
+              } else {
+                console.log("Call summary saved successfully");
+              }
+            } catch (summaryErr) {
+              console.error("Error generating call summary:", summaryErr);
+            }
+          }
+          
           if (openaiWs) {
             openaiWs.close();
           }

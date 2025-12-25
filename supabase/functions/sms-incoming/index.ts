@@ -862,7 +862,7 @@ async function handleAppointmentReply(
     .eq('business_id', business.id)
     .not('reminder_sent_at', 'is', null)
     .is('reminder_response', null)
-    .in('status', ['pending', 'confirmed'])
+    .not('status', 'in', '("cancelled","completed")')
     .order('scheduled_at', { ascending: true })
     .limit(1)
     .single();
@@ -900,7 +900,7 @@ async function handleAppointmentReply(
       ? `✅ תודה! התור שלך ל-${appointment.service_type || 'תור'} ב-${timeStr} אושר. נתראה!`
       : `✅ Thank you! Your ${appointment.service_type || 'appointment'} at ${timeStr} is confirmed. See you then!`;
 
-    await sendSMS(fromNumber, toNumber, confirmMessage);
+    await sendSMS(toNumber, fromNumber, confirmMessage);
 
     return { handled: true, action: 'confirmed' };
 
@@ -920,7 +920,7 @@ async function handleAppointmentReply(
       ? `❌ התור שלך בוטל בהצלחה. אם תרצה לקבוע תור חדש, אנחנו כאן לעזור.`
       : `❌ Your appointment has been cancelled. If you'd like to reschedule, we're here to help.`;
 
-    await sendSMS(fromNumber, toNumber, cancelMessage);
+    await sendSMS(toNumber, fromNumber, cancelMessage);
 
     // Notify business owner about cancellation
     if (business.owner_phone && business.owner_notification_channels?.includes('sms')) {
@@ -930,7 +930,7 @@ async function handleAppointmentReply(
         : `⚠️ Cancellation: ${contact?.name || contact?.phone_number} cancelled their appointment for ${scheduledDate.toLocaleDateString()} at ${scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
       try {
-        await sendSMS(fromNumber, business.owner_phone, notifyMessage);
+        await sendSMS(toNumber, business.owner_phone, notifyMessage);
       } catch (err) {
         console.error("Failed to notify owner of cancellation:", err);
       }

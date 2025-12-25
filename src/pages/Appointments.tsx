@@ -6,9 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
   Loader2, Calendar, Clock, User, RefreshCw, Filter,
-  CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare, Send
+  CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare, Send,
+  ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid
 } from "lucide-react";
-import { format, formatDistanceToNow, isPast, isToday, isTomorrow } from "date-fns";
+import { 
+  format, formatDistanceToNow, isPast, isToday, isTomorrow, 
+  startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
+  addDays, addWeeks, addMonths, subDays, subWeeks, subMonths,
+  eachDayOfInterval, isSameDay, isSameMonth, getDay
+} from "date-fns";
 import {
   Select,
   SelectContent,
@@ -17,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface Appointment {
   id: string;
@@ -48,6 +55,8 @@ interface AppointmentStats {
   customerCancelled: number;
 }
 
+type ViewMode = "day" | "week" | "month";
+
 export default function Appointments() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -59,14 +68,26 @@ export default function Appointments() {
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "completed" | "cancelled">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [currentDate, setCurrentDate] = useState(new Date());
   const isInitialLoad = useRef(true);
+
+  const getDateRange = useCallback(() => {
+    switch (viewMode) {
+      case "day":
+        return { start: startOfDay(currentDate), end: endOfDay(currentDate) };
+      case "week":
+        return { start: startOfWeek(currentDate, { weekStartsOn: 0 }), end: endOfWeek(currentDate, { weekStartsOn: 0 }) };
+      case "month":
+        return { start: startOfMonth(currentDate), end: endOfMonth(currentDate) };
+    }
+  }, [viewMode, currentDate]);
 
   const fetchAppointments = useCallback(async () => {
     if (!user) return;
     
     setIsLoading(true);
     try {
-      // First get the business
       const { data: business, error: bizError } = await supabase
         .from("businesses")
         .select("id")
@@ -85,7 +106,8 @@ export default function Appointments() {
 
       setBusinessId(business.id);
 
-      // Fetch appointments with contact info
+      const { start, end } = getDateRange();
+
       let query = supabase
         .from("appointments")
         .select(`
@@ -103,13 +125,15 @@ export default function Appointments() {
           contact:contacts(id, name, phone_number)
         `)
         .eq("business_id", business.id)
+        .gte("scheduled_at", start.toISOString())
+        .lte("scheduled_at", end.toISOString())
         .order("scheduled_at", { ascending: true });
 
       if (filter !== "all") {
         query = query.eq("status", filter);
       }
 
-      const { data: appointmentsData, error: apptsError } = await query.limit(50);
+      const { data: appointmentsData, error: apptsError } = await query;
 
       if (apptsError) {
         console.error("Error fetching appointments:", apptsError);
@@ -118,11 +142,13 @@ export default function Appointments() {
 
       setAppointments(appointmentsData || []);
 
-      // Fetch stats
+      // Fetch stats for current view
       const { data: allAppts } = await supabase
         .from("appointments")
         .select("status, reminder_sent_at, reminder_response")
-        .eq("business_id", business.id);
+        .eq("business_id", business.id)
+        .gte("scheduled_at", start.toISOString())
+        .lte("scheduled_at", end.toISOString());
 
       if (allAppts) {
         setStats({
@@ -141,13 +167,12 @@ export default function Appointments() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, filter]);
+  }, [user, filter, getDateRange]);
 
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
 
-  // Real-time subscription for appointments
   useEffect(() => {
     if (!businessId) return;
 
@@ -206,7 +231,6 @@ export default function Appointments() {
         return;
       }
 
-      // Refresh appointments
       fetchAppointments();
     } catch (error) {
       console.error("Error:", error);
@@ -246,9 +270,34 @@ export default function Appointments() {
     }
   };
 
-  const formatPhoneNumber = (phone: string) => {
-    return phone;
+  const navigateDate = (direction: "prev" | "next") => {
+    setCurrentDate(prev => {
+      switch (viewMode) {
+        case "day":
+          return direction === "prev" ? subDays(prev, 1) : addDays(prev, 1);
+        case "week":
+          return direction === "prev" ? subWeeks(prev, 1) : addWeeks(prev, 1);
+        case "month":
+          return direction === "prev" ? subMonths(prev, 1) : addMonths(prev, 1);
+      }
+    });
   };
+
+  const goToToday = () => setCurrentDate(new Date());
+
+  const getDateRangeLabel = () => {
+    const { start, end } = getDateRange();
+    switch (viewMode) {
+      case "day":
+        return format(currentDate, "EEEE, MMMM d, yyyy");
+      case "week":
+        return `${format(start, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
+      case "month":
+        return format(currentDate, "MMMM yyyy");
+    }
+  };
+
+  const formatPhoneNumber = (phone: string) => phone;
 
   const getStatusBadge = (status: string | null) => {
     switch (status) {
@@ -290,14 +339,6 @@ export default function Appointments() {
     }
   };
 
-  const getDateLabel = (dateStr: string) => {
-    const date = new Date(dateStr);
-    if (isToday(date)) return "Today";
-    if (isTomorrow(date)) return "Tomorrow";
-    if (isPast(date)) return "Past";
-    return format(date, "EEE, MMM d");
-  };
-
   const getReminderBadge = (appointment: Appointment) => {
     if (!appointment.reminder_sent_at) return null;
     
@@ -319,12 +360,234 @@ export default function Appointments() {
       );
     }
     
-    // Reminder sent but no response yet
     return (
       <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30 text-xs">
         <Bell className="h-3 w-3 mr-1" />
         Reminder Sent
       </Badge>
+    );
+  };
+
+  const getAppointmentsForDay = (day: Date) => {
+    return appointments.filter(apt => isSameDay(new Date(apt.scheduled_at), day));
+  };
+
+  const renderAppointmentCard = (appointment: Appointment, compact = false) => (
+    <div 
+      key={appointment.id} 
+      className={`flex flex-col p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors ${compact ? 'text-xs' : ''}`}
+    >
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className={`font-medium text-white ${compact ? 'text-xs truncate' : ''}`}>
+          {appointment.contact?.name || formatPhoneNumber(appointment.contact?.phone_number || "Unknown")}
+        </span>
+        {!compact && getStatusBadge(appointment.status)}
+      </div>
+      <div className="flex items-center gap-2 text-gray-400">
+        <Clock className="h-3 w-3" />
+        <span>{format(new Date(appointment.scheduled_at), "h:mm a")}</span>
+        {appointment.duration_minutes && <span>({appointment.duration_minutes}m)</span>}
+      </div>
+      {appointment.service_type && (
+        <Badge variant="outline" className="border-gray-600 text-gray-300 mt-2 w-fit text-xs">
+          {appointment.service_type}
+        </Badge>
+      )}
+      {!compact && (
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {getReminderBadge(appointment)}
+          {!isPast(new Date(appointment.scheduled_at)) &&
+           appointment.status !== "completed" && appointment.status !== "cancelled" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20"
+              onClick={() => sendManualReminder(appointment.id)}
+              disabled={sendingReminderId === appointment.id}
+            >
+              {sendingReminderId === appointment.id ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Send className="h-3 w-3" />
+              )}
+            </Button>
+          )}
+          {appointment.status === "pending" && (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-green-400 hover:text-green-300 hover:bg-green-500/20"
+                onClick={() => updateAppointmentStatus(appointment.id, "confirmed")}
+              >
+                <CheckCircle className="h-3 w-3" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                onClick={() => updateAppointmentStatus(appointment.id, "cancelled")}
+              >
+                <XCircle className="h-3 w-3" />
+              </Button>
+            </>
+          )}
+          {appointment.status === "confirmed" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
+              onClick={() => updateAppointmentStatus(appointment.id, "completed")}
+            >
+              <CalendarCheck className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      )}
+      {compact && (
+        <div className={`mt-1 h-1 rounded-full ${
+          appointment.status === 'confirmed' ? 'bg-green-500' :
+          appointment.status === 'cancelled' ? 'bg-red-500' :
+          appointment.status === 'completed' ? 'bg-blue-500' :
+          'bg-yellow-500'
+        }`} />
+      )}
+    </div>
+  );
+
+  const renderDayView = () => (
+    <Card className="bg-gray-800/50 border-gray-700">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-purple-400" />
+          {format(currentDate, "EEEE, MMMM d")}
+        </CardTitle>
+        <CardDescription className="text-gray-400">
+          {appointments.length} appointment{appointments.length !== 1 ? 's' : ''}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {appointments.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>No appointments for this day</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {appointments.map(apt => renderAppointmentCard(apt))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const renderWeekView = () => {
+    const { start, end } = getDateRange();
+    const days = eachDayOfInterval({ start, end });
+
+    return (
+      <div className="grid grid-cols-7 gap-2">
+        {days.map(day => {
+          const dayAppointments = getAppointmentsForDay(day);
+          const isCurrentDay = isToday(day);
+          
+          return (
+            <div 
+              key={day.toISOString()} 
+              className={`min-h-[200px] rounded-lg border ${
+                isCurrentDay 
+                  ? 'border-purple-500 bg-purple-500/10' 
+                  : 'border-gray-700 bg-gray-800/50'
+              }`}
+            >
+              <div className={`p-2 border-b ${isCurrentDay ? 'border-purple-500/50' : 'border-gray-700'}`}>
+                <p className={`text-xs ${isCurrentDay ? 'text-purple-300' : 'text-gray-400'}`}>
+                  {format(day, "EEE")}
+                </p>
+                <p className={`text-lg font-bold ${isCurrentDay ? 'text-purple-300' : 'text-white'}`}>
+                  {format(day, "d")}
+                </p>
+              </div>
+              <div className="p-2 space-y-2 max-h-[300px] overflow-y-auto">
+                {dayAppointments.length === 0 ? (
+                  <p className="text-xs text-gray-500 text-center py-4">No appointments</p>
+                ) : (
+                  dayAppointments.map(apt => renderAppointmentCard(apt, true))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderMonthView = () => {
+    const monthStart = startOfMonth(currentDate);
+    const monthEnd = endOfMonth(currentDate);
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
+    const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+    const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    return (
+      <div className="bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden">
+        {/* Week day headers */}
+        <div className="grid grid-cols-7 border-b border-gray-700">
+          {weekDays.map(day => (
+            <div key={day} className="p-2 text-center text-xs font-medium text-gray-400 bg-gray-800/80">
+              {day}
+            </div>
+          ))}
+        </div>
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7">
+          {days.map(day => {
+            const dayAppointments = getAppointmentsForDay(day);
+            const isCurrentDay = isToday(day);
+            const isCurrentMonth = isSameMonth(day, currentDate);
+            
+            return (
+              <div 
+                key={day.toISOString()} 
+                className={`min-h-[100px] p-1 border-b border-r border-gray-700 ${
+                  !isCurrentMonth ? 'bg-gray-900/50' : ''
+                } ${isCurrentDay ? 'bg-purple-500/10' : ''}`}
+              >
+                <div className={`text-sm font-medium mb-1 ${
+                  isCurrentDay 
+                    ? 'text-purple-300' 
+                    : isCurrentMonth 
+                    ? 'text-white' 
+                    : 'text-gray-600'
+                }`}>
+                  {format(day, "d")}
+                </div>
+                <div className="space-y-1">
+                  {dayAppointments.slice(0, 3).map(apt => (
+                    <div 
+                      key={apt.id}
+                      className={`text-xs p-1 rounded truncate ${
+                        apt.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
+                        apt.status === 'cancelled' ? 'bg-red-500/20 text-red-300' :
+                        apt.status === 'completed' ? 'bg-blue-500/20 text-blue-300' :
+                        'bg-yellow-500/20 text-yellow-300'
+                      }`}
+                    >
+                      {format(new Date(apt.scheduled_at), "h:mm a")} - {apt.contact?.name || "Unknown"}
+                    </div>
+                  ))}
+                  {dayAppointments.length > 3 && (
+                    <div className="text-xs text-gray-400 text-center">
+                      +{dayAppointments.length - 3} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     );
   };
 
@@ -344,276 +607,166 @@ export default function Appointments() {
           <h1 className="text-2xl font-bold text-white">Appointments</h1>
           <p className="text-gray-400">View and manage scheduled appointments</p>
         </div>
-        <Button 
-          onClick={fetchAppointments} 
-          variant="outline" 
-          className="border-gray-600 text-gray-300 hover:bg-gray-700"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={fetchAppointments} 
+            variant="outline" 
+            size="sm"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* View Toggle & Date Navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigateDate("prev")}
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={goToToday}
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
+            Today
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigateDate("next")}
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <span className="text-white font-medium ml-2">{getDateRangeLabel()}</span>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as ViewMode)}>
+            <ToggleGroupItem 
+              value="day" 
+              className="data-[state=on]:bg-purple-500/20 data-[state=on]:text-purple-300"
+            >
+              <List className="h-4 w-4 mr-1" />
+              Day
+            </ToggleGroupItem>
+            <ToggleGroupItem 
+              value="week"
+              className="data-[state=on]:bg-purple-500/20 data-[state=on]:text-purple-300"
+            >
+              <CalendarDays className="h-4 w-4 mr-1" />
+              Week
+            </ToggleGroupItem>
+            <ToggleGroupItem 
+              value="month"
+              className="data-[state=on]:bg-purple-500/20 data-[state=on]:text-purple-300"
+            >
+              <LayoutGrid className="h-4 w-4 mr-1" />
+              Month
+            </ToggleGroupItem>
+          </ToggleGroup>
+          
+          <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+            <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
+              <Filter className="h-3 w-3 mr-1" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectItem value="all" className="text-white hover:bg-gray-700">All</SelectItem>
+              <SelectItem value="pending" className="text-white hover:bg-gray-700">Pending</SelectItem>
+              <SelectItem value="confirmed" className="text-white hover:bg-gray-700">Confirmed</SelectItem>
+              <SelectItem value="completed" className="text-white hover:bg-gray-700">Completed</SelectItem>
+              <SelectItem value="cancelled" className="text-white hover:bg-gray-700">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Calendar className="h-5 w-5 text-purple-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-purple-500/20 rounded-lg">
+                <Calendar className="h-4 w-4 text-purple-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{stats.total}</p>
-                <p className="text-sm text-gray-400">Total</p>
+                <p className="text-xl font-bold text-white">{stats.total}</p>
+                <p className="text-xs text-gray-400">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-500/20 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-yellow-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-yellow-500/20 rounded-lg">
+                <AlertCircle className="h-4 w-4 text-yellow-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{stats.pending}</p>
-                <p className="text-sm text-gray-400">Pending</p>
+                <p className="text-xl font-bold text-white">{stats.pending}</p>
+                <p className="text-xs text-gray-400">Pending</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500/20 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-green-500/20 rounded-lg">
+                <CheckCircle className="h-4 w-4 text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{stats.confirmed}</p>
-                <p className="text-sm text-gray-400">Confirmed</p>
+                <p className="text-xl font-bold text-white">{stats.confirmed}</p>
+                <p className="text-xs text-gray-400">Confirmed</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <CalendarCheck className="h-5 w-5 text-blue-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-blue-500/20 rounded-lg">
+                <CalendarCheck className="h-4 w-4 text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{stats.completed}</p>
-                <p className="text-sm text-gray-400">Completed</p>
+                <p className="text-xl font-bold text-white">{stats.completed}</p>
+                <p className="text-xs text-gray-400">Completed</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gray-800/50 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-500/20 rounded-lg">
-                <XCircle className="h-5 w-5 text-red-400" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-red-500/20 rounded-lg">
+                <XCircle className="h-4 w-4 text-red-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{stats.cancelled}</p>
-                <p className="text-sm text-gray-400">Cancelled</p>
+                <p className="text-xl font-bold text-white">{stats.cancelled}</p>
+                <p className="text-xs text-gray-400">Cancelled</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Reminder Stats */}
-      <Card className="bg-gray-800/50 border-gray-700">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-white text-base flex items-center gap-2">
-            <Bell className="h-4 w-4 text-purple-400" />
-            Reminder Statistics
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex items-center gap-3 p-3 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
-              <Bell className="h-5 w-5 text-cyan-400" />
-              <div>
-                <p className="text-xl font-bold text-white">{stats.remindersSent}</p>
-                <p className="text-xs text-gray-400">Reminders Sent</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-              <MessageSquare className="h-5 w-5 text-emerald-400" />
-              <div>
-                <p className="text-xl font-bold text-white">{stats.customerConfirmed}</p>
-                <p className="text-xs text-gray-400">Customer Confirmed</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
-              <MessageSquare className="h-5 w-5 text-orange-400" />
-              <div>
-                <p className="text-xl font-bold text-white">{stats.customerCancelled}</p>
-                <p className="text-xs text-gray-400">Customer Cancelled</p>
-              </div>
-            </div>
-          </div>
-          {stats.remindersSent > 0 && (
-            <p className="text-xs text-gray-500 mt-3">
-              Response rate: {Math.round(((stats.customerConfirmed + stats.customerCancelled) / stats.remindersSent) * 100)}%
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Filter */}
-      <div className="flex items-center gap-3">
-        <Filter className="h-4 w-4 text-gray-400" />
-        <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-          <SelectTrigger className="w-40 bg-gray-800 border-gray-700 text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700">
-            <SelectItem value="all" className="text-white hover:bg-gray-700">All Appointments</SelectItem>
-            <SelectItem value="pending" className="text-white hover:bg-gray-700">Pending</SelectItem>
-            <SelectItem value="confirmed" className="text-white hover:bg-gray-700">Confirmed</SelectItem>
-            <SelectItem value="completed" className="text-white hover:bg-gray-700">Completed</SelectItem>
-            <SelectItem value="cancelled" className="text-white hover:bg-gray-700">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Appointments List */}
-      <Card className="bg-gray-800/50 border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white">Scheduled Appointments</CardTitle>
-          <CardDescription className="text-gray-400">
-            {appointments.length} appointments found
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {appointments.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No appointments yet</p>
-              <p className="text-sm">Scheduled appointments will appear here</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {appointments.map((appointment) => (
-                <div 
-                  key={appointment.id} 
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors gap-4"
-                >
-                  <div className="flex items-start sm:items-center gap-4">
-                    <div className={`p-2 rounded-full ${
-                      isPast(new Date(appointment.scheduled_at)) && appointment.status !== "completed"
-                        ? "bg-red-500/20" 
-                        : isToday(new Date(appointment.scheduled_at))
-                        ? "bg-green-500/20"
-                        : "bg-purple-500/20"
-                    }`}>
-                      <Calendar className={`h-5 w-5 ${
-                        isPast(new Date(appointment.scheduled_at)) && appointment.status !== "completed"
-                          ? "text-red-400" 
-                          : isToday(new Date(appointment.scheduled_at))
-                          ? "text-green-400"
-                          : "text-purple-400"
-                      }`} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-white">
-                          {appointment.contact?.name || formatPhoneNumber(appointment.contact?.phone_number || "Unknown")}
-                        </span>
-                        {appointment.service_type && (
-                          <Badge variant="outline" className="border-gray-600 text-gray-300">
-                            {appointment.service_type}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-400 mt-1">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {getDateLabel(appointment.scheduled_at)} at {format(new Date(appointment.scheduled_at), "h:mm a")}
-                        </span>
-                        {appointment.duration_minutes && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {appointment.duration_minutes} min
-                          </span>
-                        )}
-                      </div>
-                      {appointment.notes && (
-                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">
-                          {appointment.notes}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 ml-11 sm:ml-0 flex-wrap">
-                    {getReminderBadge(appointment)}
-                    {getStatusBadge(appointment.status)}
-                    
-                    {/* Send/Resend Reminder Button - show for upcoming non-completed/cancelled appointments */}
-                    {!isPast(new Date(appointment.scheduled_at)) &&
-                     appointment.status !== "completed" && appointment.status !== "cancelled" && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className={`h-8 ${appointment.reminder_sent_at 
-                          ? "text-gray-400 hover:text-cyan-300 hover:bg-cyan-500/20" 
-                          : "text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20"}`}
-                        onClick={() => sendManualReminder(appointment.id)}
-                        disabled={sendingReminderId === appointment.id}
-                        title={appointment.reminder_sent_at ? "Resend reminder SMS" : "Send reminder SMS"}
-                      >
-                        {sendingReminderId === appointment.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
-                      </Button>
-                    )}
-                    
-                    {appointment.status === "pending" && (
-                      <div className="flex gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 text-green-400 hover:text-green-300 hover:bg-green-500/20"
-                          onClick={() => updateAppointmentStatus(appointment.id, "confirmed")}
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                          onClick={() => updateAppointmentStatus(appointment.id, "cancelled")}
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                    {appointment.status === "confirmed" && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20"
-                        onClick={() => updateAppointmentStatus(appointment.id, "completed")}
-                      >
-                        <CalendarCheck className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Calendar View */}
+      {viewMode === "day" && renderDayView()}
+      {viewMode === "week" && renderWeekView()}
+      {viewMode === "month" && renderMonthView()}
     </div>
   );
 }

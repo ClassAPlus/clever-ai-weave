@@ -869,7 +869,7 @@ async function handleAppointmentReply(
     .single();
 
   if (appError || !appointment) {
-    console.log("No pending appointment found for confirmation reply");
+    console.log("No pending appointment found for confirmation reply. Contact ID:", contact?.id, "Business ID:", business.id, "Error:", appError);
     return { handled: false };
   }
 

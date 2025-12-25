@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RefreshCw, Phone, Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, FileText, Download, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Loader2, RefreshCw, Phone, Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, FileText, ChevronDown, ChevronUp, ExternalLink, Zap } from "lucide-react";
 
 interface UploadedDocument {
   name: string;
@@ -49,9 +49,10 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
   const [downloadingDoc, setDownloadingDoc] = useState<string | null>(null);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const { toast } = useToast();
 
-  const fetchPortRequests = async (showRefreshToast = false) => {
+  const fetchPortRequests = useCallback(async (showRefreshToast = false) => {
     try {
       const { data, error } = await supabase.functions.invoke("twilio-get-port-status", {
         body: { business_id: businessId },
@@ -78,11 +79,74 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [businessId, toast]);
 
+  // Initial fetch
   useEffect(() => {
     fetchPortRequests();
-  }, [businessId]);
+  }, [fetchPortRequests]);
+
+  // Real-time subscription to port_requests table
+  useEffect(() => {
+    const channel = supabase
+      .channel(`port-requests-${businessId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'port_requests',
+          filter: `business_id=eq.${businessId}`,
+        },
+        (payload) => {
+          console.log('Port request update received:', payload);
+          
+          const newData = payload.new as any;
+          const oldData = payload.old as any;
+
+          if (payload.eventType === 'INSERT') {
+            // New port request created
+            toast({
+              title: "New Port Request",
+              description: `Port request for ${newData.phone_number} has been created.`,
+            });
+            fetchPortRequests();
+          } else if (payload.eventType === 'UPDATE') {
+            // Status changed
+            const oldStatus = oldData?.status;
+            const newStatus = newData?.status;
+            
+            if (oldStatus !== newStatus) {
+              const statusLabel = STATUS_CONFIG[newStatus?.toLowerCase()]?.label || newStatus;
+              toast({
+                title: "Port Status Updated",
+                description: `${newData.phone_number}: ${statusLabel}`,
+                className: newStatus === 'completed' || newStatus === 'ported' 
+                  ? 'border-green-500 bg-green-500/10' 
+                  : newStatus === 'rejected' || newStatus === 'failed'
+                    ? 'border-red-500 bg-red-500/10'
+                    : undefined,
+              });
+            }
+            fetchPortRequests();
+          } else if (payload.eventType === 'DELETE') {
+            toast({
+              title: "Port Request Removed",
+              description: "A port request has been removed.",
+            });
+            fetchPortRequests();
+          }
+        }
+      )
+      .subscribe((status) => {
+        setIsRealtimeConnected(status === 'SUBSCRIBED');
+        console.log('Port requests realtime subscription status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [businessId, fetchPortRequests, toast]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -168,6 +232,12 @@ export function PortRequestStatus({ businessId }: PortRequestStatusProps) {
           <CardTitle className="text-white flex items-center gap-2">
             <Phone className="h-5 w-5 text-purple-400" />
             Port Requests
+            {isRealtimeConnected && (
+              <span className="flex items-center gap-1 text-xs font-normal text-green-400" title="Real-time updates active">
+                <Zap className="h-3 w-3" />
+                Live
+              </span>
+            )}
           </CardTitle>
           <CardDescription className="text-gray-400">
             Track the status of your number porting requests

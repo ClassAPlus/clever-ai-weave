@@ -158,10 +158,10 @@ Deno.serve(async (req) => {
 
               // Send email notification if status changed
               if (statusChanged && portRequest.authorized_rep_email) {
-                // Get business name for email
+                // Get business name and notification email for email
                 const { data: business } = await serviceClient
                   .from('businesses')
-                  .select('name')
+                  .select('name, notification_email_from')
                   .eq('id', portRequest.business_id)
                   .single();
 
@@ -182,6 +182,7 @@ Deno.serve(async (req) => {
                       target_port_date: portRequest.target_port_date,
                       actual_port_date: actualPortDate,
                       rejection_reason: twilioData.rejection_reason || portRequest.rejection_reason,
+                      from_email: business?.notification_email_from || null,
                     }),
                   }).then(res => res.json()).then(data => {
                     console.log('Port status email sent:', data);

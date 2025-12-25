@@ -166,6 +166,7 @@ export type Database = {
           industry_type: string | null
           knowledge_base: Json | null
           name: string
+          notification_email_from: string | null
           owner_email: string | null
           owner_notification_channels: string[] | null
           owner_phone: string | null
@@ -194,6 +195,7 @@ export type Database = {
           industry_type?: string | null
           knowledge_base?: Json | null
           name: string
+          notification_email_from?: string | null
           owner_email?: string | null
           owner_notification_channels?: string[] | null
           owner_phone?: string | null
@@ -222,6 +224,7 @@ export type Database = {
           industry_type?: string | null
           knowledge_base?: Json | null
           name?: string
+          notification_email_from?: string | null
           owner_email?: string | null
           owner_notification_channels?: string[] | null
           owner_phone?: string | null

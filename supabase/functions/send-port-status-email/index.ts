@@ -14,6 +14,7 @@ interface PortStatusEmailRequest {
   target_port_date?: string;
   actual_port_date?: string;
   rejection_reason?: string;
+  from_email?: string; // per-business sender email (optional)
 }
 
 const STATUS_MESSAGES: Record<string, { subject: string; heading: string; message: string; color: string }> = {
@@ -105,6 +106,7 @@ Deno.serve(async (req) => {
       target_port_date,
       actual_port_date,
       rejection_reason,
+      from_email,
     }: PortStatusEmailRequest = await req.json();
 
     if (!to_email || !phone_number || !status) {
@@ -238,8 +240,15 @@ Deno.serve(async (req) => {
 </html>
     `;
 
+    // Use per-business sender email if provided, otherwise fall back to Resend default
+    const senderEmail = from_email && from_email.includes('@') 
+      ? from_email 
+      : 'Port Notifications <onboarding@resend.dev>';
+    
+    console.log('Sending email from:', senderEmail);
+
     const { data, error } = await resend.emails.send({
-      from: 'Port Notifications <notifications@mydomain.com>',
+      from: senderEmail,
       to: [to_email],
       subject: `${statusInfo.subject} - ${phone_number}`,
       html,

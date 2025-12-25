@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     }
 
     // Find the port request in our database
-    let query = supabase.from('port_requests').select('*, businesses(name, owner_email)');
+    let query = supabase.from('port_requests').select('*, businesses(name, owner_email, notification_email_from)');
     
     if (portInRequestSid) {
       query = query.eq('port_in_request_sid', portInRequestSid);
@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
 
     // Send email notification if status changed
     if (normalizedStatus && normalizedStatus !== previousStatus) {
-      const businessData = portRequest.businesses as { name: string; owner_email: string } | null;
+      const businessData = portRequest.businesses as { name: string; owner_email: string; notification_email_from: string | null } | null;
       const ownerEmail = businessData?.owner_email;
       
       if (ownerEmail) {
@@ -174,6 +174,7 @@ Deno.serve(async (req) => {
             target_port_date: updateData.target_port_date || portRequest.target_port_date,
             actual_port_date: updateData.actual_port_date || portRequest.actual_port_date,
             rejection_reason: updateData.rejection_reason || portRequest.rejection_reason,
+            from_email: businessData?.notification_email_from || null,
           };
 
           console.log('Sending status change email:', emailPayload);

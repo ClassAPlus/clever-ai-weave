@@ -675,6 +675,81 @@ export type Database = {
           },
         ]
       }
+      port_requests: {
+        Row: {
+          account_number: string | null
+          account_pin: string | null
+          actual_port_date: string | null
+          authorized_rep_email: string | null
+          authorized_representative: string | null
+          business_id: string
+          city: string | null
+          country: string | null
+          created_at: string | null
+          customer_name: string | null
+          document_sids: string[] | null
+          id: string
+          notification_emails: string[] | null
+          phone_number: string
+          port_in_request_sid: string | null
+          rejection_reason: string | null
+          state: string | null
+          status: string | null
+          street: string | null
+          target_port_date: string | null
+          updated_at: string | null
+          zip: string | null
+        }
+        Insert: {
+          account_number?: string | null
+          account_pin?: string | null
+          actual_port_date?: string | null
+          authorized_rep_email?: string | null
+          authorized_representative?: string | null
+          business_id: string
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          document_sids?: string[] | null
+          id?: string
+          notification_emails?: string[] | null
+          phone_number: string
+          port_in_request_sid?: string | null
+          rejection_reason?: string | null
+          state?: string | null
+          status?: string | null
+          street?: string | null
+          target_port_date?: string | null
+          updated_at?: string | null
+          zip?: string | null
+        }
+        Update: {
+          account_number?: string | null
+          account_pin?: string | null
+          actual_port_date?: string | null
+          authorized_rep_email?: string | null
+          authorized_representative?: string | null
+          business_id?: string
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          document_sids?: string[] | null
+          id?: string
+          notification_emails?: string[] | null
+          phone_number?: string
+          port_in_request_sid?: string | null
+          rejection_reason?: string | null
+          state?: string | null
+          status?: string | null
+          street?: string | null
+          target_port_date?: string | null
+          updated_at?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

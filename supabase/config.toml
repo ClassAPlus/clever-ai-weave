@@ -12,6 +12,15 @@ verify_jwt = true
 [functions.twilio-release-number]
 verify_jwt = true
 
+[functions.twilio-check-portability]
+verify_jwt = true
+
+[functions.twilio-create-port-request]
+verify_jwt = true
+
+[functions.twilio-get-port-status]
+verify_jwt = true
+
 [functions.voice-incoming]
 verify_jwt = false
 

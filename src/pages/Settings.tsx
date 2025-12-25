@@ -133,6 +133,22 @@ const validatePhoneNumber = (phone: string): { isValid: boolean; message: string
   return { isValid: true, message: "" };
 };
 
+// Validate email format
+const validateEmail = (email: string): { isValid: boolean; message: string } => {
+  if (!email) return { isValid: true, message: "" }; // Empty is allowed
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { isValid: false, message: "Invalid email format" };
+  }
+  
+  if (email.length > 255) {
+    return { isValid: false, message: "Email too long (max 255 characters)" };
+  }
+  
+  return { isValid: true, message: "" };
+};
+
 export default function Settings() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -204,6 +220,7 @@ export default function Settings() {
     enableAiReceptionist: true,
   });
   const [notificationEmailFrom, setNotificationEmailFrom] = useState("");
+  const [notificationEmailError, setNotificationEmailError] = useState("");
 
   // Handle owner phone change with validation
   const handleOwnerPhoneChange = (value: string) => {
@@ -236,6 +253,13 @@ export default function Settings() {
     } else {
       setForwardPhonesError("");
     }
+  };
+
+  // Handle notification email change with validation
+  const handleNotificationEmailChange = (value: string) => {
+    setNotificationEmailFrom(value);
+    const { isValid, message } = validateEmail(value);
+    setNotificationEmailError(isValid ? "" : message);
   };
 
   const fetchBusiness = useCallback(async () => {
@@ -337,6 +361,16 @@ export default function Settings() {
 
   const handleSave = async () => {
     if (!business) return;
+
+    // Validate email before saving
+    if (notificationEmailFrom && notificationEmailError) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please fix the sender email format before saving.",
+      });
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -808,9 +842,12 @@ export default function Settings() {
                   type="email"
                   placeholder="notifications@yourdomain.com"
                   value={notificationEmailFrom}
-                  onChange={(e) => setNotificationEmailFrom(e.target.value)}
-                  className="bg-gray-700 border-gray-600 text-white"
+                  onChange={(e) => handleNotificationEmailChange(e.target.value)}
+                  className={`bg-gray-700 border-gray-600 text-white ${notificationEmailError ? 'border-red-500' : ''}`}
                 />
+                {notificationEmailError && (
+                  <p className="text-xs text-red-400">{notificationEmailError}</p>
+                )}
                 <p className="text-xs text-gray-500">
                   Email address used to send port status notifications. Must be verified in your Resend account. 
                   If left empty, uses Resend's default sender.

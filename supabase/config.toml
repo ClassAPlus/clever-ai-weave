@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.appointment-reminders]
 verify_jwt = false
+
+[functions.send-appointment-reminder]
+verify_jwt = true

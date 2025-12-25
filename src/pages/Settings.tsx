@@ -1204,7 +1204,8 @@ export default function Settings() {
                     size="sm"
                     onClick={handleSendTestEmail}
                     disabled={isSendingTestEmail || !ownerEmail || !!notificationEmailError}
-                    className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 shrink-0"
+                    className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 shrink-0 disabled:opacity-50"
+                    title={!ownerEmail ? "Set an Owner Email in Business Information first" : notificationEmailError ? "Fix sender email format first" : "Send a test email to your owner email address"}
                   >
                     {isSendingTestEmail ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

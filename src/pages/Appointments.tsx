@@ -43,13 +43,17 @@ interface AppointmentStats {
   confirmed: number;
   completed: number;
   cancelled: number;
+  remindersSent: number;
+  customerConfirmed: number;
+  customerCancelled: number;
 }
 
 export default function Appointments() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [stats, setStats] = useState<AppointmentStats>({ 
-    total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0 
+    total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0,
+    remindersSent: 0, customerConfirmed: 0, customerCancelled: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "completed" | "cancelled">("all");
@@ -116,7 +120,7 @@ export default function Appointments() {
       // Fetch stats
       const { data: allAppts } = await supabase
         .from("appointments")
-        .select("status")
+        .select("status, reminder_sent_at, reminder_response")
         .eq("business_id", business.id);
 
       if (allAppts) {
@@ -126,6 +130,9 @@ export default function Appointments() {
           confirmed: allAppts.filter(a => a.status === "confirmed").length,
           completed: allAppts.filter(a => a.status === "completed").length,
           cancelled: allAppts.filter(a => a.status === "cancelled").length,
+          remindersSent: allAppts.filter(a => a.reminder_sent_at !== null).length,
+          customerConfirmed: allAppts.filter(a => a.reminder_response === "confirmed").length,
+          customerCancelled: allAppts.filter(a => a.reminder_response === "cancelled").length,
         });
       }
     } catch (error) {
@@ -378,6 +385,46 @@ export default function Appointments() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Reminder Stats */}
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-white text-base flex items-center gap-2">
+            <Bell className="h-4 w-4 text-purple-400" />
+            Reminder Statistics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 p-3 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
+              <Bell className="h-5 w-5 text-cyan-400" />
+              <div>
+                <p className="text-xl font-bold text-white">{stats.remindersSent}</p>
+                <p className="text-xs text-gray-400">Reminders Sent</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+              <MessageSquare className="h-5 w-5 text-emerald-400" />
+              <div>
+                <p className="text-xl font-bold text-white">{stats.customerConfirmed}</p>
+                <p className="text-xs text-gray-400">Customer Confirmed</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+              <MessageSquare className="h-5 w-5 text-orange-400" />
+              <div>
+                <p className="text-xl font-bold text-white">{stats.customerCancelled}</p>
+                <p className="text-xs text-gray-400">Customer Cancelled</p>
+              </div>
+            </div>
+          </div>
+          {stats.remindersSent > 0 && (
+            <p className="text-xs text-gray-500 mt-3">
+              Response rate: {Math.round(((stats.customerConfirmed + stats.customerCancelled) / stats.remindersSent) * 100)}%
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Filter */}
       <div className="flex items-center gap-3">

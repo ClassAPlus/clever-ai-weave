@@ -1404,11 +1404,11 @@ export default function Settings() {
 
         {/* Developer Tab */}
         <TabsContent value="developer" className="space-y-6">
-          {/* API Status Dashboard */}
-          {business && <APIStatusDashboard businessId={business.id} />}
+          {/* API Status Dashboard - Admin Only */}
+          {isAdmin && business && <APIStatusDashboard businessId={business.id} />}
 
-          {/* Webhook URLs */}
-          <WebhookURLs />
+          {/* Webhook URLs - Admin Only */}
+          {isAdmin && <WebhookURLs />}
 
           {/* Debug Tools */}
           {business && (

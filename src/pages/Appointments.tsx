@@ -549,17 +549,18 @@ export default function Appointments() {
                     {getReminderBadge(appointment)}
                     {getStatusBadge(appointment.status)}
                     
-                    {/* Send Reminder Button - show if no reminder sent yet and appointment is upcoming */}
-                    {!appointment.reminder_sent_at && 
-                     !isPast(new Date(appointment.scheduled_at)) &&
+                    {/* Send/Resend Reminder Button - show for upcoming pending/confirmed appointments */}
+                    {!isPast(new Date(appointment.scheduled_at)) &&
                      (appointment.status === "pending" || appointment.status === "confirmed") && (
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20"
+                        className={`h-8 ${appointment.reminder_sent_at 
+                          ? "text-gray-400 hover:text-cyan-300 hover:bg-cyan-500/20" 
+                          : "text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20"}`}
                         onClick={() => sendManualReminder(appointment.id)}
                         disabled={sendingReminderId === appointment.id}
-                        title="Send reminder SMS now"
+                        title={appointment.reminder_sent_at ? "Resend reminder SMS" : "Send reminder SMS"}
                       >
                         {sendingReminderId === appointment.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />

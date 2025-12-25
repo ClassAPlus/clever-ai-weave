@@ -43,14 +43,20 @@ Deno.serve(async (req) => {
 
     // If business_id provided, return all port requests for that business
     if (business_id && !port_request_id) {
+      console.log('Fetching port requests for business:', business_id);
+      console.log('Authenticated user:', user.id);
+      
       // Verify user owns this business
-      const { data: business } = await serviceClient
+      const { data: business, error: businessError } = await serviceClient
         .from('businesses')
         .select('id, owner_user_id')
         .eq('id', business_id)
         .single();
 
+      console.log('Business lookup result:', { business, error: businessError });
+
       if (!business || business.owner_user_id !== user.id) {
+        console.log('Access denied - owner_user_id:', business?.owner_user_id, 'user.id:', user.id);
         return new Response(
           JSON.stringify({ success: false, error: 'Business not found or access denied' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -63,6 +69,8 @@ Deno.serve(async (req) => {
         .eq('business_id', business_id)
         .order('created_at', { ascending: false });
 
+      console.log('Port requests query result:', { count: portRequests?.length, error: fetchError });
+
       if (fetchError) {
         console.error('Error fetching port requests:', fetchError);
         return new Response(
@@ -71,6 +79,7 @@ Deno.serve(async (req) => {
         );
       }
 
+      console.log('Returning port requests:', portRequests?.length || 0);
       return new Response(
         JSON.stringify({ success: true, port_requests: portRequests || [] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

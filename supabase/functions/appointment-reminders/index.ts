@@ -40,6 +40,7 @@ serve(async (req) => {
     // 2. Haven't had a reminder sent yet
     // 3. Are pending or confirmed status
     // 4. Contact hasn't opted out
+    // 5. Business has reminders enabled
     const { data: appointments, error: apptsError } = await supabase
       .from('appointments')
       .select(`
@@ -61,7 +62,8 @@ serve(async (req) => {
           name,
           twilio_phone_number,
           ai_language,
-          timezone
+          timezone,
+          twilio_settings
         )
       `)
       .gte('scheduled_at', startOfDay.toISOString())
@@ -100,6 +102,19 @@ serve(async (req) => {
       try {
         const contact = appointment.contacts as any;
         const business = appointment.businesses as any;
+        const twilioSettings = business?.twilio_settings || {};
+
+        // Check if business has appointment reminders enabled (default to true)
+        if (twilioSettings.enableAppointmentReminders === false) {
+          console.log(`Skipping appointment ${appointment.id} - reminders disabled for business ${business.name}`);
+          results.skipped++;
+          results.details.push({ 
+            appointmentId: appointment.id, 
+            status: 'skipped',
+            error: 'Appointment reminders disabled for this business'
+          });
+          continue;
+        }
 
         // Skip if no phone number or no Twilio number configured
         if (!contact?.phone_number || !business?.twilio_phone_number) {

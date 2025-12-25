@@ -793,24 +793,40 @@ export default function Settings() {
                   Basic details about your business
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-                className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
-              >
-                {isEditing ? (
-                  <>
-                    <X className="h-4 w-4 mr-2" />
-                    Cancel
-                  </>
-                ) : (
-                  <>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Edit
-                  </>
+              <div className="flex gap-2">
+                {isEditing && (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      handleSave();
+                      setIsEditing(false);
+                    }}
+                    disabled={isSaving || !!ownerPhoneError}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    Save
+                  </Button>
                 )}
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                >
+                  {isEditing ? (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel
+                    </>
+                  ) : (
+                    <>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

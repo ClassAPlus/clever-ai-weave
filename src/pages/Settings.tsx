@@ -30,6 +30,7 @@ import { DataExport } from "@/components/settings/DataExport";
 import { TwilioAdvancedSettings } from "@/components/settings/TwilioAdvancedSettings";
 import { AdminRoleManager } from "@/components/settings/AdminRoleManager";
 import { BusinessStaffManager } from "@/components/settings/BusinessStaffManager";
+import { SettingsSkeleton } from "@/components/settings/SettingsSkeleton";
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -607,11 +608,7 @@ export default function Settings() {
   };
 
   if (authLoading || isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
-      </div>
-    );
+    return <SettingsSkeleton />;
   }
 
   return (

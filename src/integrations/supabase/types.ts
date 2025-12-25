@@ -249,6 +249,7 @@ export type Database = {
           created_at: string | null
           duration_seconds: number | null
           id: string
+          manual_notes: string | null
           textback_sent: boolean | null
           textback_sent_at: string | null
           twilio_call_sid: string | null
@@ -263,6 +264,7 @@ export type Database = {
           created_at?: string | null
           duration_seconds?: number | null
           id?: string
+          manual_notes?: string | null
           textback_sent?: boolean | null
           textback_sent_at?: string | null
           twilio_call_sid?: string | null
@@ -277,6 +279,7 @@ export type Database = {
           created_at?: string | null
           duration_seconds?: number | null
           id?: string
+          manual_notes?: string | null
           textback_sent?: boolean | null
           textback_sent_at?: string | null
           twilio_call_sid?: string | null

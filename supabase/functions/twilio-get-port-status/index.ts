@@ -124,8 +124,10 @@ Deno.serve(async (req) => {
             // Update local record if status changed
             const newStatus = twilioData.status?.toLowerCase() || portRequest.status;
             const actualPortDate = twilioData.actual_port_in_date || null;
+            const previousStatus = portRequest.status;
+            const statusChanged = newStatus !== previousStatus;
             
-            if (newStatus !== portRequest.status || actualPortDate !== portRequest.actual_port_date) {
+            if (statusChanged || actualPortDate !== portRequest.actual_port_date) {
               await serviceClient
                 .from('port_requests')
                 .update({
@@ -143,6 +145,41 @@ Deno.serve(async (req) => {
                     twilio_phone_number: portRequest.phone_number,
                   })
                   .eq('id', portRequest.business_id);
+              }
+
+              // Send email notification if status changed
+              if (statusChanged && portRequest.authorized_rep_email) {
+                // Get business name for email
+                const { data: business } = await serviceClient
+                  .from('businesses')
+                  .select('name')
+                  .eq('id', portRequest.business_id)
+                  .single();
+
+                // Send notification email (fire and forget)
+                EdgeRuntime.waitUntil(
+                  fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-port-status-email`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                    },
+                    body: JSON.stringify({
+                      to_email: portRequest.authorized_rep_email,
+                      business_name: business?.name || 'Your Business',
+                      phone_number: portRequest.phone_number,
+                      status: newStatus,
+                      previous_status: previousStatus,
+                      target_port_date: portRequest.target_port_date,
+                      actual_port_date: actualPortDate,
+                      rejection_reason: twilioData.rejection_reason || portRequest.rejection_reason,
+                    }),
+                  }).then(res => res.json()).then(data => {
+                    console.log('Port status email sent:', data);
+                  }).catch(err => {
+                    console.error('Failed to send port status email:', err);
+                  })
+                );
               }
             }
 

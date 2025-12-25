@@ -218,6 +218,38 @@ Deno.serve(async (req) => {
       // The Twilio request succeeded, so return success but log the DB error
     }
 
+    // Send initial submission email notification
+    if (portRecord && authorized_rep_email) {
+      // Get business name for email
+      const { data: businessData } = await serviceClient
+        .from('businesses')
+        .select('name')
+        .eq('id', business_id)
+        .single();
+
+      // Send notification email (fire and forget)
+      EdgeRuntime.waitUntil(
+        fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-port-status-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({
+            to_email: authorized_rep_email,
+            business_name: businessData?.name || 'Your Business',
+            phone_number: cleanNumber,
+            status: 'submitted',
+            target_port_date: portDate,
+          }),
+        }).then(res => res.json()).then(emailData => {
+          console.log('Port submission email sent:', emailData);
+        }).catch(err => {
+          console.error('Failed to send port submission email:', err);
+        })
+      );
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

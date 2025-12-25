@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
     `;
 
     const { data, error } = await resend.emails.send({
-      from: 'Port Notifications <onboarding@resend.dev>',
+      from: 'Port Notifications <notifications@mydomain.com>',
       to: [to_email],
       subject: `${statusInfo.subject} - ${phone_number}`,
       html,

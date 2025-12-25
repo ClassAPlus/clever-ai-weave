@@ -7,14 +7,17 @@ import { Button } from "@/components/ui/button";
 import { 
   Loader2, Calendar, Clock, User, RefreshCw, Filter,
   CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare, Send,
-  ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid, Plus
+  ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid, Plus, GripVertical
 } from "lucide-react";
 import { CreateAppointmentDialog } from "@/components/CreateAppointmentDialog";
+import { DraggableAppointment } from "@/components/appointments/DraggableAppointment";
+import { DroppableDayCell } from "@/components/appointments/DroppableDayCell";
+import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { 
   format, formatDistanceToNow, isPast, isToday, isTomorrow, 
   startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   addDays, addWeeks, addMonths, subDays, subWeeks, subMonths,
-  eachDayOfInterval, isSameDay, isSameMonth, getDay
+  eachDayOfInterval, isSameDay, isSameMonth, getDay, setHours, setMinutes, getHours, getMinutes
 } from "date-fns";
 import {
   Select,
@@ -73,11 +76,74 @@ export default function Appointments() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedDateForCreate, setSelectedDateForCreate] = useState<Date>(new Date());
+  const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(null);
   const isInitialLoad = useRef(true);
+
+  // DnD sensors with activation constraint to prevent accidental drags
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const handleDayClick = (day: Date) => {
     setSelectedDateForCreate(day);
     setCreateDialogOpen(true);
+  };
+
+  const handleDragStart = (event: any) => {
+    const { active } = event;
+    const appointment = appointments.find(apt => apt.id === active.id);
+    if (appointment) {
+      setActiveAppointment(appointment);
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveAppointment(null);
+
+    if (!over) return;
+
+    const appointmentId = active.id as string;
+    const droppedData = over.data.current as { day: Date } | undefined;
+    
+    if (!droppedData?.day) return;
+
+    const appointment = appointments.find(apt => apt.id === appointmentId);
+    if (!appointment) return;
+
+    const oldDate = new Date(appointment.scheduled_at);
+    const newDate = droppedData.day;
+
+    // If dropped on the same day, do nothing
+    if (isSameDay(oldDate, newDate)) return;
+
+    // Keep the same time, just change the date
+    const newScheduledAt = setMinutes(
+      setHours(newDate, getHours(oldDate)),
+      getMinutes(oldDate)
+    );
+
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .update({ scheduled_at: newScheduledAt.toISOString() })
+        .eq("id", appointmentId);
+
+      if (error) throw error;
+
+      toast.success("Appointment rescheduled", {
+        description: `Moved to ${format(newScheduledAt, "EEEE, MMM d 'at' h:mm a")}`,
+      });
+
+      fetchAppointments();
+    } catch (error) {
+      console.error("Error rescheduling appointment:", error);
+      toast.error("Failed to reschedule appointment");
+    }
   };
 
   const getDateRange = useCallback(() => {
@@ -514,34 +580,21 @@ export default function Appointments() {
           const isCurrentDay = isToday(day);
           
           return (
-            <div 
-              key={day.toISOString()} 
-              className={`min-h-[200px] rounded-lg border cursor-pointer transition-colors ${
-                isCurrentDay 
-                  ? 'border-purple-500 bg-purple-500/10 hover:bg-purple-500/20' 
-                  : 'border-gray-700 bg-gray-800/50 hover:bg-gray-700/50'
-              }`}
+            <DroppableDayCell
+              key={day.toISOString()}
+              day={day}
+              isCurrentDay={isCurrentDay}
               onClick={() => handleDayClick(day)}
+              variant="week"
             >
-              <div className={`p-2 border-b flex items-center justify-between ${isCurrentDay ? 'border-purple-500/50' : 'border-gray-700'}`}>
-                <div>
-                  <p className={`text-xs ${isCurrentDay ? 'text-purple-300' : 'text-gray-400'}`}>
-                    {format(day, "EEE")}
-                  </p>
-                  <p className={`text-lg font-bold ${isCurrentDay ? 'text-purple-300' : 'text-white'}`}>
-                    {format(day, "d")}
-                  </p>
-                </div>
-                <Plus className="h-4 w-4 text-gray-500 opacity-0 group-hover:opacity-100 hover:text-purple-400" />
-              </div>
-              <div className="p-2 space-y-2 max-h-[300px] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                {dayAppointments.length === 0 ? (
-                  <p className="text-xs text-gray-500 text-center py-4">Click to add</p>
-                ) : (
-                  dayAppointments.map(apt => renderAppointmentCard(apt, true))
-                )}
-              </div>
-            </div>
+              {dayAppointments.length === 0 ? (
+                <p className="text-xs text-gray-500 text-center py-4">Drag here or click to add</p>
+              ) : (
+                dayAppointments.map(apt => (
+                  <DraggableAppointment key={apt.id} appointment={apt} compact />
+                ))
+              )}
+            </DroppableDayCell>
           );
         })}
       </div>
@@ -574,44 +627,23 @@ export default function Appointments() {
             const isCurrentMonth = isSameMonth(day, currentDate);
             
             return (
-              <div 
-                key={day.toISOString()} 
-                className={`min-h-[100px] p-1 border-b border-r border-gray-700 cursor-pointer transition-colors hover:bg-gray-700/30 ${
-                  !isCurrentMonth ? 'bg-gray-900/50' : ''
-                } ${isCurrentDay ? 'bg-purple-500/10' : ''}`}
+              <DroppableDayCell
+                key={day.toISOString()}
+                day={day}
+                isCurrentDay={isCurrentDay}
+                isCurrentMonth={isCurrentMonth}
                 onClick={() => handleDayClick(day)}
+                variant="month"
               >
-                <div className={`text-sm font-medium mb-1 flex items-center justify-between ${
-                  isCurrentDay 
-                    ? 'text-purple-300' 
-                    : isCurrentMonth 
-                    ? 'text-white' 
-                    : 'text-gray-600'
-                }`}>
-                  <span>{format(day, "d")}</span>
-                  <Plus className="h-3 w-3 opacity-0 hover:opacity-100 text-purple-400" />
-                </div>
-                <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
-                  {dayAppointments.slice(0, 3).map(apt => (
-                    <div 
-                      key={apt.id}
-                      className={`text-xs p-1 rounded truncate ${
-                        apt.status === 'confirmed' ? 'bg-green-500/20 text-green-300' :
-                        apt.status === 'cancelled' ? 'bg-red-500/20 text-red-300' :
-                        apt.status === 'completed' ? 'bg-blue-500/20 text-blue-300' :
-                        'bg-yellow-500/20 text-yellow-300'
-                      }`}
-                    >
-                      {format(new Date(apt.scheduled_at), "h:mm a")} - {apt.contact?.name || "Unknown"}
-                    </div>
-                  ))}
-                  {dayAppointments.length > 3 && (
-                    <div className="text-xs text-gray-400 text-center">
-                      +{dayAppointments.length - 3} more
-                    </div>
-                  )}
-                </div>
-              </div>
+                {dayAppointments.slice(0, 3).map(apt => (
+                  <DraggableAppointment key={apt.id} appointment={apt} compact />
+                ))}
+                {dayAppointments.length > 3 && (
+                  <div className="text-xs text-gray-400 text-center">
+                    +{dayAppointments.length - 3} more
+                  </div>
+                )}
+              </DroppableDayCell>
             );
           })}
         </div>
@@ -798,10 +830,32 @@ export default function Appointments() {
         </Card>
       </div>
 
-      {/* Calendar View */}
-      {viewMode === "day" && renderDayView()}
-      {viewMode === "week" && renderWeekView()}
-      {viewMode === "month" && renderMonthView()}
+      {/* Calendar View with Drag and Drop */}
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        {viewMode === "day" && renderDayView()}
+        {viewMode === "week" && renderWeekView()}
+        {viewMode === "month" && renderMonthView()}
+        
+        <DragOverlay>
+          {activeAppointment ? (
+            <div className="bg-purple-600/90 text-white p-2 rounded-lg shadow-xl text-sm max-w-[200px]">
+              <div className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4" />
+                <span className="font-medium truncate">
+                  {activeAppointment.contact?.name || "Unknown"}
+                </span>
+              </div>
+              <div className="text-xs text-purple-200 ml-6">
+                {format(new Date(activeAppointment.scheduled_at), "h:mm a")}
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Create Appointment Dialog */}
       {businessId && (

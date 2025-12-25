@@ -1,8 +1,9 @@
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
-import { Clock, GripVertical } from "lucide-react";
+import { Clock, GripVertical, Repeat } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Appointment {
   id: string;
@@ -16,6 +17,8 @@ interface Appointment {
   reminder_sent_at?: string | null;
   reminder_response?: string | null;
   reminder_response_at?: string | null;
+  recurrence_pattern?: string | null;
+  recurrence_parent_id?: string | null;
   contact: {
     id: string;
     name: string | null;
@@ -60,6 +63,9 @@ export function DraggableAppointment({ appointment, compact = false, onClick }: 
     }
   };
 
+  const isRecurring = appointment.recurrence_pattern && appointment.recurrence_pattern !== 'none';
+  const isPartOfSeries = !!appointment.recurrence_parent_id;
+
   if (compact) {
     return (
       <div
@@ -76,12 +82,24 @@ export function DraggableAppointment({ appointment, compact = false, onClick }: 
           {...attributes}
         >
           <GripVertical className="h-3 w-3 opacity-50 flex-shrink-0 cursor-grab" />
-          <div className="truncate flex-1">
+          <div className="truncate flex-1 flex items-center gap-1">
             <span className="font-medium">
               {format(new Date(appointment.scheduled_at), "h:mm a")}
             </span>
             <span className="mx-1">-</span>
             <span>{appointment.contact?.name || "Unknown"}</span>
+            {(isRecurring || isPartOfSeries) && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Repeat className="h-3 w-3 text-purple-400 flex-shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Recurring appointment ({appointment.recurrence_pattern || 'series'})</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
         {appointment.service_type && (
@@ -108,9 +126,21 @@ export function DraggableAppointment({ appointment, compact = false, onClick }: 
         {...attributes}
       >
         <GripVertical className="h-4 w-4 opacity-50 flex-shrink-0 cursor-grab" />
-        <span className="font-medium text-white truncate">
+        <span className="font-medium text-white truncate flex-1">
           {appointment.contact?.name || appointment.contact?.phone_number || "Unknown"}
         </span>
+        {(isRecurring || isPartOfSeries) && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Repeat className="h-4 w-4 text-purple-400 flex-shrink-0" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Recurring appointment ({appointment.recurrence_pattern || 'series'})</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       <div className="flex items-center gap-2 text-gray-400 pl-6">
         <Clock className="h-3 w-3" />

@@ -22,7 +22,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, Clock, Calendar, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, Calendar, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface AppointmentTemplate {
@@ -34,6 +34,7 @@ interface AppointmentTemplate {
   default_recurrence_pattern: string | null;
   is_active: boolean | null;
   color: string | null;
+  auto_confirm: boolean | null;
 }
 
 interface AppointmentTemplateManagerProps {
@@ -54,6 +55,7 @@ export function AppointmentTemplateManager({ businessId }: AppointmentTemplateMa
     notes: "",
     default_recurrence_pattern: "none",
     color: "#8b5cf6",
+    auto_confirm: false,
   });
 
   const fetchTemplates = async () => {
@@ -87,6 +89,7 @@ export function AppointmentTemplateManager({ businessId }: AppointmentTemplateMa
       notes: "",
       default_recurrence_pattern: "none",
       color: "#8b5cf6",
+      auto_confirm: false,
     });
     setDialogOpen(true);
   };
@@ -100,6 +103,7 @@ export function AppointmentTemplateManager({ businessId }: AppointmentTemplateMa
       notes: template.notes || "",
       default_recurrence_pattern: template.default_recurrence_pattern || "none",
       color: template.color || "#8b5cf6",
+      auto_confirm: template.auto_confirm || false,
     });
     setDialogOpen(true);
   };
@@ -122,6 +126,7 @@ export function AppointmentTemplateManager({ businessId }: AppointmentTemplateMa
             notes: formData.notes || null,
             default_recurrence_pattern: formData.default_recurrence_pattern,
             color: formData.color,
+            auto_confirm: formData.auto_confirm,
           })
           .eq("id", editingTemplate.id);
 
@@ -138,6 +143,7 @@ export function AppointmentTemplateManager({ businessId }: AppointmentTemplateMa
             notes: formData.notes || null,
             default_recurrence_pattern: formData.default_recurrence_pattern,
             color: formData.color,
+            auto_confirm: formData.auto_confirm,
           });
 
         if (error) throw error;
@@ -252,6 +258,12 @@ export function AppointmentTemplateManager({ businessId }: AppointmentTemplateMa
                           <Clock className="h-3 w-3" />
                           {template.duration_minutes} min
                         </span>
+                        {template.auto_confirm && (
+                          <Badge className="bg-green-500/20 text-green-300 border-green-500/30 text-xs">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Auto-confirm
+                          </Badge>
+                        )}
                         {template.service_type && (
                           <Badge variant="outline" className="text-xs border-gray-600">
                             {template.service_type}
@@ -397,6 +409,22 @@ export function AppointmentTemplateManager({ businessId }: AppointmentTemplateMa
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Add any default notes for this appointment type..."
                 rows={3}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+              <div>
+                <Label className="text-green-300 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Auto-confirm
+                </Label>
+                <p className="text-xs text-gray-400 mt-1">
+                  Automatically confirm appointments created with this template
+                </p>
+              </div>
+              <Switch
+                checked={formData.auto_confirm}
+                onCheckedChange={(checked) => setFormData({ ...formData, auto_confirm: checked })}
               />
             </div>
           </div>

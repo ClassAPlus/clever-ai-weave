@@ -43,6 +43,7 @@ interface AppointmentTemplate {
   notes: string | null;
   default_recurrence_pattern: string | null;
   color: string | null;
+  auto_confirm: boolean | null;
 }
 
 interface Contact {
@@ -121,7 +122,7 @@ export function CreateAppointmentDialog({
     try {
       const { data, error } = await supabase
         .from("appointment_templates")
-        .select("id, name, service_type, duration_minutes, notes, default_recurrence_pattern, color")
+        .select("id, name, service_type, duration_minutes, notes, default_recurrence_pattern, color, auto_confirm")
         .eq("business_id", businessId)
         .eq("is_active", true)
         .order("name");
@@ -299,6 +300,10 @@ export function CreateAppointmentDialog({
       const [hours, minutes] = time.split(":").map(Number);
       const scheduledAt = setMinutes(setHours(selectedDate, hours), minutes);
 
+      // Check if selected template has auto_confirm enabled
+      const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+      const appointmentStatus = selectedTemplate?.auto_confirm ? "confirmed" : "pending";
+
       if (recurrencePattern === "none") {
         // Single appointment
         const { data: newAppointment, error } = await supabase
@@ -310,7 +315,7 @@ export function CreateAppointmentDialog({
             duration_minutes: parseInt(duration),
             service_type: serviceType.trim() || null,
             notes: notes.trim() || null,
-            status: "pending",
+            status: appointmentStatus,
             recurrence_pattern: "none",
           })
           .select("id")
@@ -323,7 +328,7 @@ export function CreateAppointmentDialog({
           syncAppointment(newAppointment.id);
         }
         
-        toast.success("Appointment created!");
+        toast.success(appointmentStatus === "confirmed" ? "Appointment created and confirmed!" : "Appointment created!");
       } else {
         // Recurring appointments
         const recurringDates = generateRecurringDates(scheduledAt, recurrencePattern, recurrenceEndDate!);
@@ -338,7 +343,7 @@ export function CreateAppointmentDialog({
             duration_minutes: parseInt(duration),
             service_type: serviceType.trim() || null,
             notes: notes.trim() || null,
-            status: "pending",
+            status: appointmentStatus,
             recurrence_pattern: recurrencePattern,
             recurrence_end_date: recurrenceEndDate!.toISOString().split('T')[0],
           })
@@ -358,7 +363,7 @@ export function CreateAppointmentDialog({
             duration_minutes: parseInt(duration),
             service_type: serviceType.trim() || null,
             notes: notes.trim() || null,
-            status: "pending",
+            status: appointmentStatus,
             recurrence_pattern: recurrencePattern,
             recurrence_end_date: recurrenceEndDate!.toISOString().split('T')[0],
             recurrence_parent_id: parentAppointment.id,

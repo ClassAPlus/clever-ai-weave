@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       appointment_templates: {
         Row: {
+          auto_confirm: boolean | null
           business_id: string
           color: string | null
           created_at: string
@@ -29,6 +30,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_confirm?: boolean | null
           business_id: string
           color?: string | null
           created_at?: string
@@ -42,6 +44,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_confirm?: boolean | null
           business_id?: string
           color?: string | null
           created_at?: string

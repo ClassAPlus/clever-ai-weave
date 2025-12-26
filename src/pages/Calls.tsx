@@ -472,20 +472,20 @@ export default function Calls() {
                       {/* AI Summary Section */}
                       {call.call_summary && (
                         <div className="mt-3 space-y-4">
-                          {/* Discussion Summary */}
+                          {/* AI Conversation Summary */}
                           {call.call_summary.discussion_summary && (
                             <div className="bg-gray-800/50 p-3 rounded-lg">
-                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Conversation</p>
-                              <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-48 overflow-y-auto font-mono leading-relaxed">
-                                {call.call_summary.discussion_summary.split('\n').map((line, idx) => {
-                                  const isCustomer = line.startsWith('Customer:');
-                                  const isAI = line.startsWith('AI:');
-                                  return (
-                                    <div key={idx} className={`${isCustomer ? 'text-blue-300' : isAI ? 'text-green-300' : 'text-gray-300'} mb-1`}>
-                                      {line}
-                                    </div>
-                                  );
-                                })}
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Conversation Summary</p>
+                              <div className="text-sm text-gray-200 space-y-1.5">
+                                {call.call_summary.discussion_summary.split('\n').filter(line => line.trim()).map((line, idx) => (
+                                  <div key={idx} className="flex items-start gap-2">
+                                    {line.startsWith('•') ? (
+                                      <span className="text-gray-200">{line}</span>
+                                    ) : (
+                                      <span className="text-gray-200">• {line}</span>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )}

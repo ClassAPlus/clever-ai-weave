@@ -14,6 +14,7 @@ import { DraggableAppointment } from "@/components/appointments/DraggableAppoint
 import { DroppableDayCell } from "@/components/appointments/DroppableDayCell";
 import { AppointmentDetailsDialog } from "@/components/appointments/AppointmentDetailsDialog";
 import { DragConflictDialog } from "@/components/appointments/DragConflictDialog";
+import { BusyTimeIndicator, BusyHourIndicator, DayBusyBadge } from "@/components/appointments/BusyTimeIndicator";
 import { useAppointmentConflictDetection, type ConflictingAppointment } from "@/hooks/useAppointmentConflictDetection";
 import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { 
@@ -646,6 +647,9 @@ export default function Appointments() {
               onClick={() => handleDayClick(day)}
               variant="week"
             >
+              {/* Busy time indicator bar */}
+              <BusyTimeIndicator day={day} appointments={appointments} />
+              
               {dayAppointments.length === 0 ? (
                 <p className="text-xs text-gray-500 text-center py-4">Drag here or click to add</p>
               ) : (
@@ -699,7 +703,14 @@ export default function Appointments() {
                 onClick={() => handleDayClick(day)}
                 variant="month"
               >
-                {dayAppointments.slice(0, 3).map(apt => (
+                {/* Day busy badge */}
+                {dayAppointments.length > 0 && (
+                  <div className="mb-1">
+                    <DayBusyBadge appointments={dayAppointments} />
+                  </div>
+                )}
+                
+                {dayAppointments.slice(0, 2).map(apt => (
                   <DraggableAppointment 
                     key={apt.id} 
                     appointment={apt} 
@@ -707,9 +718,9 @@ export default function Appointments() {
                     onClick={handleAppointmentClick}
                   />
                 ))}
-                {dayAppointments.length > 3 && (
+                {dayAppointments.length > 2 && (
                   <div className="text-xs text-gray-400 text-center">
-                    +{dayAppointments.length - 3} more
+                    +{dayAppointments.length - 2} more
                   </div>
                 )}
               </DroppableDayCell>
@@ -762,7 +773,7 @@ export default function Appointments() {
               return (
                 <div 
                   key={hour} 
-                  className={`flex min-h-[60px] hover:bg-gray-700/20 transition-colors cursor-pointer ${
+                  className={`relative flex min-h-[60px] hover:bg-gray-700/20 transition-colors cursor-pointer ${
                     isCurrentHour ? 'bg-purple-500/10 border-l-2 border-purple-500' : ''
                   }`}
                   onClick={() => {
@@ -771,15 +782,18 @@ export default function Appointments() {
                     setCreateDialogOpen(true);
                   }}
                 >
+                  {/* Busy hour background indicator */}
+                  <BusyHourIndicator hour={hour} appointments={appointments} currentDate={currentDate} />
+                  
                   {/* Time column */}
-                  <div className={`w-20 flex-shrink-0 p-3 text-right border-r border-gray-700/50 ${
+                  <div className={`w-20 flex-shrink-0 p-3 text-right border-r border-gray-700/50 relative z-10 ${
                     isCurrentHour ? 'text-purple-400 font-medium' : 'text-gray-500'
                   }`}>
                     <span className="text-sm">{timeLabel}</span>
                   </div>
                   
                   {/* Appointments column */}
-                  <div className="flex-1 p-2">
+                  <div className="flex-1 p-2 relative z-10">
                     {hourAppointments.length === 0 ? (
                       <div className="h-full flex items-center justify-center">
                         <span className="text-xs text-gray-600 opacity-0 hover:opacity-100 transition-opacity">

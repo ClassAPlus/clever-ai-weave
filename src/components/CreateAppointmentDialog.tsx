@@ -326,6 +326,22 @@ export function CreateAppointmentDialog({
         // Sync to Google Calendar in background
         if (newAppointment) {
           syncAppointment(newAppointment.id);
+          
+          // Send email notification for auto-confirmed appointments
+          if (appointmentStatus === "confirmed" && selectedTemplate) {
+            const contact = contacts.find(c => c.id === finalContactId);
+            supabase.functions.invoke("send-auto-confirm-notification", {
+              body: {
+                appointmentId: newAppointment.id,
+                businessId,
+                contactName: showNewContact ? newContactName : (contact?.name || null),
+                contactPhone: showNewContact ? newContactPhone : (contact?.phone_number || ""),
+                scheduledAt: scheduledAt.toISOString(),
+                serviceType: serviceType.trim() || undefined,
+                templateName: selectedTemplate.name,
+              },
+            }).catch((err) => console.error("Failed to send auto-confirm notification:", err));
+          }
         }
         
         toast.success(appointmentStatus === "confirmed" ? "Appointment created and confirmed!" : "Appointment created!");
@@ -384,7 +400,27 @@ export function CreateAppointmentDialog({
         // Sync all appointments to Google Calendar in background
         syncMultipleAppointments(allAppointmentIds);
 
-        toast.success(`Created ${recurringDates.length} recurring appointments!`);
+        // Send email notification for auto-confirmed recurring appointments (for the first one)
+        if (appointmentStatus === "confirmed" && selectedTemplate) {
+          const contact = contacts.find(c => c.id === finalContactId);
+          supabase.functions.invoke("send-auto-confirm-notification", {
+            body: {
+              appointmentId: parentAppointment.id,
+              businessId,
+              contactName: showNewContact ? newContactName : (contact?.name || null),
+              contactPhone: showNewContact ? newContactPhone : (contact?.phone_number || ""),
+              scheduledAt: recurringDates[0].toISOString(),
+              serviceType: serviceType.trim() || undefined,
+              templateName: `${selectedTemplate.name} (${recurringDates.length} recurring)`,
+            },
+          }).catch((err) => console.error("Failed to send auto-confirm notification:", err));
+        }
+
+        toast.success(
+          appointmentStatus === "confirmed" 
+            ? `Created and confirmed ${recurringDates.length} recurring appointments!`
+            : `Created ${recurringDates.length} recurring appointments!`
+        );
       }
 
       onAppointmentCreated();

@@ -50,7 +50,8 @@ interface TwilioSettings {
   rateLimitWindow: number;
   enableAiReceptionist?: boolean;
   enableAppointmentReminders?: boolean;
-  appointmentReminderTemplate?: string;
+  appointmentReminderTemplate?: string; // Legacy single template
+  appointmentReminderTemplates?: Record<string, string>; // Templates per language
   appointmentReminderTiming?: 'same_day' | '1_day' | '2_days';
 }
 
@@ -1228,52 +1229,101 @@ export default function Settings() {
                       </Select>
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="reminder-template" className="text-gray-300">
-                        Custom Reminder Message
-                      </Label>
-                      <Textarea
-                        id="reminder-template"
-                        placeholder="Hi {name}! Reminder from {business}: You have an appointment for {service} tomorrow at {time}. Reply YES to confirm or CANCEL to cancel."
-                        value={twilioSettings.appointmentReminderTemplate || ""}
-                        onChange={(e) => setTwilioSettings(prev => ({ ...prev, appointmentReminderTemplate: e.target.value }))}
-                        disabled={!isEditingNotifications}
-                        className={`bg-gray-700 border-gray-600 text-white min-h-[80px] ${!isEditingNotifications ? "opacity-70 cursor-not-allowed" : ""}`}
-                      />
-                      <p className="text-xs text-gray-500">
-                        Available placeholders: <code className="bg-gray-700 px-1 rounded">{"{name}"}</code> <code className="bg-gray-700 px-1 rounded">{"{business}"}</code> <code className="bg-gray-700 px-1 rounded">{"{service}"}</code> <code className="bg-gray-700 px-1 rounded">{"{time}"}</code> <code className="bg-gray-700 px-1 rounded">{"{date}"}</code>
-                      </p>
-                      
-                      {/* Message Preview */}
-                      <div className="mt-3 p-3 bg-gray-900/50 rounded-lg border border-gray-600">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MessageSquare className="h-4 w-4 text-purple-400" />
-                          <span className="text-xs font-medium text-gray-400">Message Preview</span>
-                        </div>
-                        <p className="text-sm text-gray-200 whitespace-pre-wrap">
-                          {(() => {
-                            const template = twilioSettings.appointmentReminderTemplate || 
-                              (primaryLanguage === "hebrew" 
-                                ? "שלום {name}! תזכורת מ{business}: יש לך {service} מחר ב-{time}. השב \"כן\" לאישור או \"ביטול\" לביטול התור."
-                                : "Hi {name}! Reminder from {business}: You have an {service} tomorrow at {time}. Reply YES to confirm or CANCEL to cancel.");
-                            
-                            const sampleData = {
-                              name: primaryLanguage === "hebrew" ? "ישראל ישראלי" : "John Smith",
-                              business: name || "Your Business",
-                              service: primaryLanguage === "hebrew" ? "תספורת" : "Haircut",
-                              time: primaryLanguage === "hebrew" ? "14:30" : "2:30 PM",
-                              date: primaryLanguage === "hebrew" ? "יום שלישי, 15 בינואר" : "Tuesday, January 15"
-                            };
-                            
-                            return template
-                              .replace(/\{name\}/gi, sampleData.name)
-                              .replace(/\{business\}/gi, sampleData.business)
-                              .replace(/\{service\}/gi, sampleData.service)
-                              .replace(/\{time\}/gi, sampleData.time)
-                              .replace(/\{date\}/gi, sampleData.date);
-                          })()}
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-gray-300">Custom Reminder Messages</Label>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Set a template for each language. Messages are sent in the customer's preferred language.
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Available placeholders: <code className="bg-gray-700 px-1 rounded">{"{name}"}</code> <code className="bg-gray-700 px-1 rounded">{"{business}"}</code> <code className="bg-gray-700 px-1 rounded">{"{service}"}</code> <code className="bg-gray-700 px-1 rounded">{"{time}"}</code> <code className="bg-gray-700 px-1 rounded">{"{date}"}</code>
                         </p>
                       </div>
+                      
+                      {/* Render template input and preview for each selected language */}
+                      {aiLanguages.map((lang) => {
+                        const langLabel = LANGUAGES.find(l => l.value === lang)?.label || lang;
+                        const isRTL = ['hebrew', 'arabic'].includes(lang);
+                        const templates = twilioSettings.appointmentReminderTemplates || {};
+                        const template = templates[lang] || "";
+                        
+                        // Default templates per language
+                        const defaultTemplates: Record<string, string> = {
+                          hebrew: 'שלום {name}! תזכורת מ{business}: יש לך {service} מחר ב-{time}. השב "כן" לאישור או "ביטול" לביטול התור.',
+                          english: 'Hi {name}! Reminder from {business}: You have an {service} tomorrow at {time}. Reply YES to confirm or CANCEL to cancel.',
+                          arabic: 'مرحبا {name}! تذكير من {business}: لديك {service} غداً في {time}. رد بـ"نعم" للتأكيد أو "إلغاء" للإلغاء.',
+                          russian: 'Здравствуйте, {name}! Напоминание от {business}: у вас {service} завтра в {time}. Ответьте "ДА" для подтверждения или "ОТМЕНА" для отмены.',
+                          spanish: '¡Hola {name}! Recordatorio de {business}: Tienes {service} mañana a las {time}. Responde SÍ para confirmar o CANCELAR para cancelar.',
+                          french: 'Bonjour {name}! Rappel de {business}: Vous avez {service} demain à {time}. Répondez OUI pour confirmer ou ANNULER pour annuler.',
+                          german: 'Hallo {name}! Erinnerung von {business}: Sie haben {service} morgen um {time}. Antworten Sie JA zur Bestätigung oder ABBRECHEN zum Stornieren.',
+                        };
+                        
+                        const displayTemplate = template || defaultTemplates[lang] || defaultTemplates.english;
+                        
+                        // Sample data per language
+                        const sampleDataByLang: Record<string, { name: string; service: string; time: string; date: string }> = {
+                          hebrew: { name: "ישראל ישראלי", service: "תספורת", time: "14:30", date: "יום שלישי, 15 בינואר" },
+                          arabic: { name: "أحمد محمد", service: "قص شعر", time: "14:30", date: "الثلاثاء، 15 يناير" },
+                          english: { name: "John Smith", service: "Haircut", time: "2:30 PM", date: "Tuesday, January 15" },
+                          russian: { name: "Иван Петров", service: "Стрижка", time: "14:30", date: "Вторник, 15 января" },
+                          spanish: { name: "Juan García", service: "Corte de pelo", time: "14:30", date: "Martes, 15 de enero" },
+                          french: { name: "Jean Dupont", service: "Coupe de cheveux", time: "14h30", date: "Mardi 15 janvier" },
+                          german: { name: "Hans Müller", service: "Haarschnitt", time: "14:30", date: "Dienstag, 15. Januar" },
+                        };
+                        
+                        const sampleData = sampleDataByLang[lang] || sampleDataByLang.english;
+                        
+                        const previewMessage = displayTemplate
+                          .replace(/\{name\}/gi, sampleData.name)
+                          .replace(/\{business\}/gi, name || "Your Business")
+                          .replace(/\{service\}/gi, sampleData.service)
+                          .replace(/\{time\}/gi, sampleData.time)
+                          .replace(/\{date\}/gi, sampleData.date);
+                        
+                        return (
+                          <div key={lang} className="space-y-2 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-purple-400 border-purple-500/30">
+                                {langLabel}
+                              </Badge>
+                              {lang === primaryLanguage && (
+                                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-xs">
+                                  Primary
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <Textarea
+                              placeholder={defaultTemplates[lang] || defaultTemplates.english}
+                              value={template}
+                              onChange={(e) => setTwilioSettings(prev => ({ 
+                                ...prev, 
+                                appointmentReminderTemplates: {
+                                  ...(prev.appointmentReminderTemplates || {}),
+                                  [lang]: e.target.value
+                                }
+                              }))}
+                              disabled={!isEditingNotifications}
+                              className={`bg-gray-700 border-gray-600 text-white min-h-[80px] ${!isEditingNotifications ? "opacity-70 cursor-not-allowed" : ""}`}
+                              dir={isRTL ? "rtl" : "ltr"}
+                            />
+                            
+                            {/* Message Preview */}
+                            <div className="p-3 bg-gray-900/50 rounded-lg border border-gray-600">
+                              <div className="flex items-center gap-2 mb-2">
+                                <MessageSquare className="h-4 w-4 text-purple-400" />
+                                <span className="text-xs font-medium text-gray-400">Message Preview</span>
+                              </div>
+                              <p 
+                                className="text-sm text-gray-200 whitespace-pre-wrap"
+                                dir={isRTL ? "rtl" : "ltr"}
+                              >
+                                {previewMessage}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

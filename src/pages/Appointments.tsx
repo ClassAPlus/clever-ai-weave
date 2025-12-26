@@ -13,6 +13,8 @@ import { CreateAppointmentDialog } from "@/components/CreateAppointmentDialog";
 import { DraggableAppointment } from "@/components/appointments/DraggableAppointment";
 import { DroppableDayCell } from "@/components/appointments/DroppableDayCell";
 import { AppointmentDetailsDialog } from "@/components/appointments/AppointmentDetailsDialog";
+import { DragConflictDialog } from "@/components/appointments/DragConflictDialog";
+import { useAppointmentConflictDetection, type ConflictingAppointment } from "@/hooks/useAppointmentConflictDetection";
 import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { 
   format, formatDistanceToNow, isPast, isToday, isTomorrow, 
@@ -82,6 +84,16 @@ export default function Appointments() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const isInitialLoad = useRef(true);
 
+  // Drag conflict state
+  const [dragConflictDialogOpen, setDragConflictDialogOpen] = useState(false);
+  const [pendingDragConflicts, setPendingDragConflicts] = useState<ConflictingAppointment[]>([]);
+  const [pendingDragData, setPendingDragData] = useState<{
+    appointmentId: string;
+    newScheduledAt: Date;
+  } | null>(null);
+
+  const { checkConflicts } = useAppointmentConflictDetection(businessId || "");
+
   const handleAppointmentClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setDetailsDialogOpen(true);
@@ -135,6 +147,26 @@ export default function Appointments() {
       getMinutes(oldDate)
     );
 
+    // Check for conflicts before rescheduling
+    const conflicts = await checkConflicts(
+      newScheduledAt,
+      appointment.duration_minutes || 60,
+      appointmentId
+    );
+
+    if (conflicts.length > 0) {
+      // Show conflict dialog
+      setPendingDragConflicts(conflicts);
+      setPendingDragData({ appointmentId, newScheduledAt });
+      setDragConflictDialogOpen(true);
+      return;
+    }
+
+    // No conflicts, proceed with reschedule
+    await executeReschedule(appointmentId, newScheduledAt);
+  };
+
+  const executeReschedule = async (appointmentId: string, newScheduledAt: Date) => {
     try {
       const { error } = await supabase
         .from("appointments")
@@ -152,6 +184,21 @@ export default function Appointments() {
       console.error("Error rescheduling appointment:", error);
       toast.error("Failed to reschedule appointment");
     }
+  };
+
+  const handleDragConflictConfirm = async () => {
+    if (pendingDragData) {
+      await executeReschedule(pendingDragData.appointmentId, pendingDragData.newScheduledAt);
+    }
+    setDragConflictDialogOpen(false);
+    setPendingDragConflicts([]);
+    setPendingDragData(null);
+  };
+
+  const handleDragConflictCancel = () => {
+    setDragConflictDialogOpen(false);
+    setPendingDragConflicts([]);
+    setPendingDragData(null);
   };
 
   const getDateRange = useCallback(() => {
@@ -1025,6 +1072,16 @@ export default function Appointments() {
         onOpenChange={setDetailsDialogOpen}
         appointment={selectedAppointment}
         onAppointmentUpdated={fetchAppointments}
+      />
+
+      {/* Drag Conflict Dialog */}
+      <DragConflictDialog
+        open={dragConflictDialogOpen}
+        onOpenChange={setDragConflictDialogOpen}
+        conflicts={pendingDragConflicts}
+        newDate={pendingDragData?.newScheduledAt || new Date()}
+        onConfirm={handleDragConflictConfirm}
+        onCancel={handleDragConflictCancel}
       />
     </div>
   );

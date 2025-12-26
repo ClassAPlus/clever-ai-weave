@@ -3,6 +3,7 @@ import { format, setHours, setMinutes } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppointmentConflictDetection } from "@/hooks/useAppointmentConflictDetection";
 import { ConflictWarning } from "@/components/appointments/ConflictWarning";
+import { QuickReschedule } from "@/components/appointments/QuickReschedule";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,7 @@ import {
   Trash2,
   Edit2,
   Save,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -94,6 +96,7 @@ export function AppointmentDetailsDialog({
   businessId,
 }: AppointmentDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isQuickReschedule, setIsQuickReschedule] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSendingReminder, setIsSendingReminder] = useState(false);
@@ -132,6 +135,7 @@ export function AppointmentDetailsDialog({
       setNotes(appointment.notes || "");
       setStatus(appointment.status || "pending");
       setIsEditing(false);
+      setIsQuickReschedule(false);
       setConflictAcknowledged(false);
       clearConflicts();
     }
@@ -555,8 +559,23 @@ export function AppointmentDetailsDialog({
             )}
           </div>
 
+          {/* Quick Reschedule */}
+          {isQuickReschedule && businessId && (
+            <QuickReschedule
+              appointmentId={appointment.id}
+              businessId={businessId}
+              currentScheduledAt={appointment.scheduled_at}
+              duration={appointment.duration_minutes || 60}
+              onRescheduled={() => {
+                setIsQuickReschedule(false);
+                onAppointmentUpdated();
+              }}
+              onCancel={() => setIsQuickReschedule(false)}
+            />
+          )}
+
           {/* Reminder Status */}
-          {!isEditing && (
+          {!isEditing && !isQuickReschedule && (
             <div className="p-3 bg-gray-700/30 rounded-lg space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-400">Reminder Status</span>
@@ -590,20 +609,31 @@ export function AppointmentDetailsDialog({
               {!isPastAppointment &&
                 status !== "completed" &&
                 status !== "cancelled" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full mt-2 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
-                    onClick={sendReminder}
-                    disabled={isSendingReminder}
-                  >
-                    {isSendingReminder ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 mr-2" />
-                    )}
-                    {appointment.reminder_sent_at ? "Resend Reminder" : "Send Reminder"}
-                  </Button>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 border-purple-500/30 text-purple-400 hover:bg-purple-500/20"
+                      onClick={() => setIsQuickReschedule(true)}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Quick Reschedule
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
+                      onClick={sendReminder}
+                      disabled={isSendingReminder}
+                    >
+                      {isSendingReminder ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      {appointment.reminder_sent_at ? "Resend" : "Remind"}
+                    </Button>
+                  </div>
                 )}
             </div>
           )}

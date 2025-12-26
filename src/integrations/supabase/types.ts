@@ -22,6 +22,7 @@ export type Database = {
           conversation_id: string | null
           created_at: string | null
           duration_minutes: number | null
+          google_calendar_event_id: string | null
           id: string
           notes: string | null
           recurrence_end_date: string | null
@@ -42,6 +43,7 @@ export type Database = {
           conversation_id?: string | null
           created_at?: string | null
           duration_minutes?: number | null
+          google_calendar_event_id?: string | null
           id?: string
           notes?: string | null
           recurrence_end_date?: string | null
@@ -62,6 +64,7 @@ export type Database = {
           conversation_id?: string | null
           created_at?: string | null
           duration_minutes?: number | null
+          google_calendar_event_id?: string | null
           id?: string
           notes?: string | null
           recurrence_end_date?: string | null
@@ -485,6 +488,47 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_calendar_tokens: {
+        Row: {
+          access_token: string
+          business_id: string
+          calendar_id: string | null
+          created_at: string
+          id: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          business_id: string
+          calendar_id?: string | null
+          created_at?: string
+          id?: string
+          refresh_token: string
+          token_expires_at: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          business_id?: string
+          calendar_id?: string | null
+          created_at?: string
+          id?: string
+          refresh_token?: string
+          token_expires_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_tokens_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
         ]

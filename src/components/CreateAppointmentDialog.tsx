@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { format, setHours, setMinutes, addDays, addWeeks, addMonths, isBefore } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,7 @@ export function CreateAppointmentDialog({
   businessId,
   onAppointmentCreated,
 }: CreateAppointmentDialogProps) {
+  const { syncAppointment, syncMultipleAppointments } = useGoogleCalendarSync();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -197,18 +199,28 @@ export function CreateAppointmentDialog({
 
       if (recurrencePattern === "none") {
         // Single appointment
-        const { error } = await supabase.from("appointments").insert({
-          business_id: businessId,
-          contact_id: finalContactId,
-          scheduled_at: scheduledAt.toISOString(),
-          duration_minutes: parseInt(duration),
-          service_type: serviceType.trim() || null,
-          notes: notes.trim() || null,
-          status: "pending",
-          recurrence_pattern: "none",
-        });
+        const { data: newAppointment, error } = await supabase
+          .from("appointments")
+          .insert({
+            business_id: businessId,
+            contact_id: finalContactId,
+            scheduled_at: scheduledAt.toISOString(),
+            duration_minutes: parseInt(duration),
+            service_type: serviceType.trim() || null,
+            notes: notes.trim() || null,
+            status: "pending",
+            recurrence_pattern: "none",
+          })
+          .select("id")
+          .single();
 
         if (error) throw error;
+        
+        // Sync to Google Calendar in background
+        if (newAppointment) {
+          syncAppointment(newAppointment.id);
+        }
+        
         toast.success("Appointment created!");
       } else {
         // Recurring appointments
@@ -233,6 +245,8 @@ export function CreateAppointmentDialog({
 
         if (parentError) throw parentError;
 
+        const allAppointmentIds = [parentAppointment.id];
+
         // Create child appointments
         if (recurringDates.length > 1) {
           const childAppointments = recurringDates.slice(1).map(date => ({
@@ -248,12 +262,20 @@ export function CreateAppointmentDialog({
             recurrence_parent_id: parentAppointment.id,
           }));
 
-          const { error: childError } = await supabase
+          const { data: childData, error: childError } = await supabase
             .from("appointments")
-            .insert(childAppointments);
+            .insert(childAppointments)
+            .select("id");
 
           if (childError) throw childError;
+          
+          if (childData) {
+            allAppointmentIds.push(...childData.map(c => c.id));
+          }
         }
+
+        // Sync all appointments to Google Calendar in background
+        syncMultipleAppointments(allAppointmentIds);
 
         toast.success(`Created ${recurringDates.length} recurring appointments!`);
       }

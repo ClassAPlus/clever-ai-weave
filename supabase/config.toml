@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.send-appointment-reminder]
 verify_jwt = true
+
+[functions.google-calendar]
+verify_jwt = false

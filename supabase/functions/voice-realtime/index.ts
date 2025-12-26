@@ -26,13 +26,13 @@ const TOOLS = [
   {
     type: "function",
     name: "create_appointment",
-    description: "Schedule a new appointment for the caller. Use this when the caller wants to book an appointment.",
+    description: "Schedule a new appointment for the caller. IMPORTANT: Before calling this, you MUST verify the time is within business hours. If the business is closed on the requested day (e.g., Saturday/Shabbat), do NOT schedule - inform the caller and suggest an open day. Use 24-hour time interpretation: 00:00-11:59 is morning, 12:00-17:59 is afternoon, 18:00-23:59 is evening. If caller says 'morning' but gives a time like 20:00, clarify before scheduling.",
     parameters: {
       type: "object",
       properties: {
         scheduled_date: {
           type: "string",
-          description: "The date and time for the appointment in ISO 8601 format (e.g., 2025-09-25T12:00:00)"
+          description: "The date and time for the appointment in ISO 8601 format (e.g., 2025-09-25T12:00:00). MUST be within business hours."
         },
         service_type: {
           type: "string",
@@ -45,6 +45,11 @@ const TOOLS = [
         notes: {
           type: "string",
           description: "Any additional notes about the appointment"
+        },
+        time_of_day_stated: {
+          type: "string",
+          enum: ["morning", "afternoon", "evening", "not_specified"],
+          description: "What time of day the caller stated they wanted (morning/afternoon/evening). Used for validation."
         }
       },
       required: ["scheduled_date"]
@@ -202,17 +207,18 @@ interface CallerContext {
 // System prompt for the AI receptionist
 const getSystemPrompt = (businessName: string, instructions: string, language: string, callerContext: CallerContext) => {
   const langMap: Record<string, string> = {
-    "he-IL": "Hebrew",
+    "he-IL": "Hebrew (עברית)",
     "en-US": "English",
     "en-GB": "British English",
-    "ar-XA": "Arabic",
-    "es-ES": "Spanish",
-    "fr-FR": "French",
-    "de-DE": "German",
-    "ru-RU": "Russian",
+    "ar-XA": "Arabic (العربية)",
+    "es-ES": "Spanish (Español)",
+    "fr-FR": "French (Français)",
+    "de-DE": "German (Deutsch)",
+    "ru-RU": "Russian (Русский)",
   };
   
   const languageName = langMap[language] || "English";
+  const isHebrew = language.startsWith("he");
   
   // Build context about the caller
   let callerInfo = "";
@@ -266,15 +272,43 @@ const getSystemPrompt = (businessName: string, instructions: string, language: s
   const isReturningCaller = callerContext.name || callerContext.callHistory.length > 0 || callerContext.appointments.length > 0;
   
   return `You are a friendly and professional AI receptionist for ${businessName}. 
-Speak in ${languageName}.
+Your DEFAULT language is ${languageName}.
 Be concise but warm. Help callers with their questions, take messages, and schedule appointments.
+
+=== DYNAMIC LANGUAGE SWITCHING ===
+CRITICAL: You CAN and SHOULD switch languages during the conversation if the caller requests it.
+- If the caller asks to speak in Hebrew (עברית), switch to Hebrew immediately.
+- If the caller asks to speak in English, switch to English immediately.
+- If you detect the caller is speaking a different language, ask: "Would you prefer I speak in [detected language]?"
+- Supported languages: Hebrew, English, Arabic, Spanish, French, German, Russian
+- When speaking Hebrew, use natural Hebrew phrasing and RTL text direction.
+- When switching languages, confirm: "${isHebrew ? 'I\'ll continue in English now.' : 'אני אמשיך בעברית עכשיו.'}"
 
 ${callerInfo ? `=== CALLER CONTEXT (Use this to personalize the conversation) ===\n${callerInfo}${isReturningCaller ? 'This is a returning caller - acknowledge their history warmly.\n' : ''}===\n\n` : ''}
 
 ${instructions || "Answer questions helpfully and take messages when the caller wants to leave one."}
 
+=== CRITICAL: 24-HOUR TIME INTERPRETATION ===
+When scheduling appointments, ALWAYS use correct 24-hour time logic:
+- 00:00 - 11:59 = Morning (בוקר) - e.g., 08:00, 09:30, 11:00
+- 12:00 - 17:59 = Afternoon (צהריים) - e.g., 12:00, 14:30, 16:00
+- 18:00 - 23:59 = Evening (ערב) - e.g., 18:00, 19:30, 20:00
+
+IMPORTANT TIME VALIDATION:
+- If the caller says "morning" but mentions 20:00 or 8:00 PM, this is a CONTRADICTION. 20:00 = 8 PM = Evening, NOT morning!
+- If you detect a time-of-day mismatch, STOP and clarify: "Just to confirm - you mentioned morning, but 20:00 is actually 8 PM in the evening. Did you mean 8 AM (08:00) in the morning, or 8 PM (20:00) in the evening?"
+- Never assume the caller meant a different time - always ask when there's ambiguity.
+
+=== CRITICAL: BUSINESS HOURS VALIDATION ===
+BEFORE scheduling ANY appointment, you MUST check business hours:
+1. First, mentally check if the requested day/time falls within business hours
+2. If the business is CLOSED on the requested day (e.g., Saturday/Shabbat, Sunday), do NOT schedule
+3. Instead, inform the caller: "I'm sorry, we're closed on [day]. We're open [list open days]. Would you like to schedule for [next open day]?"
+4. If the requested TIME is outside business hours, suggest the nearest available time
+5. NEVER create an appointment outside business hours - this causes scheduling conflicts
+
 CRITICAL: COLLECTING CALLER INFORMATION
-- If you don't know the caller's name, ask for it naturally early in the conversation (e.g., "May I have your name please?")
+- If you don't know the caller's name, ask for it naturally early in the conversation
 - When the caller tells you their name, IMMEDIATELY use the update_contact_info function to save it
 - If the caller provides their email, IMMEDIATELY use update_contact_info to save it
 - Any time you learn new information about the caller (name, email, preferences), use update_contact_info
@@ -291,9 +325,10 @@ Important guidelines:
 CRITICAL: APPOINTMENT BOOKING CONSENT
 - NEVER book an appointment without EXPLICIT verbal consent from the caller
 - Before calling create_appointment, you MUST:
-  1. Summarize the appointment details (date, time, service type)
-  2. Ask clearly: "Would you like me to confirm this appointment?" or similar
-  3. Wait for the caller to say YES, confirm, or agree
+  1. Verify the time is within business hours
+  2. Summarize the appointment details (date, time, service type)
+  3. Ask clearly: "Would you like me to confirm this appointment?" or similar
+  4. Wait for the caller to say YES, confirm, or agree
 - Only call create_appointment AFTER receiving clear confirmation
 - If the caller says "maybe", "I'll think about it", or anything uncertain - DO NOT book
 - The same applies to rescheduling and cancellation - always confirm first
@@ -539,7 +574,7 @@ serve(async (req) => {
     try {
       switch (functionName) {
         case "create_appointment": {
-          const { scheduled_date, service_type, caller_name, notes } = args;
+          const { scheduled_date, service_type, caller_name, notes, time_of_day_stated } = args;
           
           if (!businessId) {
             console.error("Cannot create appointment: businessId is missing");
@@ -547,10 +582,88 @@ serve(async (req) => {
             break;
           }
           
+          // VALIDATION 1: Check business hours before creating appointment
+          const businessHours = (globalThis as any).__businessHours || {};
+          const timezone = (globalThis as any).__businessTimezone || "UTC";
+          const appointmentDate = new Date(scheduled_date);
+          
+          // Get day of week for the appointment
+          const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'long' });
+          const appointmentDay = dayFormatter.format(appointmentDate).toLowerCase();
+          const dayMap: Record<string, string> = {
+            "monday": "mon", "tuesday": "tue", "wednesday": "wed",
+            "thursday": "thu", "friday": "fri", "saturday": "sat", "sunday": "sun"
+          };
+          const dayKey = dayMap[appointmentDay] || appointmentDay.substring(0, 3);
+          const hours = businessHours[dayKey];
+          
+          // Check if business is open on this day
+          if (!hours || !hours.start || !hours.end) {
+            console.log(`Business is closed on ${appointmentDay}`);
+            // Find open days to suggest
+            const openDays = Object.entries(businessHours)
+              .filter(([_, h]: [string, any]) => h && h.start && h.end)
+              .map(([d]) => {
+                const fullDayMap: Record<string, string> = {
+                  "mon": "Monday", "tue": "Tuesday", "wed": "Wednesday",
+                  "thu": "Thursday", "fri": "Friday", "sat": "Saturday", "sun": "Sunday"
+                };
+                return fullDayMap[d] || d;
+              });
+            result = JSON.stringify({ 
+              success: false, 
+              error: `The business is closed on ${appointmentDay}. Open days are: ${openDays.join(', ')}. Please suggest an alternative day.`,
+              closed_day: appointmentDay,
+              open_days: openDays
+            });
+            break;
+          }
+          
+          // Check if appointment time is within business hours
+          const timeFormatter = new Intl.DateTimeFormat('en-US', { 
+            timeZone: timezone, 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: false 
+          });
+          const appointmentTime = timeFormatter.format(appointmentDate);
+          
+          if (appointmentTime < hours.start || appointmentTime >= hours.end) {
+            console.log(`Appointment time ${appointmentTime} is outside business hours ${hours.start}-${hours.end}`);
+            result = JSON.stringify({ 
+              success: false, 
+              error: `The requested time ${appointmentTime} is outside business hours. On ${appointmentDay}, we are open from ${hours.start} to ${hours.end}. Please suggest a time within these hours.`,
+              requested_time: appointmentTime,
+              business_hours: { opens: hours.start, closes: hours.end }
+            });
+            break;
+          }
+          
+          // VALIDATION 2: Check time-of-day consistency
+          const appointmentHour = appointmentDate.getHours();
+          if (time_of_day_stated && time_of_day_stated !== "not_specified") {
+            let expectedPeriod = "";
+            if (appointmentHour >= 0 && appointmentHour < 12) expectedPeriod = "morning";
+            else if (appointmentHour >= 12 && appointmentHour < 18) expectedPeriod = "afternoon";
+            else expectedPeriod = "evening";
+            
+            if (time_of_day_stated !== expectedPeriod) {
+              console.log(`Time mismatch: caller said ${time_of_day_stated} but ${appointmentHour}:00 is ${expectedPeriod}`);
+              result = JSON.stringify({ 
+                success: false, 
+                error: `Time clarification needed: The caller said "${time_of_day_stated}" but the time ${appointmentHour}:00 is actually ${expectedPeriod}. Please confirm with the caller if they meant ${time_of_day_stated} (which would be ${time_of_day_stated === 'morning' ? '08:00-11:59' : time_of_day_stated === 'afternoon' ? '12:00-17:59' : '18:00-23:59'}) or ${expectedPeriod} (${appointmentHour}:00).`,
+                stated_period: time_of_day_stated,
+                actual_period: expectedPeriod,
+                hour: appointmentHour
+              });
+              break;
+            }
+          }
+          
           // Generate confirmation code
           const confirmationCode = `APT-${Date.now().toString(36).toUpperCase()}`;
           
-          console.log(`Creating appointment: businessId=${businessId}, contactId=${contactId}, scheduled_date=${scheduled_date}`);
+          console.log(`Creating appointment: businessId=${businessId}, contactId=${contactId}, scheduled_date=${scheduled_date}, validated for ${appointmentDay} at ${appointmentTime}`);
           
           // Create the appointment
           const { data: appointment, error } = await supabase

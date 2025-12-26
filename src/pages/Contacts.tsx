@@ -39,6 +39,7 @@ interface Contact {
   updated_at: string | null;
   notes: string | null;
   tags: string[] | null;
+  preferred_language: string | null;
 }
 
 interface ContactStats {

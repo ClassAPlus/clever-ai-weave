@@ -45,7 +45,8 @@ serve(async (req) => {
           id,
           phone_number,
           name,
-          opted_out
+          opted_out,
+          preferred_language
         ),
         businesses!inner(
           id,
@@ -92,41 +93,51 @@ serve(async (req) => {
       });
     }
 
-    // Parse ai_language to get primary language
-    // Format can be: "hebrew" (legacy), "hebrew,english" (legacy), or "hebrew:hebrew,english:true" (new format)
-    const languageData = business.ai_language || "hebrew";
-    let primaryLanguage = "hebrew";
+    // Determine the language to use: contact's preferred language takes priority, then business primary language
+    let effectiveLanguage = "hebrew"; // default fallback
     
-    const parts = languageData.split(":");
-    if (parts.length >= 2) {
-      // New format: "primary:lang1,lang2:autodetect"
-      primaryLanguage = parts[0];
-    } else if (languageData.includes(",")) {
-      // Legacy format: "lang1,lang2" - use first as primary
-      primaryLanguage = languageData.split(",")[0].trim();
+    // First, check if contact has a preferred language set
+    if (contact.preferred_language) {
+      effectiveLanguage = contact.preferred_language;
+      console.log(`Using contact's preferred language: ${effectiveLanguage}`);
     } else {
-      // Single language legacy format
-      primaryLanguage = languageData;
+      // Fall back to business primary language
+      // Parse ai_language to get primary language
+      // Format can be: "hebrew" (legacy), "hebrew,english" (legacy), or "hebrew:hebrew,english:true" (new format)
+      const languageData = business.ai_language || "hebrew";
+      
+      const parts = languageData.split(":");
+      if (parts.length >= 2) {
+        // New format: "primary:lang1,lang2:autodetect"
+        effectiveLanguage = parts[0];
+      } else if (languageData.includes(",")) {
+        // Legacy format: "lang1,lang2" - use first as primary
+        effectiveLanguage = languageData.split(",")[0].trim();
+      } else {
+        // Single language legacy format
+        effectiveLanguage = languageData;
+      }
+      console.log(`Using business primary language: ${effectiveLanguage}`);
     }
     
-    const isHebrew = primaryLanguage === 'hebrew';
-    const isRTL = ['hebrew', 'arabic'].includes(primaryLanguage);
+    const isHebrew = effectiveLanguage === 'hebrew';
+    const isRTL = ['hebrew', 'arabic'].includes(effectiveLanguage);
     const scheduledDate = new Date(appointment.scheduled_at);
 
-    // Format the appointment time based on primary language
+    // Format the appointment time based on effective language
     const timeStr = scheduledDate.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-US', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: !isHebrew && primaryLanguage !== 'arabic'
+      hour12: !isHebrew && effectiveLanguage !== 'arabic'
     });
 
     const dateStr = scheduledDate.toLocaleDateString(
-      primaryLanguage === 'hebrew' ? 'he-IL' : 
-      primaryLanguage === 'arabic' ? 'ar-SA' :
-      primaryLanguage === 'russian' ? 'ru-RU' :
-      primaryLanguage === 'spanish' ? 'es-ES' :
-      primaryLanguage === 'french' ? 'fr-FR' :
-      primaryLanguage === 'german' ? 'de-DE' : 'en-US', 
+      effectiveLanguage === 'hebrew' ? 'he-IL' : 
+      effectiveLanguage === 'arabic' ? 'ar-SA' :
+      effectiveLanguage === 'russian' ? 'ru-RU' :
+      effectiveLanguage === 'spanish' ? 'es-ES' :
+      effectiveLanguage === 'french' ? 'fr-FR' :
+      effectiveLanguage === 'german' ? 'de-DE' : 'en-US', 
       {
         weekday: 'long',
         month: 'long',
@@ -147,13 +158,13 @@ serve(async (req) => {
       german: 'Termin',
       english: 'appointment'
     };
-    const serviceText = appointment.service_type || defaultServiceText[primaryLanguage] || 'appointment';
+    const serviceText = appointment.service_type || defaultServiceText[effectiveLanguage] || 'appointment';
 
     let reminderMessage: string;
 
     // Check for language-specific template first, then legacy single template
     const templates = twilioSettings.appointmentReminderTemplates || {};
-    const customTemplate = templates[primaryLanguage] || twilioSettings.appointmentReminderTemplate;
+    const customTemplate = templates[effectiveLanguage] || twilioSettings.appointmentReminderTemplate;
     
     // Default templates per language
     const defaultTemplates: Record<string, string> = {
@@ -174,7 +185,7 @@ serve(async (req) => {
         .replace(/\{time\}/gi, timeStr)
         .replace(/\{date\}/gi, dateStr);
     } else {
-      const template = defaultTemplates[primaryLanguage] || defaultTemplates.english;
+      const template = defaultTemplates[effectiveLanguage] || defaultTemplates.english;
       reminderMessage = template
         .replace(/\{name\}/gi, customerName ? ` ${customerName}` : '')
         .replace(/\{business\}/gi, business.name)
@@ -183,7 +194,7 @@ serve(async (req) => {
         .replace(/\{date\}/gi, dateStr);
     }
 
-    console.log(`Sending reminder in ${primaryLanguage} to ${contact.phone_number}`);
+    console.log(`Sending reminder in ${effectiveLanguage} to ${contact.phone_number}`);
 
     const smsResult = await sendSMS(
       business.twilio_phone_number,

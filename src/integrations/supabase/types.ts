@@ -454,6 +454,7 @@ export type Database = {
           opted_out: boolean | null
           opted_out_at: string | null
           phone_number: string
+          preferred_language: string | null
           tags: string[] | null
           updated_at: string | null
         }
@@ -467,6 +468,7 @@ export type Database = {
           opted_out?: boolean | null
           opted_out_at?: string | null
           phone_number: string
+          preferred_language?: string | null
           tags?: string[] | null
           updated_at?: string | null
         }
@@ -480,6 +482,7 @@ export type Database = {
           opted_out?: boolean | null
           opted_out_at?: string | null
           phone_number?: string
+          preferred_language?: string | null
           tags?: string[] | null
           updated_at?: string | null
         }

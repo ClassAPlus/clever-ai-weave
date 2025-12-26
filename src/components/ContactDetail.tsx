@@ -7,10 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { 
   Loader2, User, Phone, Mail, Clock, ArrowLeft,
   PhoneIncoming, PhoneMissed, MessageSquare, Calendar,
-  UserX, UserCheck, Bot, Send, FileText, Save, X, Tag, Plus
+  UserX, UserCheck, Bot, Send, FileText, Save, X, Tag, Plus, Globe
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -33,7 +35,29 @@ interface Contact {
   created_at: string | null;
   notes: string | null;
   tags: string[] | null;
+  preferred_language: string | null;
 }
+
+const LANGUAGES = [
+  { value: "hebrew", label: "עברית (Hebrew)" },
+  { value: "english", label: "English" },
+  { value: "arabic", label: "العربية (Arabic)" },
+  { value: "russian", label: "Русский (Russian)" },
+  { value: "spanish", label: "Español (Spanish)" },
+  { value: "french", label: "Français (French)" },
+  { value: "german", label: "Deutsch (German)" },
+  { value: "portuguese", label: "Português (Portuguese)" },
+  { value: "italian", label: "Italiano (Italian)" },
+  { value: "dutch", label: "Nederlands (Dutch)" },
+  { value: "polish", label: "Polski (Polish)" },
+  { value: "turkish", label: "Türkçe (Turkish)" },
+  { value: "chinese", label: "中文 (Chinese)" },
+  { value: "japanese", label: "日本語 (Japanese)" },
+  { value: "korean", label: "한국어 (Korean)" },
+  { value: "hindi", label: "हिन्दी (Hindi)" },
+  { value: "thai", label: "ไทย (Thai)" },
+  { value: "vietnamese", label: "Tiếng Việt (Vietnamese)" },
+];
 
 interface Call {
   id: string;
@@ -86,6 +110,8 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
   const [tags, setTags] = useState<string[]>(contact.tags || []);
   const [newTag, setNewTag] = useState("");
   const [isSavingTags, setIsSavingTags] = useState(false);
+  const [preferredLanguage, setPreferredLanguage] = useState<string | null>(contact.preferred_language);
+  const [isSavingLanguage, setIsSavingLanguage] = useState(false);
 
   const fetchContactData = useCallback(async () => {
     setIsLoading(true);
@@ -280,6 +306,30 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
     if (e.key === "Enter") {
       e.preventDefault();
       addTag();
+    }
+  };
+
+  const savePreferredLanguage = async (language: string | null) => {
+    setIsSavingLanguage(true);
+    try {
+      const { error } = await supabase
+        .from("contacts")
+        .update({ preferred_language: language })
+        .eq("id", contact.id);
+
+      if (error) {
+        console.error("Error saving language:", error);
+        toast.error("Failed to save language preference");
+        return;
+      }
+
+      setPreferredLanguage(language);
+      toast.success("Language preference saved");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to save language preference");
+    } finally {
+      setIsSavingLanguage(false);
     }
   };
 
@@ -570,7 +620,48 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
         </CardContent>
       </Card>
 
-      {/* Activity Tabs */}
+      {/* Language Preference Section */}
+      <Card className="bg-gray-800/50 border-gray-700">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-purple-400" />
+            <CardTitle className="text-white text-lg">Language Preference</CardTitle>
+          </div>
+          <CardDescription className="text-gray-400">
+            Set the preferred language for SMS reminders and communications
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Select
+              value={preferredLanguage || "auto"}
+              onValueChange={(value) => savePreferredLanguage(value === "auto" ? null : value)}
+              disabled={isSavingLanguage}
+            >
+              <SelectTrigger className="w-[280px] bg-gray-700 border-gray-600 text-white">
+                <SelectValue placeholder="Select language..." />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectItem value="auto" className="text-white hover:bg-gray-700">
+                  Auto (use business default)
+                </SelectItem>
+                {LANGUAGES.map((lang) => (
+                  <SelectItem key={lang.value} value={lang.value} className="text-white hover:bg-gray-700">
+                    {lang.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isSavingLanguage && <Loader2 className="h-4 w-4 animate-spin text-purple-400" />}
+            {preferredLanguage && (
+              <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                {LANGUAGES.find(l => l.value === preferredLanguage)?.label || preferredLanguage}
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-purple-400" />

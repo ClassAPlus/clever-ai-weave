@@ -26,6 +26,7 @@ interface CallSummary {
   next_steps: string[];
   caller_name?: string;
   functions_used?: string[];
+  discussion_summary?: string | null;
 }
 
 interface Call {
@@ -470,28 +471,49 @@ export default function Calls() {
                     <div className="px-4 pb-4 pt-0 border-t border-gray-600/50">
                       {/* AI Summary Section */}
                       {call.call_summary && (
-                        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="bg-gray-800/50 p-3 rounded-lg">
-                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Reason</p>
-                            <p className="text-white font-medium">{call.call_summary.reason}</p>
-                          </div>
-                          <div className="bg-gray-800/50 p-3 rounded-lg">
-                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Outcome</p>
-                            <p className="text-white font-medium">{call.call_summary.outcome}</p>
-                          </div>
-                          <div className="bg-gray-800/50 p-3 rounded-lg">
-                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Next Steps</p>
-                            {call.call_summary.next_steps && call.call_summary.next_steps.length > 0 ? (
-                              <ul className="text-white text-sm space-y-1">
-                                {call.call_summary.next_steps.map((step, idx) => (
-                                  <li key={idx} className="flex items-center gap-1">
-                                    <span className="text-blue-400">•</span> {step}
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="text-gray-400 text-sm">No follow-up required</p>
-                            )}
+                        <div className="mt-3 space-y-4">
+                          {/* Discussion Summary */}
+                          {call.call_summary.discussion_summary && (
+                            <div className="bg-gray-800/50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Conversation</p>
+                              <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-48 overflow-y-auto font-mono leading-relaxed">
+                                {call.call_summary.discussion_summary.split('\n').map((line, idx) => {
+                                  const isCustomer = line.startsWith('Customer:');
+                                  const isAI = line.startsWith('AI:');
+                                  return (
+                                    <div key={idx} className={`${isCustomer ? 'text-blue-300' : isAI ? 'text-green-300' : 'text-gray-300'} mb-1`}>
+                                      {line}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Structured Summary */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-gray-800/50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Reason</p>
+                              <p className="text-white font-medium">{call.call_summary.reason}</p>
+                            </div>
+                            <div className="bg-gray-800/50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Outcome</p>
+                              <p className="text-white font-medium">{call.call_summary.outcome}</p>
+                            </div>
+                            <div className="bg-gray-800/50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Next Steps</p>
+                              {call.call_summary.next_steps && call.call_summary.next_steps.length > 0 ? (
+                                <ul className="text-white text-sm space-y-1">
+                                  {call.call_summary.next_steps.map((step, idx) => (
+                                    <li key={idx} className="flex items-center gap-1">
+                                      <span className="text-blue-400">•</span> {step}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-gray-400 text-sm">No follow-up required</p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       )}

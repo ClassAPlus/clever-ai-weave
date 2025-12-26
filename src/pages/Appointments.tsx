@@ -9,7 +9,7 @@ import {
   Loader2, Calendar, Clock, User, RefreshCw, Filter,
   CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare, Send,
   ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid, Plus, GripVertical, AlignJustify,
-  CheckSquare
+  CheckSquare, Download
 } from "lucide-react";
 import { CreateAppointmentDialog } from "@/components/CreateAppointmentDialog";
 import { DraggableAppointment } from "@/components/appointments/DraggableAppointment";
@@ -19,6 +19,7 @@ import { DragConflictDialog } from "@/components/appointments/DragConflictDialog
 import { BusyTimeIndicator, BusyHourIndicator, DayBusyBadge } from "@/components/appointments/BusyTimeIndicator";
 import { DayHoverPreview } from "@/components/appointments/DayHoverPreview";
 import { BatchActionsToolbar } from "@/components/appointments/BatchActionsToolbar";
+import { ExportAppointmentsDialog } from "@/components/appointments/ExportAppointmentsDialog";
 import { SelectableAppointment } from "@/components/appointments/SelectableAppointment";
 import { useAppointmentConflictDetection, type ConflictingAppointment } from "@/hooks/useAppointmentConflictDetection";
 import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
@@ -91,6 +92,7 @@ export default function Appointments() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const isInitialLoad = useRef(true);
 
   // Drag conflict state
@@ -983,6 +985,15 @@ export default function Appointments() {
             New Appointment
           </Button>
           <Button 
+            onClick={() => setExportDialogOpen(true)}
+            variant="outline" 
+            size="sm"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button 
             onClick={fetchAppointments} 
             variant="outline" 
             size="sm"
@@ -1210,6 +1221,15 @@ export default function Appointments() {
         onSelectAll={selectAllAppointments}
         onActionComplete={fetchAppointments}
       />
+
+      {/* Export Dialog */}
+      {businessId && (
+        <ExportAppointmentsDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          businessId={businessId}
+        />
+      )}
     </div>
   );
 }

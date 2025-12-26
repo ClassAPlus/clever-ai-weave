@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { format, setHours, setMinutes, addDays, addWeeks, addMonths, isBefore } from "date-fns";
+import { format, setHours, setMinutes, addDays, addWeeks, addMonths, isBefore, startOfDay, endOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
 import { useAppointmentConflictDetection } from "@/hooks/useAppointmentConflictDetection";
 import { ConflictWarning } from "@/components/appointments/ConflictWarning";
+import { VisualTimeSlotPicker } from "@/components/appointments/VisualTimeSlotPicker";
 import {
   Dialog,
   DialogContent,
@@ -62,6 +63,13 @@ export function CreateAppointmentDialog({
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [showNewContact, setShowNewContact] = useState(false);
+  const [existingAppointments, setExistingAppointments] = useState<Array<{
+    id: string;
+    scheduled_at: string;
+    duration_minutes: number | null;
+    status: string | null;
+    contact: { name: string | null; phone_number: string } | null;
+  }>>([]);
   
   // Form state
   const [contactId, setContactId] = useState<string>("");
@@ -91,8 +99,9 @@ export function CreateAppointmentDialog({
   useEffect(() => {
     if (open && businessId) {
       fetchContacts();
+      fetchExistingAppointments();
     }
-  }, [open, businessId]);
+  }, [open, businessId, selectedDate]);
 
   useEffect(() => {
     // Reset form when dialog opens
@@ -127,6 +136,41 @@ export function CreateAppointmentDialog({
       console.error("Error fetching contacts:", error);
     } finally {
       setIsLoadingContacts(false);
+    }
+  };
+
+  const fetchExistingAppointments = async () => {
+    try {
+      const dayStart = startOfDay(selectedDate);
+      const dayEnd = endOfDay(selectedDate);
+
+      const { data, error } = await supabase
+        .from("appointments")
+        .select(`
+          id,
+          scheduled_at,
+          duration_minutes,
+          status,
+          contacts (name, phone_number)
+        `)
+        .eq("business_id", businessId)
+        .gte("scheduled_at", dayStart.toISOString())
+        .lte("scheduled_at", dayEnd.toISOString())
+        .neq("status", "cancelled");
+
+      if (error) throw error;
+      
+      setExistingAppointments(
+        (data || []).map(apt => ({
+          id: apt.id,
+          scheduled_at: apt.scheduled_at,
+          duration_minutes: apt.duration_minutes,
+          status: apt.status,
+          contact: apt.contacts as { name: string | null; phone_number: string } | null,
+        }))
+      );
+    } catch (error) {
+      console.error("Error fetching existing appointments:", error);
     }
   };
 
@@ -416,34 +460,7 @@ export function CreateAppointmentDialog({
             )}
           </div>
 
-          {/* Time */}
-          <div className="space-y-2">
-            <Label className="text-gray-300 flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Time
-            </Label>
-            <Select value={time} onValueChange={setTime}>
-              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700 max-h-[200px]">
-                {timeSlots.map((slot) => (
-                  <SelectItem
-                    key={slot}
-                    value={slot}
-                    className="text-white hover:bg-gray-700"
-                  >
-                    {format(
-                      setMinutes(setHours(new Date(), parseInt(slot.split(":")[0])), parseInt(slot.split(":")[1])),
-                      "h:mm a"
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Duration */}
+          {/* Duration - moved before time picker so it affects the visual display */}
           <div className="space-y-2">
             <Label className="text-gray-300">Duration</Label>
             <Select value={duration} onValueChange={setDuration}>
@@ -460,6 +477,15 @@ export function CreateAppointmentDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Visual Time Slot Picker */}
+          <VisualTimeSlotPicker
+            selectedDate={selectedDate}
+            selectedTime={time}
+            duration={parseInt(duration)}
+            existingAppointments={existingAppointments}
+            onTimeSelect={setTime}
+          />
 
           {/* Recurrence */}
           <div className="space-y-2">

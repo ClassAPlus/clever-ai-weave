@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointment_templates: {
+        Row: {
+          business_id: string
+          color: string | null
+          created_at: string
+          default_recurrence_pattern: string | null
+          duration_minutes: number
+          id: string
+          is_active: boolean | null
+          name: string
+          notes: string | null
+          service_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          color?: string | null
+          created_at?: string
+          default_recurrence_pattern?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean | null
+          name: string
+          notes?: string | null
+          service_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          color?: string | null
+          created_at?: string
+          default_recurrence_pattern?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          notes?: string | null
+          service_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_templates_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           business_id: string

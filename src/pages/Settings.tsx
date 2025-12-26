@@ -32,6 +32,7 @@ import { AdminRoleManager } from "@/components/settings/AdminRoleManager";
 import { BusinessStaffManager } from "@/components/settings/BusinessStaffManager";
 import { SettingsSkeleton } from "@/components/settings/SettingsSkeleton";
 import { GoogleCalendarSync } from "@/components/settings/GoogleCalendarSync";
+import { AppointmentTemplateManager } from "@/components/appointments/AppointmentTemplateManager";
 import { Badge } from "@/components/ui/badge";
 
 interface BusinessHours {
@@ -1322,6 +1323,9 @@ export default function Settings() {
 
           {/* Google Calendar Integration */}
           {business && <GoogleCalendarSync businessId={business.id} />}
+
+          {/* Appointment Templates */}
+          {business && <AppointmentTemplateManager businessId={business.id} />}
 
           {/* Port Request Status */}
           {business && <PortRequestStatus businessId={business.id} onPortNumberClick={() => setIsPortDialogOpen(true)} />}

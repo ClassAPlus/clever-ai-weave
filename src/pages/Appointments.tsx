@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Loader2, Calendar, Clock, User, RefreshCw, Filter,
   CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare, Send,
-  ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid, Plus, GripVertical, AlignJustify
+  ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid, Plus, GripVertical, AlignJustify,
+  CheckSquare
 } from "lucide-react";
 import { CreateAppointmentDialog } from "@/components/CreateAppointmentDialog";
 import { DraggableAppointment } from "@/components/appointments/DraggableAppointment";
@@ -16,6 +18,8 @@ import { AppointmentDetailsDialog } from "@/components/appointments/AppointmentD
 import { DragConflictDialog } from "@/components/appointments/DragConflictDialog";
 import { BusyTimeIndicator, BusyHourIndicator, DayBusyBadge } from "@/components/appointments/BusyTimeIndicator";
 import { DayHoverPreview } from "@/components/appointments/DayHoverPreview";
+import { BatchActionsToolbar } from "@/components/appointments/BatchActionsToolbar";
+import { SelectableAppointment } from "@/components/appointments/SelectableAppointment";
 import { useAppointmentConflictDetection, type ConflictingAppointment } from "@/hooks/useAppointmentConflictDetection";
 import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { 
@@ -33,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { cn } from "@/lib/utils";
 
 interface Appointment {
   id: string;
@@ -84,6 +89,8 @@ export default function Appointments() {
   const [activeAppointment, setActiveAppointment] = useState<Appointment | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const isInitialLoad = useRef(true);
 
   // Drag conflict state
@@ -97,8 +104,40 @@ export default function Appointments() {
   const { checkConflicts } = useAppointmentConflictDetection(businessId || "");
 
   const handleAppointmentClick = (appointment: Appointment) => {
-    setSelectedAppointment(appointment);
-    setDetailsDialogOpen(true);
+    if (isSelectionMode) {
+      toggleAppointmentSelection(appointment.id);
+    } else {
+      setSelectedAppointment(appointment);
+      setDetailsDialogOpen(true);
+    }
+  };
+
+  const toggleAppointmentSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      // Exit selection mode if no items selected
+      if (newSet.size === 0) {
+        setIsSelectionMode(false);
+      } else {
+        setIsSelectionMode(true);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllAppointments = () => {
+    setSelectedIds(new Set(appointments.map((apt) => apt.id)));
+    setIsSelectionMode(true);
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setIsSelectionMode(false);
   };
 
   // DnD sensors with activation constraint to prevent accidental drags
@@ -602,14 +641,30 @@ export default function Appointments() {
             {appointments.length} appointment{appointments.length !== 1 ? 's' : ''}
           </CardDescription>
         </div>
-        <Button
-          size="sm"
-          onClick={() => handleDayClick(currentDate)}
-          className="bg-purple-600 hover:bg-purple-700"
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Add
-        </Button>
+        <div className="flex items-center gap-2">
+          {appointments.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsSelectionMode(!isSelectionMode)}
+              className={cn(
+                "border-gray-600",
+                isSelectionMode ? "bg-purple-500/20 text-purple-300" : "text-gray-300 hover:bg-gray-700"
+              )}
+            >
+              <CheckSquare className="h-4 w-4 mr-1" />
+              Select
+            </Button>
+          )}
+          <Button
+            size="sm"
+            onClick={() => handleDayClick(currentDate)}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {appointments.length === 0 ? (
@@ -623,7 +678,16 @@ export default function Appointments() {
           </div>
         ) : (
           <div className="space-y-3">
-            {appointments.map(apt => renderAppointmentCard(apt))}
+            {appointments.map(apt => (
+              <SelectableAppointment
+                key={apt.id}
+                appointment={apt}
+                isSelected={selectedIds.has(apt.id)}
+                isSelectionMode={isSelectionMode}
+                onSelect={toggleAppointmentSelection}
+                onClick={handleAppointmentClick}
+              />
+            ))}
           </div>
         )}
       </CardContent>
@@ -761,14 +825,30 @@ export default function Appointments() {
               {appointments.length} appointment{appointments.length !== 1 ? 's' : ''} today
             </CardDescription>
           </div>
-          <Button
-            size="sm"
-            onClick={() => handleDayClick(currentDate)}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
+          <div className="flex items-center gap-2">
+            {appointments.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsSelectionMode(!isSelectionMode)}
+                className={cn(
+                  "border-gray-600",
+                  isSelectionMode ? "bg-purple-500/20 text-purple-300" : "text-gray-300 hover:bg-gray-700"
+                )}
+              >
+                <CheckSquare className="h-4 w-4 mr-1" />
+                Select
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={() => handleDayClick(currentDate)}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-gray-700/50">
@@ -812,18 +892,34 @@ export default function Appointments() {
                         {hourAppointments.map(apt => (
                           <div
                             key={apt.id}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:ring-1 hover:ring-purple-400 ${
+                            className={cn(
+                              "p-3 rounded-lg border cursor-pointer transition-all hover:ring-1 hover:ring-purple-400",
                               apt.status === 'confirmed' ? 'bg-green-500/10 border-green-500/30' :
                               apt.status === 'cancelled' ? 'bg-red-500/10 border-red-500/30' :
                               apt.status === 'completed' ? 'bg-blue-500/10 border-blue-500/30' :
-                              'bg-gray-700/30 border-gray-600/50'
-                            }`}
+                              'bg-gray-700/30 border-gray-600/50',
+                              selectedIds.has(apt.id) && "ring-1 ring-purple-500 bg-purple-500/20"
+                            )}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleAppointmentClick(apt);
                             }}
                           >
-                            <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-2">
+                              {/* Checkbox for selection mode */}
+                              <div
+                                className={cn(
+                                  "flex-shrink-0 pt-1 transition-all",
+                                  isSelectionMode ? "opacity-100 w-5" : "opacity-0 w-0 overflow-hidden"
+                                )}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Checkbox
+                                  checked={selectedIds.has(apt.id)}
+                                  onCheckedChange={() => toggleAppointmentSelection(apt.id)}
+                                  className="border-gray-500 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+                                />
+                              </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                   <span className="font-medium text-white truncate">
@@ -1104,6 +1200,15 @@ export default function Appointments() {
         newDate={pendingDragData?.newScheduledAt || new Date()}
         onConfirm={handleDragConflictConfirm}
         onCancel={handleDragConflictCancel}
+      />
+
+      {/* Batch Actions Toolbar */}
+      <BatchActionsToolbar
+        selectedIds={selectedIds}
+        totalCount={appointments.length}
+        onClearSelection={clearSelection}
+        onSelectAll={selectAllAppointments}
+        onActionComplete={fetchAppointments}
       />
     </div>
   );

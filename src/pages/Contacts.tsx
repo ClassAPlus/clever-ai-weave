@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Loader2, Users, User, Phone, Mail, Clock, RefreshCw, Filter,
-  UserX, UserCheck, Search, MessageSquare, PhoneCall, Eye
+  UserX, UserCheck, Search, MessageSquare, PhoneCall, Eye, Globe
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import {
@@ -41,6 +41,28 @@ interface Contact {
   tags: string[] | null;
   preferred_language: string | null;
 }
+
+// Language labels for display
+const LANGUAGE_LABELS: Record<string, string> = {
+  hebrew: "עברית",
+  english: "EN",
+  arabic: "العربية",
+  russian: "RU",
+  spanish: "ES",
+  french: "FR",
+  german: "DE",
+  portuguese: "PT",
+  italian: "IT",
+  dutch: "NL",
+  polish: "PL",
+  turkish: "TR",
+  chinese: "中文",
+  japanese: "日本語",
+  korean: "한국어",
+  hindi: "हिन्दी",
+  thai: "ไทย",
+  vietnamese: "VI",
+};
 
 interface ContactStats {
   total: number;
@@ -414,6 +436,12 @@ export default function Contacts() {
                           <Badge className="bg-red-500/20 text-red-300 border-red-500/30">
                             <UserX className="h-3 w-3 mr-1" />
                             Opted Out
+                          </Badge>
+                        )}
+                        {contact.preferred_language && (
+                          <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-500/30">
+                            <Globe className="h-3 w-3 mr-1" />
+                            {LANGUAGE_LABELS[contact.preferred_language] || contact.preferred_language}
                           </Badge>
                         )}
                       </div>

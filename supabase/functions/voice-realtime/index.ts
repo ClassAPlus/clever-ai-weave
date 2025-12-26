@@ -418,6 +418,9 @@ serve(async (req) => {
   const markQueue: string[] = [];
   let sessionInitialized = false;
   
+  // Collect transcripts for call summary
+  const conversationTranscripts: { role: 'user' | 'ai', text: string }[] = [];
+  
   // Function to load business and contact data
   const loadBusinessData = async (bizId: string, cSid: string | null) => {
     console.log(`Loading business data for: ${bizId}, callSid: ${cSid}`);
@@ -1365,12 +1368,29 @@ serve(async (req) => {
                 outcome += " - Contact info updated";
               }
               
+              // Generate a discussion summary from transcripts
+              let discussionSummary = "";
+              if (conversationTranscripts.length > 0) {
+                // Create a condensed summary of the conversation
+                const summaryParts: string[] = [];
+                for (const entry of conversationTranscripts) {
+                  const prefix = entry.role === 'user' ? 'Customer' : 'AI';
+                  summaryParts.push(`${prefix}: ${entry.text}`);
+                }
+                discussionSummary = summaryParts.join('\n');
+                // Limit to last 2000 characters to avoid huge summaries
+                if (discussionSummary.length > 2000) {
+                  discussionSummary = "..." + discussionSummary.slice(-1997);
+                }
+              }
+              
               const callSummary = {
                 reason,
                 outcome,
                 next_steps,
                 caller_name: callerContext.name,
-                functions_used: functionsCalled
+                functions_used: functionsCalled,
+                discussion_summary: discussionSummary || null
               };
               
               console.log("Saving call summary:", JSON.stringify(callSummary));
@@ -1430,6 +1450,18 @@ serve(async (req) => {
         
       case "response.audio_transcript.done":
         console.log(`AI: ${data.transcript}`);
+        // Collect AI transcript for call summary
+        if (data.transcript && data.transcript.trim()) {
+          conversationTranscripts.push({ role: 'ai', text: data.transcript.trim() });
+        }
+        break;
+        
+      case "conversation.item.input_audio_transcription.completed":
+        console.log(`User: ${data.transcript}`);
+        // Collect user transcript for call summary
+        if (data.transcript && data.transcript.trim()) {
+          conversationTranscripts.push({ role: 'user', text: data.transcript.trim() });
+        }
         break;
         
       case "response.function_call_arguments.done":

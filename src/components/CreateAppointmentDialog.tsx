@@ -30,9 +30,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar as CalendarIcon, Clock, User, Loader2, Plus, Phone, Repeat } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Calendar as CalendarIcon, Clock, User, Loader2, Plus, Phone, Repeat, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+interface AppointmentTemplate {
+  id: string;
+  name: string;
+  service_type: string | null;
+  duration_minutes: number;
+  notes: string | null;
+  default_recurrence_pattern: string | null;
+  color: string | null;
+}
 
 interface Contact {
   id: string;
@@ -70,6 +81,7 @@ export function CreateAppointmentDialog({
     status: string | null;
     contact: { name: string | null; phone_number: string } | null;
   }>>([]);
+  const [templates, setTemplates] = useState<AppointmentTemplate[]>([]);
   
   // Form state
   const [contactId, setContactId] = useState<string>("");
@@ -81,6 +93,7 @@ export function CreateAppointmentDialog({
   const [notes, setNotes] = useState("");
   const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern>("none");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>(undefined);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
 
   // Check for conflicts when time or duration changes
@@ -100,8 +113,33 @@ export function CreateAppointmentDialog({
     if (open && businessId) {
       fetchContacts();
       fetchExistingAppointments();
+      fetchTemplates();
     }
   }, [open, businessId, selectedDate]);
+
+  const fetchTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("appointment_templates")
+        .select("id, name, service_type, duration_minutes, notes, default_recurrence_pattern, color")
+        .eq("business_id", businessId)
+        .eq("is_active", true)
+        .order("name");
+
+      if (error) throw error;
+      setTemplates(data || []);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+    }
+  };
+
+  const applyTemplate = (template: AppointmentTemplate) => {
+    setSelectedTemplateId(template.id);
+    setDuration(template.duration_minutes.toString());
+    setServiceType(template.service_type || "");
+    setNotes(template.notes || "");
+    setRecurrencePattern((template.default_recurrence_pattern || "none") as RecurrencePattern);
+  };
 
   useEffect(() => {
     // Reset form when dialog opens
@@ -117,6 +155,7 @@ export function CreateAppointmentDialog({
       setRecurrencePattern("none");
       setRecurrenceEndDate(undefined);
       setConflictAcknowledged(false);
+      setSelectedTemplateId(null);
       clearConflicts();
     }
   }, [open, clearConflicts]);
@@ -382,6 +421,40 @@ export function CreateAppointmentDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Template Quick Select */}
+          {templates.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-gray-300 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-400" />
+                Quick Templates
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {templates.map((template) => (
+                  <Badge
+                    key={template.id}
+                    variant={selectedTemplateId === template.id ? "default" : "outline"}
+                    className={cn(
+                      "cursor-pointer transition-all",
+                      selectedTemplateId === template.id
+                        ? "bg-purple-600 text-white border-purple-500"
+                        : "border-gray-600 text-gray-300 hover:border-purple-500 hover:bg-purple-500/20"
+                    )}
+                    style={{
+                      borderLeftWidth: "3px",
+                      borderLeftColor: template.color || "#8b5cf6",
+                    }}
+                    onClick={() => applyTemplate(template)}
+                  >
+                    {template.name}
+                    <span className="ml-1 text-xs opacity-70">
+                      ({template.duration_minutes}m)
+                    </span>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Conflict Warning */}
           <ConflictWarning 
             conflicts={conflicts} 

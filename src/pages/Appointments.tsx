@@ -15,6 +15,7 @@ import { DroppableDayCell } from "@/components/appointments/DroppableDayCell";
 import { AppointmentDetailsDialog } from "@/components/appointments/AppointmentDetailsDialog";
 import { DragConflictDialog } from "@/components/appointments/DragConflictDialog";
 import { BusyTimeIndicator, BusyHourIndicator, DayBusyBadge } from "@/components/appointments/BusyTimeIndicator";
+import { DayHoverPreview } from "@/components/appointments/DayHoverPreview";
 import { useAppointmentConflictDetection, type ConflictingAppointment } from "@/hooks/useAppointmentConflictDetection";
 import { DndContext, DragEndEvent, DragOverlay, useSensor, useSensors, PointerSensor } from "@dnd-kit/core";
 import { 
@@ -640,29 +641,32 @@ export default function Appointments() {
           const isCurrentDay = isToday(day);
           
           return (
-            <DroppableDayCell
-              key={day.toISOString()}
-              day={day}
-              isCurrentDay={isCurrentDay}
-              onClick={() => handleDayClick(day)}
-              variant="week"
-            >
-              {/* Busy time indicator bar */}
-              <BusyTimeIndicator day={day} appointments={appointments} />
-              
-              {dayAppointments.length === 0 ? (
-                <p className="text-xs text-gray-500 text-center py-4">Drag here or click to add</p>
-              ) : (
-                dayAppointments.map(apt => (
-                  <DraggableAppointment 
-                    key={apt.id} 
-                    appointment={apt} 
-                    compact 
-                    onClick={handleAppointmentClick}
-                  />
-                ))
-              )}
-            </DroppableDayCell>
+            <DayHoverPreview key={day.toISOString()} day={day} appointments={dayAppointments}>
+              <div>
+                <DroppableDayCell
+                  day={day}
+                  isCurrentDay={isCurrentDay}
+                  onClick={() => handleDayClick(day)}
+                  variant="week"
+                >
+                  {/* Busy time indicator bar */}
+                  <BusyTimeIndicator day={day} appointments={appointments} />
+                  
+                  {dayAppointments.length === 0 ? (
+                    <p className="text-xs text-gray-500 text-center py-4">Drag here or click to add</p>
+                  ) : (
+                    dayAppointments.map(apt => (
+                      <DraggableAppointment 
+                        key={apt.id} 
+                        appointment={apt} 
+                        compact 
+                        onClick={handleAppointmentClick}
+                      />
+                    ))
+                  )}
+                </DroppableDayCell>
+              </div>
+            </DayHoverPreview>
           );
         })}
       </div>
@@ -695,35 +699,38 @@ export default function Appointments() {
             const isCurrentMonth = isSameMonth(day, currentDate);
             
             return (
-              <DroppableDayCell
-                key={day.toISOString()}
-                day={day}
-                isCurrentDay={isCurrentDay}
-                isCurrentMonth={isCurrentMonth}
-                onClick={() => handleDayClick(day)}
-                variant="month"
-              >
-                {/* Day busy badge */}
-                {dayAppointments.length > 0 && (
-                  <div className="mb-1">
-                    <DayBusyBadge appointments={dayAppointments} />
-                  </div>
-                )}
-                
-                {dayAppointments.slice(0, 2).map(apt => (
-                  <DraggableAppointment 
-                    key={apt.id} 
-                    appointment={apt} 
-                    compact 
-                    onClick={handleAppointmentClick}
-                  />
-                ))}
-                {dayAppointments.length > 2 && (
-                  <div className="text-xs text-gray-400 text-center">
-                    +{dayAppointments.length - 2} more
-                  </div>
-                )}
-              </DroppableDayCell>
+              <DayHoverPreview key={day.toISOString()} day={day} appointments={dayAppointments}>
+                <div>
+                  <DroppableDayCell
+                    day={day}
+                    isCurrentDay={isCurrentDay}
+                    isCurrentMonth={isCurrentMonth}
+                    onClick={() => handleDayClick(day)}
+                    variant="month"
+                  >
+                    {/* Day busy badge */}
+                    {dayAppointments.length > 0 && (
+                      <div className="mb-1">
+                        <DayBusyBadge appointments={dayAppointments} />
+                      </div>
+                    )}
+                    
+                    {dayAppointments.slice(0, 2).map(apt => (
+                      <DraggableAppointment 
+                        key={apt.id} 
+                        appointment={apt} 
+                        compact 
+                        onClick={handleAppointmentClick}
+                      />
+                    ))}
+                    {dayAppointments.length > 2 && (
+                      <div className="text-xs text-gray-400 text-center">
+                        +{dayAppointments.length - 2} more
+                      </div>
+                    )}
+                  </DroppableDayCell>
+                </div>
+              </DayHoverPreview>
             );
           })}
         </div>

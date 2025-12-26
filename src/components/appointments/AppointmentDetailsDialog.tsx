@@ -3,6 +3,7 @@ import { format, setHours, setMinutes } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAppointmentConflictDetection } from "@/hooks/useAppointmentConflictDetection";
 import { ConflictWarning } from "@/components/appointments/ConflictWarning";
+import { DuplicateAppointmentDialog } from "@/components/appointments/DuplicateAppointmentDialog";
 import { QuickReschedule } from "@/components/appointments/QuickReschedule";
 import {
   Dialog,
@@ -57,6 +58,7 @@ import {
   Edit2,
   Save,
   RefreshCw,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -97,6 +99,7 @@ export function AppointmentDetailsDialog({
 }: AppointmentDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isQuickReschedule, setIsQuickReschedule] = useState(false);
+  const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSendingReminder, setIsSendingReminder] = useState(false);
@@ -667,8 +670,16 @@ export function AppointmentDetailsDialog({
                 )}
               </Button>
             </>
-          ) : (
+          ) : isQuickReschedule ? null : (
             <>
+              <Button
+                variant="outline"
+                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/20"
+                onClick={() => setIsDuplicateOpen(true)}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Duplicate
+              </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -717,6 +728,24 @@ export function AppointmentDetailsDialog({
           )}
         </DialogFooter>
       </DialogContent>
+
+      {/* Duplicate Appointment Dialog */}
+      {businessId && (
+        <DuplicateAppointmentDialog
+          open={isDuplicateOpen}
+          onOpenChange={setIsDuplicateOpen}
+          appointment={appointment ? {
+            id: appointment.id,
+            scheduled_at: appointment.scheduled_at,
+            duration_minutes: appointment.duration_minutes,
+            service_type: appointment.service_type,
+            notes: appointment.notes,
+            contact_id: appointment.contact?.id || null,
+          } : null}
+          businessId={businessId}
+          onDuplicated={onAppointmentUpdated}
+        />
+      )}
     </Dialog>
   );
 }

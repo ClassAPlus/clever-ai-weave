@@ -73,6 +73,7 @@ export function CreateAppointmentDialog({
   const [notes, setNotes] = useState("");
   const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern>("none");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>(undefined);
+  const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
 
   // Check for conflicts when time or duration changes
   const triggerConflictCheck = useCallback(() => {
@@ -80,6 +81,7 @@ export function CreateAppointmentDialog({
     const [hours, minutes] = time.split(":").map(Number);
     const scheduledAt = setMinutes(setHours(selectedDate, hours), minutes);
     checkConflicts(scheduledAt, parseInt(duration));
+    setConflictAcknowledged(false); // Reset acknowledgment when time/duration changes
   }, [open, time, duration, selectedDate, checkConflicts]);
 
   useEffect(() => {
@@ -105,6 +107,7 @@ export function CreateAppointmentDialog({
       setShowNewContact(false);
       setRecurrencePattern("none");
       setRecurrenceEndDate(undefined);
+      setConflictAcknowledged(false);
       clearConflicts();
     }
   }, [open, clearConflicts]);
@@ -336,7 +339,11 @@ export function CreateAppointmentDialog({
 
         <div className="space-y-4 py-4">
           {/* Conflict Warning */}
-          <ConflictWarning conflicts={conflicts} />
+          <ConflictWarning 
+            conflicts={conflicts} 
+            acknowledged={conflictAcknowledged}
+            onAcknowledge={() => setConflictAcknowledged(true)}
+          />
 
           {/* Contact Selection */}
           <div className="space-y-2">
@@ -544,7 +551,13 @@ export function CreateAppointmentDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isCreating || (!contactId && !showNewContact) || (showNewContact && !newContactPhone.trim()) || (recurrencePattern !== "none" && !recurrenceEndDate)}
+            disabled={
+              isCreating || 
+              (!contactId && !showNewContact) || 
+              (showNewContact && !newContactPhone.trim()) || 
+              (recurrencePattern !== "none" && !recurrenceEndDate) ||
+              (conflicts.length > 0 && !conflictAcknowledged)
+            }
             className="bg-purple-600 hover:bg-purple-700"
           >
             {isCreating ? (

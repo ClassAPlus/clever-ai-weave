@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { format, setHours, setMinutes, addDays, addWeeks, addMonths, isBefore } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
+import { useAppointmentConflictDetection } from "@/hooks/useAppointmentConflictDetection";
+import { ConflictWarning } from "@/components/appointments/ConflictWarning";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +57,7 @@ export function CreateAppointmentDialog({
   onAppointmentCreated,
 }: CreateAppointmentDialogProps) {
   const { syncAppointment, syncMultipleAppointments } = useGoogleCalendarSync();
+  const { isChecking, conflicts, checkConflicts, clearConflicts } = useAppointmentConflictDetection(businessId);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -70,6 +73,18 @@ export function CreateAppointmentDialog({
   const [notes, setNotes] = useState("");
   const [recurrencePattern, setRecurrencePattern] = useState<RecurrencePattern>("none");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | undefined>(undefined);
+
+  // Check for conflicts when time or duration changes
+  const triggerConflictCheck = useCallback(() => {
+    if (!open) return;
+    const [hours, minutes] = time.split(":").map(Number);
+    const scheduledAt = setMinutes(setHours(selectedDate, hours), minutes);
+    checkConflicts(scheduledAt, parseInt(duration));
+  }, [open, time, duration, selectedDate, checkConflicts]);
+
+  useEffect(() => {
+    triggerConflictCheck();
+  }, [triggerConflictCheck]);
 
   useEffect(() => {
     if (open && businessId) {
@@ -90,8 +105,9 @@ export function CreateAppointmentDialog({
       setShowNewContact(false);
       setRecurrencePattern("none");
       setRecurrenceEndDate(undefined);
+      clearConflicts();
     }
-  }, [open]);
+  }, [open, clearConflicts]);
 
   const fetchContacts = async () => {
     setIsLoadingContacts(true);
@@ -319,6 +335,9 @@ export function CreateAppointmentDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Conflict Warning */}
+          <ConflictWarning conflicts={conflicts} />
+
           {/* Contact Selection */}
           <div className="space-y-2">
             <Label className="text-gray-300 flex items-center justify-between">

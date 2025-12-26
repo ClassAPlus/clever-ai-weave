@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen, Code, ArrowRightLeft, Mail, Pencil, X } from "lucide-react";
+import { Loader2, Building2, Bot, Clock, Bell, Phone, Save, Send, Sparkles, MessageSquare, Wrench, BookOpen, Code, ArrowRightLeft, Mail, Pencil, X, PhoneCall } from "lucide-react";
 import { PortNumberDialog } from "@/components/PortNumberDialog";
 import { PortRequestStatus } from "@/components/PortRequestStatus";
 import { Json } from "@/integrations/supabase/types";
@@ -34,6 +34,7 @@ import { SettingsSkeleton } from "@/components/settings/SettingsSkeleton";
 import { GoogleCalendarSync } from "@/components/settings/GoogleCalendarSync";
 import { AppointmentTemplateManager } from "@/components/appointments/AppointmentTemplateManager";
 import { Badge } from "@/components/ui/badge";
+import { AITestCall } from "@/components/settings/AITestCall";
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -1716,6 +1717,14 @@ export default function Settings() {
 
         {/* Developer Tab */}
         <TabsContent value="developer" className="space-y-6">
+          {/* AI Test Call */}
+          {business && twilioSettings?.enableAiReceptionist && (
+            <AITestCall
+              businessId={business.id}
+              businessName={name}
+            />
+          )}
+
           {/* API Status Dashboard - Admin Only */}
           {isAdmin && business && <APIStatusDashboard businessId={business.id} />}
 

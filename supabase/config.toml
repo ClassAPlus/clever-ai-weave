@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.send-auto-confirm-notification]
 verify_jwt = true
+
+[functions.ai-test-call]
+verify_jwt = true

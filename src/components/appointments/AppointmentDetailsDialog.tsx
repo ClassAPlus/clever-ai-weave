@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { format, setHours, setMinutes } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { useAppointmentConflictDetection } from "@/hooks/useAppointmentConflictDetection";
+import { ConflictWarning } from "@/components/appointments/ConflictWarning";
 import {
   Dialog,
   DialogContent,
@@ -81,6 +83,7 @@ interface AppointmentDetailsDialogProps {
   onOpenChange: (open: boolean) => void;
   appointment: Appointment | null;
   onAppointmentUpdated: () => void;
+  businessId?: string;
 }
 
 export function AppointmentDetailsDialog({
@@ -88,11 +91,13 @@ export function AppointmentDetailsDialog({
   onOpenChange,
   appointment,
   onAppointmentUpdated,
+  businessId,
 }: AppointmentDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
 
   // Form state
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -101,6 +106,21 @@ export function AppointmentDetailsDialog({
   const [serviceType, setServiceType] = useState("");
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("pending");
+
+  const { conflicts, checkConflicts, clearConflicts } = useAppointmentConflictDetection(businessId || "");
+
+  // Check for conflicts when date, time, or duration changes in edit mode
+  const triggerConflictCheck = useCallback(() => {
+    if (!isEditing || !selectedDate || !appointment) return;
+    const [hours, minutes] = time.split(":").map(Number);
+    const scheduledAt = setMinutes(setHours(selectedDate, hours), minutes);
+    checkConflicts(scheduledAt, parseInt(duration), appointment.id);
+    setConflictAcknowledged(false);
+  }, [isEditing, selectedDate, time, duration, appointment, checkConflicts]);
+
+  useEffect(() => {
+    triggerConflictCheck();
+  }, [triggerConflictCheck]);
 
   useEffect(() => {
     if (appointment && open) {
@@ -112,8 +132,10 @@ export function AppointmentDetailsDialog({
       setNotes(appointment.notes || "");
       setStatus(appointment.status || "pending");
       setIsEditing(false);
+      setConflictAcknowledged(false);
+      clearConflicts();
     }
-  }, [appointment, open]);
+  }, [appointment, open, clearConflicts]);
 
   const handleSave = async () => {
     if (!appointment || !selectedDate) return;
@@ -299,6 +321,15 @@ export function AppointmentDetailsDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Conflict Warning when editing */}
+          {isEditing && (
+            <ConflictWarning
+              conflicts={conflicts}
+              acknowledged={conflictAcknowledged}
+              onAcknowledge={() => setConflictAcknowledged(true)}
+            />
+          )}
+
           {/* Contact Info */}
           <div className="flex items-start gap-3 p-3 bg-gray-700/30 rounded-lg">
             <div className="p-2 bg-purple-500/20 rounded-full">
@@ -590,7 +621,7 @@ export function AppointmentDetailsDialog({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={isSaving}
+                disabled={isSaving || (conflicts.length > 0 && !conflictAcknowledged)}
                 className="bg-purple-600 hover:bg-purple-700"
               >
                 {isSaving ? (

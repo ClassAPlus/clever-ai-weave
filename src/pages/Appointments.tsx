@@ -1072,6 +1072,7 @@ export default function Appointments() {
         onOpenChange={setDetailsDialogOpen}
         appointment={selectedAppointment}
         onAppointmentUpdated={fetchAppointments}
+        businessId={businessId || undefined}
       />
 
       {/* Drag Conflict Dialog */}

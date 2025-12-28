@@ -9,7 +9,7 @@ import {
   Loader2, Calendar, Clock, User, RefreshCw, Filter,
   CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare, Send,
   ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid, Plus, GripVertical, AlignJustify,
-  CheckSquare, Download, UserX
+  CheckSquare, Download, UserX, UserCheck
 } from "lucide-react";
 import { CreateAppointmentDialog } from "@/components/CreateAppointmentDialog";
 import { DraggableAppointment } from "@/components/appointments/DraggableAppointment";
@@ -466,6 +466,32 @@ export default function Appointments() {
     }
   };
 
+  const [reEnablingContactId, setReEnablingContactId] = useState<string | null>(null);
+
+  const reEnableSms = async (contactId: string) => {
+    setReEnablingContactId(contactId);
+    try {
+      const { error } = await supabase
+        .from("contacts")
+        .update({ opted_out: false, opted_out_at: null })
+        .eq("id", contactId);
+
+      if (error) {
+        console.error("Error re-enabling SMS:", error);
+        toast.error("Failed to re-enable SMS");
+        return;
+      }
+
+      toast.success("SMS re-enabled for this contact");
+      fetchAppointments();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to re-enable SMS");
+    } finally {
+      setReEnablingContactId(null);
+    }
+  };
+
   const navigateDate = (direction: "prev" | "next") => {
     setCurrentDate(prev => {
       switch (viewMode) {
@@ -663,10 +689,31 @@ export default function Appointments() {
             {appointment.contact?.name || formatPhoneNumber(appointment.contact?.phone_number || "Unknown")}
           </span>
           {appointment.contact?.opted_out && (
-            <Badge className="bg-red-500/20 text-red-300 border-red-500/30 text-xs px-1.5 py-0 shrink-0">
-              <UserX className="h-3 w-3 mr-0.5" />
-              {!compact && "No SMS"}
-            </Badge>
+            <div className="flex items-center gap-1 shrink-0">
+              <Badge className="bg-red-500/20 text-red-300 border-red-500/30 text-xs px-1.5 py-0">
+                <UserX className="h-3 w-3 mr-0.5" />
+                {!compact && "No SMS"}
+              </Badge>
+              {!compact && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-5 px-1.5 text-amber-400 hover:text-amber-300 hover:bg-amber-500/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    reEnableSms(appointment.contact!.id);
+                  }}
+                  disabled={reEnablingContactId === appointment.contact.id}
+                  title="Re-enable SMS for this contact"
+                >
+                  {reEnablingContactId === appointment.contact.id ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <UserCheck className="h-3 w-3" />
+                  )}
+                </Button>
+              )}
+            </div>
           )}
         </div>
         {!compact && getStatusBadge(appointment.status)}

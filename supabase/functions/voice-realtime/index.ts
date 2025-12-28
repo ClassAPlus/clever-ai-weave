@@ -1419,7 +1419,8 @@ serve(async (req) => {
                 next_steps,
                 caller_name: callerContext.name,
                 functions_used: functionsCalled,
-                discussion_summary: discussionSummary || null
+                discussion_summary: discussionSummary || null,
+                full_transcript: rawTranscript || null
               };
               
               console.log("Saving call summary:", JSON.stringify(callSummary));

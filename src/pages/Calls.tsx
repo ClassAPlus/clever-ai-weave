@@ -27,6 +27,7 @@ interface CallSummary {
   caller_name?: string;
   functions_used?: string[];
   discussion_summary?: string | null;
+  full_transcript?: string | null;
 }
 
 interface Call {
@@ -63,6 +64,7 @@ export default function Calls() {
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
   const [notesValue, setNotesValue] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [showFullTranscript, setShowFullTranscript] = useState<string | null>(null);
   const isInitialLoad = useRef(true);
 
   const fetchCalls = useCallback(async () => {
@@ -475,18 +477,65 @@ export default function Calls() {
                           {/* AI Conversation Summary */}
                           {call.call_summary.discussion_summary && (
                             <div className="bg-gray-800/50 p-3 rounded-lg">
-                              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Conversation Summary</p>
-                              <div className="text-sm text-gray-200 space-y-1.5">
-                                {call.call_summary.discussion_summary.split('\n').filter(line => line.trim()).map((line, idx) => (
-                                  <div key={idx} className="flex items-start gap-2">
-                                    {line.startsWith('•') ? (
-                                      <span className="text-gray-200">{line}</span>
+                              <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs text-gray-500 uppercase tracking-wide">Conversation Summary</p>
+                                {call.call_summary.full_transcript && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs text-blue-400 hover:text-blue-300 h-6 px-2"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowFullTranscript(showFullTranscript === call.id ? null : call.id);
+                                    }}
+                                  >
+                                    {showFullTranscript === call.id ? (
+                                      <>
+                                        <ChevronUp className="h-3 w-3 mr-1" />
+                                        Hide Transcript
+                                      </>
                                     ) : (
-                                      <span className="text-gray-200">• {line}</span>
+                                      <>
+                                        <ChevronDown className="h-3 w-3 mr-1" />
+                                        View Full Transcript
+                                      </>
                                     )}
-                                  </div>
-                                ))}
+                                  </Button>
+                                )}
                               </div>
+                              
+                              {/* Show summary or full transcript */}
+                              {showFullTranscript === call.id && call.call_summary.full_transcript ? (
+                                <div className="text-sm text-gray-200 space-y-2 border-t border-gray-700 pt-2 mt-2">
+                                  {call.call_summary.full_transcript.split('\n').filter(line => line.trim()).map((line, idx) => {
+                                    const isCustomer = line.toLowerCase().startsWith('customer:') || line.toLowerCase().startsWith('caller:');
+                                    const isAI = line.toLowerCase().startsWith('ai:') || line.toLowerCase().startsWith('assistant:');
+                                    return (
+                                      <div 
+                                        key={idx} 
+                                        className={`px-2 py-1 rounded ${
+                                          isCustomer ? 'bg-blue-900/30 border-l-2 border-blue-500' : 
+                                          isAI ? 'bg-green-900/30 border-l-2 border-green-500' : ''
+                                        }`}
+                                      >
+                                        <span className="text-gray-200">{line}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="text-sm text-gray-200 space-y-1.5">
+                                  {call.call_summary.discussion_summary.split('\n').filter(line => line.trim()).map((line, idx) => (
+                                    <div key={idx} className="flex items-start gap-2">
+                                      {line.startsWith('•') ? (
+                                        <span className="text-gray-200">{line}</span>
+                                      ) : (
+                                        <span className="text-gray-200">• {line}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                           

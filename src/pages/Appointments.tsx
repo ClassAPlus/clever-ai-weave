@@ -9,7 +9,7 @@ import {
   Loader2, Calendar, Clock, User, RefreshCw, Filter,
   CheckCircle, XCircle, AlertCircle, CalendarCheck, Bell, MessageSquare, Send,
   ChevronLeft, ChevronRight, List, CalendarDays, LayoutGrid, Plus, GripVertical, AlignJustify,
-  CheckSquare, Download
+  CheckSquare, Download, UserX
 } from "lucide-react";
 import { CreateAppointmentDialog } from "@/components/CreateAppointmentDialog";
 import { DraggableAppointment } from "@/components/appointments/DraggableAppointment";
@@ -56,6 +56,7 @@ interface Appointment {
     id: string;
     name: string | null;
     phone_number: string;
+    opted_out: boolean | null;
   } | null;
 }
 
@@ -303,7 +304,7 @@ export default function Appointments() {
           reminder_sent_at,
           reminder_response,
           reminder_response_at,
-          contact:contacts(id, name, phone_number)
+          contact:contacts(id, name, phone_number, opted_out)
         `)
         .eq("business_id", business.id)
         .gte("scheduled_at", start.toISOString())
@@ -649,13 +650,25 @@ export default function Appointments() {
   const renderAppointmentCard = (appointment: Appointment, compact = false) => (
     <div 
       key={appointment.id} 
-      className={`flex flex-col p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 hover:ring-1 hover:ring-purple-400 transition-colors cursor-pointer ${compact ? 'text-xs' : ''}`}
+      className={`flex flex-col p-3 rounded-lg hover:ring-1 hover:ring-purple-400 transition-colors cursor-pointer ${compact ? 'text-xs' : ''} ${
+        appointment.contact?.opted_out 
+          ? 'bg-red-500/10 border border-red-500/20' 
+          : 'bg-gray-700/30 hover:bg-gray-700/50'
+      }`}
       onClick={() => handleAppointmentClick(appointment)}
     >
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className={`font-medium text-white ${compact ? 'text-xs truncate' : ''}`}>
-          {appointment.contact?.name || formatPhoneNumber(appointment.contact?.phone_number || "Unknown")}
-        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`font-medium text-white ${compact ? 'text-xs truncate' : ''}`}>
+            {appointment.contact?.name || formatPhoneNumber(appointment.contact?.phone_number || "Unknown")}
+          </span>
+          {appointment.contact?.opted_out && (
+            <Badge className="bg-red-500/20 text-red-300 border-red-500/30 text-xs px-1.5 py-0 shrink-0">
+              <UserX className="h-3 w-3 mr-0.5" />
+              {!compact && "No SMS"}
+            </Badge>
+          )}
+        </div>
         {!compact && getStatusBadge(appointment.status)}
       </div>
       <div className="flex items-center gap-2 text-gray-400">

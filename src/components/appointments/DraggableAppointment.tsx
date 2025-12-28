@@ -1,7 +1,7 @@
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { format } from "date-fns";
-import { Clock, GripVertical, Repeat } from "lucide-react";
+import { Clock, GripVertical, Repeat, UserX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -23,6 +23,7 @@ interface Appointment {
     id: string;
     name: string | null;
     phone_number: string;
+    opted_out?: boolean | null;
   } | null;
 }
 
@@ -129,6 +130,11 @@ export function DraggableAppointment({ appointment, compact = false, onClick }: 
         <span className="font-medium text-white truncate flex-1">
           {appointment.contact?.name || appointment.contact?.phone_number || "Unknown"}
         </span>
+        {appointment.contact?.opted_out && (
+          <Badge className="bg-red-500/20 text-red-300 border-red-500/30 text-xs px-1.5 py-0 shrink-0">
+            <UserX className="h-3 w-3" />
+          </Badge>
+        )}
         {(isRecurring || isPartOfSeries) && (
           <TooltipProvider>
             <Tooltip>

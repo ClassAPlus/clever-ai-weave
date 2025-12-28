@@ -473,10 +473,14 @@ export default function Appointments() {
       // Don't show closed indicator until business hours are loaded
       if (!businessHours) return false;
 
+      // Use midday to avoid timezone-boundary issues (e.g., local midnight being "previous day" in business TZ)
+      const safeDay = new Date(day);
+      safeDay.setHours(12, 0, 0, 0);
+
       const weekdayShort = new Intl.DateTimeFormat("en-US", {
         weekday: "short",
         timeZone: businessTimezone || undefined,
-      }).format(day);
+      }).format(safeDay);
 
       const dayKey = weekdayShort.toLowerCase(); // sun, mon, tue, wed, thu, fri, sat
       const hours = businessHours[dayKey];
@@ -490,10 +494,13 @@ export default function Appointments() {
     (day: Date): { start: string; end: string } | null => {
       if (!businessHours) return null;
 
+      const safeDay = new Date(day);
+      safeDay.setHours(12, 0, 0, 0);
+
       const weekdayShort = new Intl.DateTimeFormat("en-US", {
         weekday: "short",
         timeZone: businessTimezone || undefined,
-      }).format(day);
+      }).format(safeDay);
 
       const dayKey = weekdayShort.toLowerCase();
       const hours = businessHours[dayKey];

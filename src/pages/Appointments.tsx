@@ -27,7 +27,7 @@ import {
   format, formatDistanceToNow, isPast, isToday, isTomorrow, 
   startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   addDays, addWeeks, addMonths, subDays, subWeeks, subMonths,
-  eachDayOfInterval, isSameDay, isSameMonth, getDay, setHours, setMinutes, getHours, getMinutes
+  eachDayOfInterval, isSameDay, isSameMonth, setHours, setMinutes, getHours, getMinutes
 } from "date-fns";
 import {
   Select,
@@ -85,6 +85,7 @@ export default function Appointments() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [businessHours, setBusinessHours] = useState<BusinessHours | null>(null);
+  const [businessTimezone, setBusinessTimezone] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "completed" | "cancelled">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
@@ -268,7 +269,7 @@ export default function Appointments() {
     try {
       const { data: business, error: bizError } = await supabase
         .from("businesses")
-        .select("id, business_hours")
+        .select("id, business_hours, timezone")
         .eq("owner_user_id", user.id)
         .maybeSingle();
 
@@ -283,7 +284,8 @@ export default function Appointments() {
       }
 
       setBusinessId(business.id);
-      setBusinessHours((business.business_hours as BusinessHours) || {});
+      setBusinessHours(business.business_hours ? (business.business_hours as BusinessHours) : null);
+      setBusinessTimezone(business.timezone || null);
 
       const { start, end } = getDateRange();
 
@@ -465,19 +467,23 @@ export default function Appointments() {
 
   const goToToday = () => setCurrentDate(new Date());
 
-  // Check if a day is closed based on business hours
-  const isDayClosed = useCallback((day: Date): boolean => {
-    // Don't show closed indicator until business hours are loaded
-    if (!businessHours) return false;
-    
-    const dayOfWeek = getDay(day);
-    const dayMap: Record<number, string> = {
-      0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat"
-    };
-    const dayKey = dayMap[dayOfWeek];
-    const hours = businessHours[dayKey];
-    return !hours || !hours.start || !hours.end;
-  }, [businessHours]);
+  // Check if a day is closed based on business hours (day-of-week in the business timezone)
+  const isDayClosed = useCallback(
+    (day: Date): boolean => {
+      // Don't show closed indicator until business hours are loaded
+      if (!businessHours) return false;
+
+      const weekdayShort = new Intl.DateTimeFormat("en-US", {
+        weekday: "short",
+        timeZone: businessTimezone || undefined,
+      }).format(day);
+
+      const dayKey = weekdayShort.toLowerCase(); // sun, mon, tue, wed, thu, fri, sat
+      const hours = businessHours[dayKey];
+      return !hours || !hours.start || !hours.end;
+    },
+    [businessHours, businessTimezone]
+  );
 
   const getDateRangeLabel = () => {
     const { start, end } = getDateRange();

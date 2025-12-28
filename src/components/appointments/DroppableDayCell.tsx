@@ -1,6 +1,6 @@
 import { useDroppable } from "@dnd-kit/core";
-import { format, isToday } from "date-fns";
-import { Plus, Ban } from "lucide-react";
+import { format } from "date-fns";
+import { Plus, Ban, Clock } from "lucide-react";
 import { ReactNode } from "react";
 
 interface DroppableDayCellProps {
@@ -8,9 +8,20 @@ interface DroppableDayCellProps {
   isCurrentDay?: boolean;
   isCurrentMonth?: boolean;
   isClosed?: boolean;
+  businessHours?: { start: string; end: string } | null;
   children: ReactNode;
   onClick?: () => void;
   variant?: "week" | "month";
+}
+
+// Format time from 24h to 12h format (e.g., "09:00" -> "9a", "18:00" -> "6p")
+function formatBusinessTime(time: string): string {
+  const [hourStr] = time.split(":");
+  const hour = parseInt(hourStr, 10);
+  if (hour === 0) return "12a";
+  if (hour === 12) return "12p";
+  if (hour < 12) return `${hour}a`;
+  return `${hour - 12}p`;
 }
 
 export function DroppableDayCell({
@@ -18,6 +29,7 @@ export function DroppableDayCell({
   isCurrentDay = false,
   isCurrentMonth = true,
   isClosed = false,
+  businessHours,
   children,
   onClick,
   variant = "week",
@@ -28,6 +40,10 @@ export function DroppableDayCell({
       day,
     },
   });
+
+  const hoursLabel = businessHours
+    ? `${formatBusinessTime(businessHours.start)}–${formatBusinessTime(businessHours.end)}`
+    : null;
 
   if (variant === "month") {
     return (
@@ -59,7 +75,12 @@ export function DroppableDayCell({
               : "text-gray-600"
           } ${isClosed ? "text-red-300/70" : ""}`}
         >
-          <span>{format(day, "d")}</span>
+          <div className="flex items-center gap-1">
+            <span>{format(day, "d")}</span>
+            {hoursLabel && !isClosed && (
+              <span className="text-[9px] text-gray-500 font-normal">{hoursLabel}</span>
+            )}
+          </div>
           {!isClosed && <Plus className="h-3 w-3 opacity-0 hover:opacity-100 text-purple-400" />}
         </div>
         <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
@@ -102,14 +123,18 @@ export function DroppableDayCell({
             {format(day, "d")}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {isClosed && (
+        <div className="flex flex-col items-end gap-1">
+          {isClosed ? (
             <div className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 rounded text-[10px] text-red-400 border border-red-500/30">
               <Ban className="h-3 w-3" />
               <span>Closed</span>
             </div>
-          )}
-          {!isClosed && (
+          ) : hoursLabel ? (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-700/50 rounded text-[10px] text-gray-400">
+              <Clock className="h-2.5 w-2.5" />
+              <span>{hoursLabel}</span>
+            </div>
+          ) : (
             <Plus className="h-4 w-4 text-gray-500 opacity-0 group-hover:opacity-100 hover:text-purple-400" />
           )}
         </div>

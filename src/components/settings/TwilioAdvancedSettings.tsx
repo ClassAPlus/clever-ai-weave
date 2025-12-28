@@ -52,21 +52,34 @@ const AI_LANGUAGE_TO_VOICE_CODE: Record<string, string> = {
 // ElevenLabs voices - multilingual_v2 supports all languages including Hebrew
 const ELEVENLABS_VOICES = [
   // Female voices
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', gender: 'female', description: 'Warm, natural, conversational' },
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', gender: 'female', description: 'Friendly, clear' },
-  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', gender: 'female', description: 'Soft, gentle' },
-  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', gender: 'female', description: 'Young, bright' },
-  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica', gender: 'female', description: 'Professional, clear' },
-  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', gender: 'female', description: 'Calm, professional' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', gender: 'female', description: 'Warm, natural, conversational', accent: 'American' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', gender: 'female', description: 'Friendly, clear', accent: 'American' },
+  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', gender: 'female', description: 'Soft, gentle', accent: 'British' },
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', gender: 'female', description: 'Young, bright', accent: 'British' },
+  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica', gender: 'female', description: 'Professional, clear', accent: 'American' },
+  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', gender: 'female', description: 'Calm, professional', accent: 'American' },
+  { id: 'SAz9YHcvj6GT2YYXdXww', name: 'River', gender: 'female', description: 'Confident, articulate', accent: 'American' },
+  { id: 'jsCqWAovK2LkecY7zXl4', name: 'Freya', gender: 'female', description: 'Nordic, elegant', accent: 'Scandinavian' },
+  { id: 'oWAxZDx7w5VEj9dCyTzz', name: 'Grace', gender: 'female', description: 'Southern charm', accent: 'American Southern' },
+  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', gender: 'female', description: 'Swedish, melodic', accent: 'Swedish' },
+  { id: 'pMsXgVXv3BLzUgSXRplE', name: 'Serena', gender: 'female', description: 'Soothing, calm', accent: 'American' },
+  { id: 'z9fAnlkpzviPz146aGWa', name: 'Glinda', gender: 'female', description: 'Warm, motherly', accent: 'American' },
   // Male voices
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', gender: 'male', description: 'Clear, professional' },
-  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', gender: 'male', description: 'Friendly, warm' },
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'male', description: 'British, refined' },
-  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', gender: 'male', description: 'Casual, approachable' },
-  { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric', gender: 'male', description: 'Deep, authoritative' },
-  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', gender: 'male', description: 'Warm, trustworthy' },
-  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum', gender: 'male', description: 'Scottish accent' },
-  { id: 'bIHbv24MWmeRgasZH58o', name: 'Will', gender: 'male', description: 'Young, energetic' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', gender: 'male', description: 'Clear, professional', accent: 'British' },
+  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', gender: 'male', description: 'Friendly, warm', accent: 'American' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'male', description: 'British, refined', accent: 'British' },
+  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', gender: 'male', description: 'Casual, approachable', accent: 'Australian' },
+  { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric', gender: 'male', description: 'Deep, authoritative', accent: 'American' },
+  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', gender: 'male', description: 'Warm, trustworthy', accent: 'American' },
+  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum', gender: 'male', description: 'Scottish accent', accent: 'Scottish' },
+  { id: 'bIHbv24MWmeRgasZH58o', name: 'Will', gender: 'male', description: 'Young, energetic', accent: 'American' },
+  { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger', gender: 'male', description: 'Mature, authoritative', accent: 'American' },
+  { id: 'iP95p4xoKVk53GoZ742B', name: 'Chris', gender: 'male', description: 'Casual, friendly', accent: 'American' },
+  { id: 'pqHfZKP75CvOlQylNhV4', name: 'Bill', gender: 'male', description: 'Narrator style', accent: 'American' },
+  { id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam', gender: 'male', description: 'Raspy, character', accent: 'American' },
+  { id: 'ZQe5CZNOzWyzPSCn5a3c', name: 'James', gender: 'male', description: 'British gentleman', accent: 'British' },
+  { id: 'ODq5zmih8GrVes37Dizd', name: 'Patrick', gender: 'male', description: 'Irish charm', accent: 'Irish' },
+  { id: 'g5CIjZEefAph4nQFvHAz', name: 'Ethan', gender: 'male', description: 'News anchor', accent: 'American' },
 ];
 
 const VOICE_LANGUAGES = [
@@ -98,6 +111,9 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
   const [isLoading, setIsLoading] = useState(false);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [customText, setCustomText] = useState("");
+  const [customVoiceId, setCustomVoiceId] = useState("");
+  const [useCustomVoice, setUseCustomVoice] = useState(false);
+  const [voiceFilter, setVoiceFilter] = useState<'all' | 'female' | 'male'>('all');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Auto-sync voice language from primary AI language (for display)
@@ -214,8 +230,12 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
 
   const currentLang = VOICE_LANGUAGES.find(l => l.value === effectiveVoiceLanguage);
   
-  // Filter voices by selected gender, then show all
-  const sortedVoices = [...ELEVENLABS_VOICES].sort((a, b) => {
+  // Filter and sort voices
+  const filteredVoices = ELEVENLABS_VOICES.filter(v => 
+    voiceFilter === 'all' || v.gender === voiceFilter
+  );
+  
+  const sortedVoices = [...filteredVoices].sort((a, b) => {
     // Preferred gender first
     if (a.gender === settings.voiceGender && b.gender !== settings.voiceGender) return -1;
     if (b.gender === settings.voiceGender && a.gender !== settings.voiceGender) return 1;
@@ -223,6 +243,7 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
   });
   
   const selectedVoice = ELEVENLABS_VOICES.find(v => v.id === settings.elevenLabsVoiceId);
+  const isUsingCustomVoice = useCustomVoice || (settings.elevenLabsVoiceId && !ELEVENLABS_VOICES.find(v => v.id === settings.elevenLabsVoiceId));
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -304,79 +325,171 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
 
           {/* Voice Selection with Preview */}
           <div className="space-y-3">
-            <Label className="text-gray-300 flex items-center gap-2">
-              <User className="h-4 w-4" />
-              AI Voice Character
-            </Label>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {sortedVoices.map((voice) => {
-                const isSelected = settings.elevenLabsVoiceId === voice.id;
-                const isPreviewing = previewingVoiceId === voice.id && isSpeaking;
-                const isLoadingThis = previewingVoiceId === voice.id && isLoading;
-                
-                return (
-                  <div
-                    key={voice.id}
-                    className={`relative p-3 rounded-lg border cursor-pointer transition-all ${
-                      isSelected 
-                        ? 'bg-purple-500/20 border-purple-500' 
-                        : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
+            <div className="flex items-center justify-between">
+              <Label className="text-gray-300 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                AI Voice Character
+              </Label>
+              
+              {/* Filter tabs */}
+              <div className="flex gap-1 bg-gray-700/50 rounded-lg p-1">
+                {(['all', 'female', 'male'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setVoiceFilter(filter)}
+                    className={`px-3 py-1 text-xs rounded-md transition-all ${
+                      voiceFilter === filter 
+                        ? 'bg-purple-500 text-white' 
+                        : 'text-gray-400 hover:text-white'
                     }`}
-                    onClick={() => updateSettings({ elevenLabsVoiceId: voice.id })}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`font-medium ${isSelected ? 'text-purple-300' : 'text-white'}`}>
-                            {voice.name}
-                          </span>
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${
-                            voice.gender === 'female' 
-                              ? 'bg-pink-500/20 text-pink-300' 
-                              : 'bg-blue-500/20 text-blue-300'
-                          }`}>
-                            {voice.gender}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-400 truncate">{voice.description}</p>
-                      </div>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`ml-2 h-8 w-8 p-0 ${
-                          isPreviewing ? 'text-red-400 hover:text-red-300' : 'text-purple-400 hover:text-purple-300'
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          playVoicePreview(voice.id);
-                        }}
-                        disabled={isLoadingThis}
-                      >
-                        {isLoadingThis ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : isPreviewing ? (
-                          <Square className="h-4 w-4 fill-current" />
-                        ) : (
-                          <Play className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    
-                    {isSelected && (
-                      <div className="absolute top-1 right-1">
-                        <div className="h-2 w-2 rounded-full bg-purple-400" />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                    {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
             
-            <p className="text-xs text-gray-500">
-              Click a voice to select it, or press play to preview
-            </p>
+            {/* Custom Voice Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-amber-300">🎤 Use Custom/Cloned Voice</span>
+              </div>
+              <Switch
+                checked={useCustomVoice}
+                onCheckedChange={(checked) => {
+                  setUseCustomVoice(checked);
+                  if (!checked && customVoiceId) {
+                    // Reset to a default voice when disabling custom
+                    updateSettings({ elevenLabsVoiceId: 'EXAVITQu4vr4xnSDxMaL' });
+                  }
+                }}
+              />
+            </div>
+            
+            {useCustomVoice ? (
+              /* Custom Voice ID Input */
+              <div className="p-4 rounded-lg bg-gray-900/50 border border-amber-500/30 space-y-3">
+                <Label className="text-amber-300">Custom Voice ID</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={customVoiceId || settings.elevenLabsVoiceId || ''}
+                    onChange={(e) => setCustomVoiceId(e.target.value)}
+                    placeholder="Enter your ElevenLabs voice ID..."
+                    className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (customVoiceId) {
+                        updateSettings({ elevenLabsVoiceId: customVoiceId });
+                        toast({ title: "Custom voice saved", description: "Your custom voice ID has been set." });
+                      }
+                    }}
+                    disabled={!customVoiceId}
+                    className="border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                  >
+                    Apply
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => playVoicePreview(customVoiceId || settings.elevenLabsVoiceId)}
+                    disabled={isLoading || (!customVoiceId && !settings.elevenLabsVoiceId)}
+                    className="text-purple-400 hover:text-purple-300"
+                  >
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Find your voice ID in ElevenLabs → Voices → Click on voice → Copy Voice ID
+                </p>
+                <a 
+                  href="https://elevenlabs.io/voice-library" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-purple-400 hover:text-purple-300 underline"
+                >
+                  Browse ElevenLabs Voice Library →
+                </a>
+              </div>
+            ) : (
+              /* Voice Grid */
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1">
+                  {sortedVoices.map((voice) => {
+                    const isSelected = settings.elevenLabsVoiceId === voice.id && !isUsingCustomVoice;
+                    const isPreviewing = previewingVoiceId === voice.id && isSpeaking;
+                    const isLoadingThis = previewingVoiceId === voice.id && isLoading;
+                    
+                    return (
+                      <div
+                        key={voice.id}
+                        className={`relative p-3 rounded-lg border cursor-pointer transition-all ${
+                          isSelected 
+                            ? 'bg-purple-500/20 border-purple-500' 
+                            : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
+                        }`}
+                        onClick={() => {
+                          setUseCustomVoice(false);
+                          updateSettings({ elevenLabsVoiceId: voice.id });
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className={`font-medium ${isSelected ? 'text-purple-300' : 'text-white'}`}>
+                                {voice.name}
+                              </span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                voice.gender === 'female' 
+                                  ? 'bg-pink-500/20 text-pink-300' 
+                                  : 'bg-blue-500/20 text-blue-300'
+                              }`}>
+                                {voice.gender}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-400 truncate">{voice.description}</p>
+                            <p className="text-[10px] text-gray-500">{voice.accent}</p>
+                          </div>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`ml-1 h-7 w-7 p-0 ${
+                              isPreviewing ? 'text-red-400 hover:text-red-300' : 'text-purple-400 hover:text-purple-300'
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playVoicePreview(voice.id);
+                            }}
+                            disabled={isLoadingThis}
+                          >
+                            {isLoadingThis ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : isPreviewing ? (
+                              <Square className="h-3.5 w-3.5 fill-current" />
+                            ) : (
+                              <Play className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
+                        
+                        {isSelected && (
+                          <div className="absolute top-1 right-1">
+                            <div className="h-2 w-2 rounded-full bg-purple-400" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                <p className="text-xs text-gray-500">
+                  {sortedVoices.length} voices available • Click to select, press play to preview
+                </p>
+              </>
+            )}
           </div>
 
           {/* Custom Text Preview */}

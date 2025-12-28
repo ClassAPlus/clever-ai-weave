@@ -251,8 +251,20 @@ async function sendSMS(from: string, to: string, body: string): Promise<{ sid: s
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Twilio SMS error: ${errorText}`);
+    const errorData = await response.json().catch(() => null);
+    
+    // Check for specific Twilio error codes
+    if (errorData?.code === 21610) {
+      throw new Error('This recipient has opted out of SMS messages. They need to text START to re-subscribe.');
+    }
+    if (errorData?.code === 21211) {
+      throw new Error('Invalid phone number format.');
+    }
+    if (errorData?.code === 21614) {
+      throw new Error('Cannot send SMS to this phone number (not a mobile number or unsupported carrier).');
+    }
+    
+    throw new Error(errorData?.message || `Twilio SMS error: ${response.status}`);
   }
 
   return await response.json();

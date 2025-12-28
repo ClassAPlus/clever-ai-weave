@@ -428,8 +428,19 @@ export default function Appointments() {
 
       if (error) {
         console.error("Error sending reminder:", error);
+
+        let errorMsg = error.message || "Failed to send reminder";
+        try {
+          if ((error as any)?.context && typeof (error as any).context.json === "function") {
+            const body = await (error as any).context.json();
+            if (body?.error) errorMsg = body.error;
+          }
+        } catch {
+          // ignore
+        }
+
         toast.error("Failed to send reminder", {
-          description: error.message
+          description: errorMsg,
         });
         return;
       }

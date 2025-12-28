@@ -197,11 +197,26 @@ serve(async (req) => {
 
     console.log(`Sending reminder in ${effectiveLanguage} to ${contact.phone_number}`);
 
-    const smsResult = await sendSMS(
-      business.twilio_phone_number,
-      contact.phone_number,
-      reminderMessage
-    );
+    let smsResult: { sid: string };
+    try {
+      smsResult = await sendSMS(
+        business.twilio_phone_number,
+        contact.phone_number,
+        reminderMessage
+      );
+    } catch (err) {
+      // If Twilio says the recipient opted out, persist that to our DB so the UI can disable sending next time.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("opted out") && contact?.id) {
+        const { error: optOutErr } = await supabase
+          .from("contacts")
+          .update({ opted_out: true, opted_out_at: new Date().toISOString() })
+          .eq("id", contact.id);
+
+        if (optOutErr) console.error("Failed to mark contact as opted out:", optOutErr);
+      }
+      throw err;
+    }
 
     // Update appointment with reminder_sent_at
     const { error: updateError } = await supabase

@@ -54,6 +54,9 @@ verify_jwt = false
 [functions.voice-audio]
 verify_jwt = false
 
+[functions.elevenlabs-voices]
+verify_jwt = false
+
 [functions.voice-realtime]
 verify_jwt = false
 

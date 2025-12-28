@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Phone, MessageSquare, Volume2, Loader2, Square, User, Bot, Play } from "lucide-react";
+import { Phone, MessageSquare, Volume2, Loader2, Square, User, Bot, Play, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TwilioSettings {
   voiceLanguage: string;
@@ -115,6 +116,12 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
   const [customVoiceId, setCustomVoiceId] = useState("");
   const [useCustomVoice, setUseCustomVoice] = useState(false);
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'female' | 'male'>('all');
+
+  const [accountVoices, setAccountVoices] = useState<Array<{ voice_id: string; name: string; category?: string }>>([]);
+  const [accountVoicesLoading, setAccountVoicesLoading] = useState(false);
+  const [accountVoicesError, setAccountVoicesError] = useState<string | null>(null);
+  const [selectedAccountVoiceId, setSelectedAccountVoiceId] = useState<string>("");
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Auto-sync voice language from primary AI language (for display)
@@ -146,9 +153,32 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
     if (!settings.elevenLabsVoiceId) {
       const defaultVoice = settings.voiceGender === 'male' 
         ? 'onwK4e9ZLuTAKqWW03F9' // Daniel
-        : 'EXAVITQu4vr4xnSDxMaL'; // Sarah
+        : 'cgSgspJ2msm6clMCkdW9'; // Jessica (best multilingual)
       updateSettings({ elevenLabsVoiceId: defaultVoice });
     }
+  }, []);
+
+  const fetchAccountVoices = async () => {
+    try {
+      setAccountVoicesLoading(true);
+      setAccountVoicesError(null);
+
+      const { data, error } = await supabase.functions.invoke("elevenlabs-voices");
+      if (error) throw error;
+
+      const voices = (data?.voices as Array<{ voice_id: string; name: string; category?: string }>) || [];
+      setAccountVoices(voices);
+      setSelectedAccountVoiceId((prev) => prev || voices?.[0]?.voice_id || "");
+    } catch (e) {
+      console.error("Failed to load ElevenLabs voices:", e);
+      setAccountVoicesError(e instanceof Error ? e.message : "Failed to load voices");
+    } finally {
+      setAccountVoicesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchAccountVoices();
   }, []);
 
   const stopAudio = () => {
@@ -361,10 +391,89 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
                   setUseCustomVoice(checked);
                   if (!checked && customVoiceId) {
                     // Reset to a default voice when disabling custom
-                    updateSettings({ elevenLabsVoiceId: 'EXAVITQu4vr4xnSDxMaL' });
+                    updateSettings({ elevenLabsVoiceId: 'cgSgspJ2msm6clMCkdW9' });
                   }
                 }}
               />
+            </div>
+
+            {/* Account voices (includes cloned voices) */}
+            <div className="p-4 rounded-lg bg-gray-900/50 border border-gray-700 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm text-white">Your ElevenLabs voices</p>
+                  <p className="text-xs text-gray-400">
+                    Includes cloned voices. For the best Hebrew, pick a Hebrew-trained voice from your account.
+                  </p>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchAccountVoices}
+                  disabled={accountVoicesLoading}
+                  className="text-purple-400 hover:text-purple-300"
+                >
+                  {accountVoicesLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              {accountVoicesError && (
+                <p className="text-xs text-red-400">{accountVoicesError}</p>
+              )}
+
+              {accountVoices.length > 0 ? (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Select value={selectedAccountVoiceId} onValueChange={setSelectedAccountVoiceId}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectValue placeholder="Select one of your voices" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accountVoices.map((v) => (
+                        <SelectItem key={v.voice_id} value={v.voice_id}>
+                          {v.name}{v.category ? ` (${v.category})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (!selectedAccountVoiceId) return;
+                        setUseCustomVoice(false);
+                        updateSettings({ elevenLabsVoiceId: selectedAccountVoiceId });
+                        toast({ title: "Voice selected", description: "Saved your ElevenLabs voice for calls." });
+                      }}
+                      disabled={!selectedAccountVoiceId}
+                      className="border-gray-600 text-white hover:bg-gray-700"
+                    >
+                      Use
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => playVoicePreview(selectedAccountVoiceId)}
+                      disabled={isLoading || !selectedAccountVoiceId}
+                      className="text-purple-400 hover:text-purple-300"
+                      aria-label="Preview selected account voice"
+                    >
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  No voices found in your ElevenLabs account yet. Create/clone a Hebrew voice in ElevenLabs, then refresh.
+                </p>
+              )}
             </div>
             
             {useCustomVoice ? (

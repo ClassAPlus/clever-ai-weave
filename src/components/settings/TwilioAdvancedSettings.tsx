@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Phone, MessageSquare, Volume2, Loader2, Square, User, Bot } from "lucide-react";
+import { Phone, MessageSquare, Volume2, Loader2, Square, User, Bot, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface TwilioSettings {
@@ -14,6 +14,7 @@ interface TwilioSettings {
   voiceGender: string;
   voiceId: string;
   googleVoiceName?: string;
+  elevenLabsVoiceId?: string;
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;
@@ -26,7 +27,7 @@ interface TwilioAdvancedSettingsProps {
   primaryLanguage?: string; // From AI Configuration - auto-syncs voice language
 }
 
-// Map AI language names to Google TTS language codes
+// Map AI language names to voice language codes (for display purposes)
 const AI_LANGUAGE_TO_VOICE_CODE: Record<string, string> = {
   hebrew: 'he-IL',
   english: 'en-US',
@@ -48,113 +49,25 @@ const AI_LANGUAGE_TO_VOICE_CODE: Record<string, string> = {
   vietnamese: 'vi-VN',
 };
 
-// Google Cloud TTS voices organized by language
-const GOOGLE_VOICES: Record<string, { name: string; gender: string; type: string; description: string }[]> = {
-  'he-IL': [
-    { name: 'he-IL-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Natural Hebrew female' },
-    { name: 'he-IL-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Natural Hebrew male' },
-    { name: 'he-IL-Wavenet-C', gender: 'female', type: 'Wavenet', description: 'Alternative Hebrew female' },
-    { name: 'he-IL-Wavenet-D', gender: 'male', type: 'Wavenet', description: 'Alternative Hebrew male' },
-  ],
-  'en-US': [
-    { name: 'en-US-Neural2-C', gender: 'female', type: 'Neural2', description: 'Natural American female' },
-    { name: 'en-US-Neural2-D', gender: 'male', type: 'Neural2', description: 'Natural American male' },
-    { name: 'en-US-Neural2-E', gender: 'female', type: 'Neural2', description: 'Warm American female' },
-    { name: 'en-US-Neural2-J', gender: 'male', type: 'Neural2', description: 'Friendly American male' },
-    { name: 'en-US-Wavenet-C', gender: 'female', type: 'Wavenet', description: 'Clear American female' },
-    { name: 'en-US-Wavenet-D', gender: 'male', type: 'Wavenet', description: 'Clear American male' },
-  ],
-  'en-GB': [
-    { name: 'en-GB-Neural2-A', gender: 'female', type: 'Neural2', description: 'British female' },
-    { name: 'en-GB-Neural2-B', gender: 'male', type: 'Neural2', description: 'British male' },
-    { name: 'en-GB-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Classic British female' },
-    { name: 'en-GB-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Classic British male' },
-  ],
-  'ar-XA': [
-    { name: 'ar-XA-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Arabic female' },
-    { name: 'ar-XA-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Arabic male' },
-    { name: 'ar-XA-Wavenet-C', gender: 'male', type: 'Wavenet', description: 'Alternative Arabic male' },
-  ],
-  'es-ES': [
-    { name: 'es-ES-Neural2-A', gender: 'female', type: 'Neural2', description: 'Spanish female' },
-    { name: 'es-ES-Neural2-B', gender: 'male', type: 'Neural2', description: 'Spanish male' },
-    { name: 'es-ES-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Classic Spanish male' },
-    { name: 'es-ES-Wavenet-C', gender: 'female', type: 'Wavenet', description: 'Classic Spanish female' },
-  ],
-  'fr-FR': [
-    { name: 'fr-FR-Neural2-A', gender: 'female', type: 'Neural2', description: 'French female' },
-    { name: 'fr-FR-Neural2-B', gender: 'male', type: 'Neural2', description: 'French male' },
-    { name: 'fr-FR-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Classic French female' },
-    { name: 'fr-FR-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Classic French male' },
-  ],
-  'de-DE': [
-    { name: 'de-DE-Neural2-A', gender: 'female', type: 'Neural2', description: 'German female' },
-    { name: 'de-DE-Neural2-B', gender: 'male', type: 'Neural2', description: 'German male' },
-    { name: 'de-DE-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Classic German female' },
-    { name: 'de-DE-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Classic German male' },
-  ],
-  'pt-BR': [
-    { name: 'pt-BR-Neural2-A', gender: 'female', type: 'Neural2', description: 'Brazilian Portuguese female' },
-    { name: 'pt-BR-Neural2-B', gender: 'male', type: 'Neural2', description: 'Brazilian Portuguese male' },
-    { name: 'pt-BR-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Classic Brazilian female' },
-    { name: 'pt-BR-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Classic Brazilian male' },
-  ],
-  'pt-PT': [
-    { name: 'pt-PT-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Portuguese female' },
-    { name: 'pt-PT-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Portuguese male' },
-  ],
-  'it-IT': [
-    { name: 'it-IT-Neural2-A', gender: 'female', type: 'Neural2', description: 'Italian female' },
-    { name: 'it-IT-Neural2-C', gender: 'male', type: 'Neural2', description: 'Italian male' },
-    { name: 'it-IT-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Classic Italian female' },
-    { name: 'it-IT-Wavenet-C', gender: 'male', type: 'Wavenet', description: 'Classic Italian male' },
-  ],
-  'nl-NL': [
-    { name: 'nl-NL-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Dutch female' },
-    { name: 'nl-NL-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Dutch male' },
-  ],
-  'pl-PL': [
-    { name: 'pl-PL-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Polish female' },
-    { name: 'pl-PL-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Polish male' },
-  ],
-  'ru-RU': [
-    { name: 'ru-RU-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Russian female' },
-    { name: 'ru-RU-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Russian male' },
-  ],
-  'zh-CN': [
-    { name: 'cmn-CN-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Mandarin female' },
-    { name: 'cmn-CN-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Mandarin male' },
-  ],
-  'ja-JP': [
-    { name: 'ja-JP-Neural2-B', gender: 'female', type: 'Neural2', description: 'Japanese female' },
-    { name: 'ja-JP-Neural2-C', gender: 'male', type: 'Neural2', description: 'Japanese male' },
-    { name: 'ja-JP-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Classic Japanese female' },
-    { name: 'ja-JP-Wavenet-B', gender: 'female', type: 'Wavenet', description: 'Alternative Japanese female' },
-  ],
-  'ko-KR': [
-    { name: 'ko-KR-Neural2-A', gender: 'female', type: 'Neural2', description: 'Korean female' },
-    { name: 'ko-KR-Neural2-C', gender: 'male', type: 'Neural2', description: 'Korean male' },
-    { name: 'ko-KR-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Classic Korean female' },
-    { name: 'ko-KR-Wavenet-B', gender: 'female', type: 'Wavenet', description: 'Alternative Korean female' },
-  ],
-  'tr-TR': [
-    { name: 'tr-TR-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Turkish female' },
-    { name: 'tr-TR-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Turkish male' },
-  ],
-  'hi-IN': [
-    { name: 'hi-IN-Neural2-A', gender: 'female', type: 'Neural2', description: 'Hindi female' },
-    { name: 'hi-IN-Neural2-B', gender: 'male', type: 'Neural2', description: 'Hindi male' },
-    { name: 'hi-IN-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Classic Hindi female' },
-    { name: 'hi-IN-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Classic Hindi male' },
-  ],
-  'th-TH': [
-    { name: 'th-TH-Standard-A', gender: 'female', type: 'Standard', description: 'Thai female' },
-  ],
-  'vi-VN': [
-    { name: 'vi-VN-Wavenet-A', gender: 'female', type: 'Wavenet', description: 'Vietnamese female' },
-    { name: 'vi-VN-Wavenet-B', gender: 'male', type: 'Wavenet', description: 'Vietnamese male' },
-  ],
-};
+// ElevenLabs voices - multilingual_v2 supports all languages including Hebrew
+const ELEVENLABS_VOICES = [
+  // Female voices
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', gender: 'female', description: 'Warm, natural, conversational' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', gender: 'female', description: 'Friendly, clear' },
+  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', gender: 'female', description: 'Soft, gentle' },
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', gender: 'female', description: 'Young, bright' },
+  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica', gender: 'female', description: 'Professional, clear' },
+  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', gender: 'female', description: 'Calm, professional' },
+  // Male voices
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', gender: 'male', description: 'Clear, professional' },
+  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', gender: 'male', description: 'Friendly, warm' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'male', description: 'British, refined' },
+  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', gender: 'male', description: 'Casual, approachable' },
+  { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric', gender: 'male', description: 'Deep, authoritative' },
+  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', gender: 'male', description: 'Warm, trustworthy' },
+  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum', gender: 'male', description: 'Scottish accent' },
+  { id: 'bIHbv24MWmeRgasZH58o', name: 'Will', gender: 'male', description: 'Young, energetic' },
+];
 
 const VOICE_LANGUAGES = [
   { value: "he-IL", label: "Hebrew (Israel)", sampleText: "שלום! ברוכים הבאים. איך אוכל לעזור לך היום?" },
@@ -183,10 +96,11 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
   const { toast } = useToast();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [customText, setCustomText] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Auto-sync voice language from primary AI language
+  // Auto-sync voice language from primary AI language (for display)
   const effectiveVoiceLanguage = primaryLanguage 
     ? (AI_LANGUAGE_TO_VOICE_CODE[primaryLanguage] || 'en-US')
     : settings.voiceLanguage;
@@ -195,32 +109,30 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
     onChange({ ...settings, ...patch });
   };
 
-  // Auto-update voice character when primary language changes
+  // Auto-update voice language when primary language changes
   useEffect(() => {
     if (!primaryLanguage) return;
     
     const newVoiceLanguage = AI_LANGUAGE_TO_VOICE_CODE[primaryLanguage] || 'en-US';
     const currentVoiceLanguage = settings.voiceLanguage;
     
-    // Only update if language actually changed
     if (newVoiceLanguage !== currentVoiceLanguage) {
-      const voices = GOOGLE_VOICES[newVoiceLanguage] || GOOGLE_VOICES['en-US'];
-      const targetGender = settings.voiceGender || 'female';
-      // Prefer Neural2 > Wavenet > Standard
-      const sorted = [...voices].sort((a, b) => {
-        const scoreA = a.type === 'Neural2' ? 3 : a.type === 'Wavenet' ? 2 : 1;
-        const scoreB = b.type === 'Neural2' ? 3 : b.type === 'Wavenet' ? 2 : 1;
-        return scoreB - scoreA;
-      });
-      const bestVoice = sorted.find(v => v.gender === targetGender)?.name || sorted[0]?.name || 'en-US-Neural2-C';
-      
       onChange({
         ...settings,
         voiceLanguage: newVoiceLanguage,
-        googleVoiceName: bestVoice,
       });
     }
   }, [primaryLanguage]);
+
+  // Set default ElevenLabs voice if not set
+  useEffect(() => {
+    if (!settings.elevenLabsVoiceId) {
+      const defaultVoice = settings.voiceGender === 'male' 
+        ? 'onwK4e9ZLuTAKqWW03F9' // Daniel
+        : 'EXAVITQu4vr4xnSDxMaL'; // Sarah
+      updateSettings({ elevenLabsVoiceId: defaultVoice });
+    }
+  }, []);
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -228,19 +140,25 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
       audioRef.current = null;
     }
     setIsSpeaking(false);
+    setPreviewingVoiceId(null);
   };
 
-  const playVoicePreview = async () => {
-    if (isSpeaking) {
+  const playVoicePreview = async (voiceId?: string) => {
+    const targetVoiceId = voiceId || settings.elevenLabsVoiceId || 'EXAVITQu4vr4xnSDxMaL';
+    
+    if (isSpeaking && previewingVoiceId === targetVoiceId) {
       stopAudio();
       return;
     }
 
+    // Stop any current audio first
+    stopAudio();
+
     const langConfig = VOICE_LANGUAGES.find(l => l.value === effectiveVoiceLanguage);
     const textToSpeak = customText.trim() || langConfig?.sampleText || "Hello, how can I help you today?";
-    const voiceName = settings.googleVoiceName || getDefaultVoice(effectiveVoiceLanguage, settings.voiceGender);
 
     setIsLoading(true);
+    setPreviewingVoiceId(targetVoiceId);
 
     try {
       const response = await fetch(
@@ -254,13 +172,14 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
             text: textToSpeak, 
             languageCode: effectiveVoiceLanguage,
             gender: settings.voiceGender,
-            voiceName: voiceName 
+            voiceId: targetVoiceId
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Failed to generate voice preview");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to generate voice preview");
       }
 
       const audioBlob = await response.blob();
@@ -269,10 +188,12 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
       audioRef.current = new Audio(audioUrl);
       audioRef.current.onended = () => {
         setIsSpeaking(false);
+        setPreviewingVoiceId(null);
         URL.revokeObjectURL(audioUrl);
       };
       audioRef.current.onerror = () => {
         setIsSpeaking(false);
+        setPreviewingVoiceId(null);
         URL.revokeObjectURL(audioUrl);
       };
 
@@ -283,38 +204,25 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
       toast({
         variant: "destructive",
         title: "Voice preview failed",
-        description: "Could not generate voice preview. Please try again.",
+        description: error instanceof Error ? error.message : "Could not generate voice preview. Please try again.",
       });
+      setPreviewingVoiceId(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getDefaultVoice = (lang: string, gender: string): string => {
-    const voices = GOOGLE_VOICES[lang] || GOOGLE_VOICES['en-US'];
-    const targetGender = gender || 'female';
-    // Prefer Neural2 > Wavenet > Standard
-    const sorted = [...voices].sort((a, b) => {
-      const scoreA = a.type === 'Neural2' ? 3 : a.type === 'Wavenet' ? 2 : 1;
-      const scoreB = b.type === 'Neural2' ? 3 : b.type === 'Wavenet' ? 2 : 1;
-      return scoreB - scoreA;
-    });
-    return sorted.find(v => v.gender === targetGender)?.name || sorted[0]?.name || 'en-US-Neural2-C';
-  };
-
   const currentLang = VOICE_LANGUAGES.find(l => l.value === effectiveVoiceLanguage);
-  const availableVoices = GOOGLE_VOICES[effectiveVoiceLanguage] || GOOGLE_VOICES['en-US'];
-  // Show all voices for the language, sorted with preferred gender first
-  const sortedVoices = [...availableVoices].sort((a, b) => {
+  
+  // Filter voices by selected gender, then show all
+  const sortedVoices = [...ELEVENLABS_VOICES].sort((a, b) => {
     // Preferred gender first
     if (a.gender === settings.voiceGender && b.gender !== settings.voiceGender) return -1;
     if (b.gender === settings.voiceGender && a.gender !== settings.voiceGender) return 1;
-    // Then by quality: Neural2 > Wavenet > Standard
-    const scoreA = a.type === 'Neural2' ? 3 : a.type === 'Wavenet' ? 2 : 1;
-    const scoreB = b.type === 'Neural2' ? 3 : b.type === 'Wavenet' ? 2 : 1;
-    return scoreB - scoreA;
+    return a.name.localeCompare(b.name);
   });
-  const selectedVoice = availableVoices.find(v => v.name === settings.googleVoiceName);
+  
+  const selectedVoice = ELEVENLABS_VOICES.find(v => v.id === settings.elevenLabsVoiceId);
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -355,6 +263,7 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
           <div className="flex items-center gap-2 pb-2 border-b border-gray-700">
             <Phone className="h-4 w-4 text-purple-400" />
             <span className="font-medium text-white">Voice Settings</span>
+            <span className="text-xs text-emerald-400 ml-auto">Powered by ElevenLabs</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -365,7 +274,7 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
                 <span className="text-xs text-purple-400 ml-auto">Synced from AI Config</span>
               </div>
               <p className="text-xs text-gray-500">
-                Automatically set from your Primary Language in AI Configuration
+                ElevenLabs automatically speaks in the detected language
               </p>
             </div>
 
@@ -375,12 +284,10 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
                 value={settings.voiceGender}
                 onValueChange={(value) => {
                   // Auto-select first voice of the new gender
-                  const voices = GOOGLE_VOICES[effectiveVoiceLanguage] || GOOGLE_VOICES["en-US"];
-                  const firstVoice = voices.find((v) => v.gender === value) || voices[0];
+                  const firstVoice = ELEVENLABS_VOICES.find((v) => v.gender === value);
                   updateSettings({
                     voiceGender: value,
-                    googleVoiceName:
-                      firstVoice?.name || getDefaultVoice(effectiveVoiceLanguage, value),
+                    elevenLabsVoiceId: firstVoice?.id || 'EXAVITQu4vr4xnSDxMaL',
                   });
                 }}
               >
@@ -395,65 +302,107 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
             </div>
           </div>
 
-          {/* Voice Selection */}
-          <div className="space-y-2">
+          {/* Voice Selection with Preview */}
+          <div className="space-y-3">
             <Label className="text-gray-300 flex items-center gap-2">
               <User className="h-4 w-4" />
               AI Voice Character
             </Label>
-            <Select
-              value={settings.googleVoiceName || getDefaultVoice(effectiveVoiceLanguage, settings.voiceGender)}
-              onValueChange={(value) => updateSettings({ googleVoiceName: value })}
-            >
-              <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                <SelectValue>
-                  {selectedVoice ? (
-                    <span className="flex items-center gap-2">
-                      {selectedVoice.name} - <span className="text-gray-400 text-sm">{selectedVoice.description}</span>
-                    </span>
-                  ) : (
-                    "Select a voice"
-                  )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="max-h-64">
-                {sortedVoices.map((voice) => (
-                  <SelectItem key={voice.name} value={voice.name}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{voice.name}</span>
-                      <span className="text-xs text-gray-400">{voice.type} • {voice.gender} • {voice.description}</span>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {sortedVoices.map((voice) => {
+                const isSelected = settings.elevenLabsVoiceId === voice.id;
+                const isPreviewing = previewingVoiceId === voice.id && isSpeaking;
+                const isLoadingThis = previewingVoiceId === voice.id && isLoading;
+                
+                return (
+                  <div
+                    key={voice.id}
+                    className={`relative p-3 rounded-lg border cursor-pointer transition-all ${
+                      isSelected 
+                        ? 'bg-purple-500/20 border-purple-500' 
+                        : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
+                    }`}
+                    onClick={() => updateSettings({ elevenLabsVoiceId: voice.id })}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-medium ${isSelected ? 'text-purple-300' : 'text-white'}`}>
+                            {voice.name}
+                          </span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                            voice.gender === 'female' 
+                              ? 'bg-pink-500/20 text-pink-300' 
+                              : 'bg-blue-500/20 text-blue-300'
+                          }`}>
+                            {voice.gender}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 truncate">{voice.description}</p>
+                      </div>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`ml-2 h-8 w-8 p-0 ${
+                          isPreviewing ? 'text-red-400 hover:text-red-300' : 'text-purple-400 hover:text-purple-300'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playVoicePreview(voice.id);
+                        }}
+                        disabled={isLoadingThis}
+                      >
+                        {isLoadingThis ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : isPreviewing ? (
+                          <Square className="h-4 w-4 fill-current" />
+                        ) : (
+                          <Play className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                    
+                    {isSelected && (
+                      <div className="absolute top-1 right-1">
+                        <div className="h-2 w-2 rounded-full bg-purple-400" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
             <p className="text-xs text-gray-500">
-              High-quality voices powered by Google Cloud Text-to-Speech
+              Click a voice to select it, or press play to preview
             </p>
           </div>
 
-          {/* Voice Preview Section */}
+          {/* Custom Text Preview */}
           <div className="p-4 rounded-lg bg-gray-900/50 border border-gray-700 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Volume2 className="h-4 w-4 text-purple-400" />
-                <span className="text-sm font-medium text-white">Voice Preview</span>
+                <span className="text-sm font-medium text-white">Custom Preview</span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={playVoicePreview}
+                onClick={() => playVoicePreview()}
                 disabled={isLoading}
                 className={`border-purple-500/50 hover:bg-purple-500/10 ${
-                  isSpeaking ? "text-red-400 border-red-500/50" : "text-purple-400"
+                  isSpeaking && previewingVoiceId === settings.elevenLabsVoiceId 
+                    ? "text-red-400 border-red-500/50" 
+                    : "text-purple-400"
                 }`}
               >
-                {isLoading ? (
+                {isLoading && previewingVoiceId === settings.elevenLabsVoiceId ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Loading...
                   </>
-                ) : isSpeaking ? (
+                ) : isSpeaking && previewingVoiceId === settings.elevenLabsVoiceId ? (
                   <>
                     <Square className="h-4 w-4 mr-2 fill-current" />
                     Stop
@@ -461,7 +410,7 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
                 ) : (
                   <>
                     <Volume2 className="h-4 w-4 mr-2" />
-                    Play Preview
+                    Play Selected Voice
                   </>
                 )}
               </Button>
@@ -543,9 +492,9 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
           </div>
         </div>
 
-        <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
-          <p className="text-sm text-blue-300">
-            🌐 <strong>Google Cloud TTS:</strong> High-quality, natural-sounding voices with excellent support for {currentLang?.label || "all languages"}, including Hebrew and Arabic.
+        <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
+          <p className="text-sm text-emerald-300">
+            🎙️ <strong>ElevenLabs:</strong> Ultra-realistic AI voices with natural intonation. Supports 29+ languages including Hebrew and English with the same voice.
           </p>
         </div>
       </CardContent>

@@ -73,10 +73,17 @@ serve(async (req) => {
 
     // Validate
     if (contact.opted_out) {
-      return new Response(JSON.stringify({ success: false, error: 'Contact has opted out of messages' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Return 200 so supabase-js doesn't throw FunctionsHttpError; UI can show a friendly message.
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'This recipient has opted out of SMS messages. They need to text START to re-subscribe.',
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     if (!contact.phone_number || !business.twilio_phone_number) {
@@ -246,12 +253,13 @@ serve(async (req) => {
     const isUserError = errorMessage.includes('opted out') || 
                         errorMessage.includes('Invalid phone') ||
                         errorMessage.includes('Cannot send SMS');
-    
+
+    // Return 200 for user-errors so the web client doesn't throw FunctionsHttpError.
     return new Response(JSON.stringify({ 
       success: false,
       error: errorMessage
     }), {
-      status: isUserError ? 400 : 500,
+      status: isUserError ? 200 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

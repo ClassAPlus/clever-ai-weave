@@ -274,7 +274,32 @@ export function AppointmentDetailsDialog({
         }
       );
 
-      if (error) throw error;
+      if (error) {
+        // Try to get error details from the response context
+        let errorMsg = "Failed to send reminder";
+        try {
+          const errorData = await (error as any).context?.json?.();
+          if (errorData?.error) {
+            errorMsg = errorData.error;
+          }
+        } catch {
+          // If we can't parse the error, use the default message
+        }
+        
+        // Check if it's an opted-out error
+        if (errorMsg.includes('opted out') && appointment?.contact?.id) {
+          toast.error("Contact has opted out of SMS", {
+            description: "They need to text START to re-subscribe.",
+            action: {
+              label: "View Contact",
+              onClick: () => window.location.href = `/dashboard/contacts?contact=${appointment.contact!.id}`
+            }
+          });
+        } else {
+          toast.error(errorMsg);
+        }
+        return;
+      }
 
       if (data?.success) {
         toast.success("Reminder sent!");
@@ -295,9 +320,38 @@ export function AppointmentDetailsDialog({
           toast.error(errorMsg);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending reminder:", error);
-      toast.error("Failed to send reminder");
+      
+      // Try to extract error message from FunctionsHttpError
+      let errorMsg = "Failed to send reminder";
+      try {
+        if (error?.context?.body) {
+          const reader = error.context.body.getReader();
+          const decoder = new TextDecoder();
+          const { value } = await reader.read();
+          const text = decoder.decode(value);
+          const parsed = JSON.parse(text);
+          if (parsed?.error) {
+            errorMsg = parsed.error;
+          }
+        }
+      } catch {
+        // If we can't parse, use default message
+      }
+      
+      // Check if it's an opted-out error
+      if (errorMsg.includes('opted out') && appointment?.contact?.id) {
+        toast.error("Contact has opted out of SMS", {
+          description: "They need to text START to re-subscribe.",
+          action: {
+            label: "View Contact",
+            onClick: () => window.location.href = `/dashboard/contacts?contact=${appointment.contact!.id}`
+          }
+        });
+      } else {
+        toast.error(errorMsg);
+      }
     } finally {
       setIsSendingReminder(false);
     }

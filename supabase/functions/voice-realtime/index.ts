@@ -1747,47 +1747,55 @@ serve(async (req) => {
               
               // Generate an AI-condensed summary of the conversation as bullet points
               let discussionSummary: string | null = null;
-              if (conversationTranscripts.length > 0 && OPENAI_API_KEY) {
-                try {
-                  // Build the raw transcript
-                  const rawTranscript = conversationTranscripts
-                    .map(entry => `${entry.role === 'user' ? 'Customer' : 'AI'}: ${entry.text}`)
-                    .join('\n');
-                  
-                  // Use OpenAI to generate a condensed summary
-                  const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      model: 'gpt-4o-mini',
-                      messages: [
-                        {
-                          role: 'system',
-                          content: `You are a helpful assistant that summarizes phone conversations into 2-3 concise bullet points. Each bullet should capture a key topic or outcome of the conversation. Be brief and informative. Format: Start each bullet with "• ". Do not include any headers or extra text.`
-                        },
-                        {
-                          role: 'user',
-                          content: `Summarize this phone conversation in 2-3 bullet points:\n\n${rawTranscript.slice(0, 3000)}`
-                        }
-                      ],
-                      temperature: 0.3,
-                      max_tokens: 150
-                    }),
-                  });
-                  
-                  if (summaryResponse.ok) {
-                    const summaryData = await summaryResponse.json();
-                    discussionSummary = summaryData.choices?.[0]?.message?.content?.trim() || null;
-                    console.log("AI-generated summary:", discussionSummary);
-                  } else {
-                    console.error("Failed to generate AI summary:", await summaryResponse.text());
+              let rawTranscript: string | null = null;
+              
+              if (conversationTranscripts.length > 0) {
+                // Build the raw transcript first (outside the OpenAI call)
+                rawTranscript = conversationTranscripts
+                  .map(entry => `${entry.role === 'user' ? 'Customer' : 'AI'}: ${entry.text}`)
+                  .join('\n');
+                
+                console.log("Raw transcript length:", rawTranscript?.length || 0, "entries:", conversationTranscripts.length);
+                
+                if (OPENAI_API_KEY) {
+                  try {
+                    // Use OpenAI to generate a condensed summary
+                    const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                          {
+                            role: 'system',
+                            content: `You are a helpful assistant that summarizes phone conversations into 2-3 concise bullet points. Each bullet should capture a key topic or outcome of the conversation. Be brief and informative. Format: Start each bullet with "• ". Do not include any headers or extra text.`
+                          },
+                          {
+                            role: 'user',
+                            content: `Summarize this phone conversation in 2-3 bullet points:\n\n${rawTranscript.slice(0, 3000)}`
+                          }
+                        ],
+                        temperature: 0.3,
+                        max_tokens: 150
+                      }),
+                    });
+                    
+                    if (summaryResponse.ok) {
+                      const summaryData = await summaryResponse.json();
+                      discussionSummary = summaryData.choices?.[0]?.message?.content?.trim() || null;
+                      console.log("AI-generated summary:", discussionSummary);
+                    } else {
+                      console.error("Failed to generate AI summary:", await summaryResponse.text());
+                    }
+                  } catch (aiErr) {
+                    console.error("Error generating AI summary:", aiErr);
                   }
-                } catch (aiErr) {
-                  console.error("Error generating AI summary:", aiErr);
                 }
+              } else {
+                console.log("No conversation transcripts to summarize");
               }
               
               const callSummary = {
@@ -1796,8 +1804,8 @@ serve(async (req) => {
                 next_steps,
                 caller_name: callerContext.name,
                 functions_used: functionsCalled,
-                discussion_summary: discussionSummary || null,
-                full_transcript: rawTranscript || null
+                discussion_summary: discussionSummary,
+                full_transcript: rawTranscript
               };
               
               console.log("Saving call summary:", JSON.stringify(callSummary));

@@ -265,6 +265,35 @@ export function AppointmentDetailsDialog({
   const sendReminder = async () => {
     if (!appointment) return;
 
+    const extractErrorMessage = async (err: any) => {
+      let msg = err?.message || "Failed to send reminder";
+      try {
+        // Supabase FunctionsHttpError exposes the Response on err.context
+        if (err?.context && typeof err.context.json === "function") {
+          const body = await err.context.json();
+          if (body?.error) msg = body.error;
+        }
+      } catch {
+        // ignore
+      }
+      return msg;
+    };
+
+    const showErrorToast = (errorMsg: string) => {
+      if (errorMsg.includes("opted out") && appointment?.contact?.id) {
+        toast.error("Contact has opted out of SMS", {
+          description: "They need to text START to re-subscribe.",
+          action: {
+            label: "View Contact",
+            onClick: () =>
+              (window.location.href = `/dashboard/contacts?contact=${appointment.contact!.id}`),
+          },
+        });
+      } else {
+        toast.error(errorMsg);
+      }
+    };
+
     setIsSendingReminder(true);
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -275,83 +304,22 @@ export function AppointmentDetailsDialog({
       );
 
       if (error) {
-        // Try to get error details from the response context
-        let errorMsg = "Failed to send reminder";
-        try {
-          const errorData = await (error as any).context?.json?.();
-          if (errorData?.error) {
-            errorMsg = errorData.error;
-          }
-        } catch {
-          // If we can't parse the error, use the default message
-        }
-        
-        // Check if it's an opted-out error
-        if (errorMsg.includes('opted out') && appointment?.contact?.id) {
-          toast.error("Contact has opted out of SMS", {
-            description: "They need to text START to re-subscribe.",
-            action: {
-              label: "View Contact",
-              onClick: () => window.location.href = `/dashboard/contacts?contact=${appointment.contact!.id}`
-            }
-          });
-        } else {
-          toast.error(errorMsg);
-        }
+        const errorMsg = await extractErrorMessage(error);
+        showErrorToast(errorMsg);
         return;
       }
 
       if (data?.success) {
         toast.success("Reminder sent!");
         onAppointmentUpdated();
-      } else {
-        const errorMsg = data?.error || "Failed to send reminder";
-        
-        // Check if it's an opted-out error and we have contact info
-        if (errorMsg.includes('opted out') && appointment?.contact?.id) {
-          toast.error("Contact has opted out of SMS", {
-            description: "They need to text START to re-subscribe.",
-            action: {
-              label: "View Contact",
-              onClick: () => window.location.href = `/dashboard/contacts?contact=${appointment.contact!.id}`
-            }
-          });
-        } else {
-          toast.error(errorMsg);
-        }
+        return;
       }
+
+      showErrorToast(data?.error || "Failed to send reminder");
     } catch (error: any) {
       console.error("Error sending reminder:", error);
-      
-      // Try to extract error message from FunctionsHttpError
-      let errorMsg = "Failed to send reminder";
-      try {
-        if (error?.context?.body) {
-          const reader = error.context.body.getReader();
-          const decoder = new TextDecoder();
-          const { value } = await reader.read();
-          const text = decoder.decode(value);
-          const parsed = JSON.parse(text);
-          if (parsed?.error) {
-            errorMsg = parsed.error;
-          }
-        }
-      } catch {
-        // If we can't parse, use default message
-      }
-      
-      // Check if it's an opted-out error
-      if (errorMsg.includes('opted out') && appointment?.contact?.id) {
-        toast.error("Contact has opted out of SMS", {
-          description: "They need to text START to re-subscribe.",
-          action: {
-            label: "View Contact",
-            onClick: () => window.location.href = `/dashboard/contacts?contact=${appointment.contact!.id}`
-          }
-        });
-      } else {
-        toast.error(errorMsg);
-      }
+      const errorMsg = await extractErrorMessage(error);
+      showErrorToast(errorMsg);
     } finally {
       setIsSendingReminder(false);
     }

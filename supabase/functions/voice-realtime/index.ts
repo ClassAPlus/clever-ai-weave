@@ -21,6 +21,41 @@ const LOG_EVENT_TYPES = [
   "error"
 ];
 
+// Timezone offset map for common timezones
+const TIMEZONE_OFFSETS: Record<string, string> = {
+  "Asia/Jerusalem": "+02:00",
+  "Asia/Tel_Aviv": "+02:00",
+  "Europe/London": "+00:00",
+  "Europe/Paris": "+01:00",
+  "Europe/Berlin": "+01:00",
+  "America/New_York": "-05:00",
+  "America/Los_Angeles": "-08:00",
+  "America/Chicago": "-06:00",
+  "UTC": "+00:00"
+};
+
+// Get timezone offset for a timezone name (accounts for DST approximately)
+function getTimezoneOffset(timezone: string): string {
+  // Use current date to get offset (this handles DST)
+  try {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'longOffset'
+    });
+    const parts = formatter.formatToParts(now);
+    const tzPart = parts.find(p => p.type === 'timeZoneName');
+    if (tzPart && tzPart.value) {
+      // Extract offset from "GMT+02:00" or similar
+      const match = tzPart.value.match(/GMT([+-]\d{2}:\d{2})/);
+      if (match) return match[1];
+    }
+  } catch (e) {
+    console.log("Error getting timezone offset:", e);
+  }
+  return TIMEZONE_OFFSETS[timezone] || "+00:00";
+}
+
 // Tools for the AI to use
 const TOOLS = [
   {
@@ -32,7 +67,7 @@ const TOOLS = [
       properties: {
         scheduled_date: {
           type: "string",
-          description: "The date and time for the appointment in ISO 8601 format (e.g., 2025-09-25T12:00:00). MUST be within business hours."
+          description: "The date and time for the appointment in ISO 8601 format WITH TIMEZONE OFFSET (e.g., 2025-09-25T12:00:00+02:00 for Israel time, 2025-09-25T12:00:00-05:00 for New York). ALWAYS use the business timezone offset provided in your instructions. MUST be within business hours."
         },
         service_type: {
           type: "string",
@@ -381,7 +416,14 @@ CRITICAL: APPOINTMENT BOOKING CONSENT
 - When the caller asks for a confirmation SMS, use the send_confirmation_sms function
 - When taking a message, use the take_message function to record it
 - After using a function, confirm to the caller that the action was completed
-- ALWAYS collect and save caller's name and email when provided using update_contact_info`;
+- ALWAYS collect and save caller's name and email when provided using update_contact_info
+
+=== TIMEZONE INFORMATION ===
+The business timezone is: ${timezone}
+Current timezone offset: ${getTimezoneOffset(timezone)}
+CRITICAL: When calling create_appointment, you MUST include the timezone offset in the scheduled_date.
+Example: If the caller wants 5:00 PM (17:00), use "2025-01-15T17:00:00${getTimezoneOffset(timezone)}"
+NEVER use dates without timezone offset - this causes scheduling errors!`;
 };
 
 // Function to send SMS via Twilio
@@ -687,8 +729,15 @@ serve(async (req) => {
             break;
           }
           
-          // VALIDATION 2: Check time-of-day consistency
-          const appointmentHour = appointmentDate.getHours();
+          // VALIDATION 2: Check time-of-day consistency using timezone-aware hour
+          // Extract hour in business timezone (not UTC)
+          const hourFormatter = new Intl.DateTimeFormat('en-US', { 
+            timeZone: timezone, 
+            hour: 'numeric', 
+            hour12: false 
+          });
+          const appointmentHour = parseInt(hourFormatter.format(appointmentDate), 10);
+          
           if (time_of_day_stated && time_of_day_stated !== "not_specified") {
             let expectedPeriod = "";
             if (appointmentHour >= 0 && appointmentHour < 12) expectedPeriod = "morning";
@@ -1839,11 +1888,14 @@ serve(async (req) => {
           twilioWs.send(JSON.stringify({ event: "clear", streamSid }));
         }
         
-        // Reset truncation state - don't attempt truncation as it often fails
-        // The response.cancel approach is more reliable
-        if (openaiWs?.readyState === WebSocket.OPEN) {
-          // Cancel any ongoing response instead of truncating
-          openaiWs.send(JSON.stringify({ type: "response.cancel" }));
+        // Only cancel response if we're actively in one (have a response start timestamp)
+        // This prevents the "no active response found" error
+        if (responseStartTimestamp !== null && openaiWs?.readyState === WebSocket.OPEN) {
+          try {
+            openaiWs.send(JSON.stringify({ type: "response.cancel" }));
+          } catch (e) {
+            // Non-fatal - response may have already completed
+          }
         }
         
         // Reset state

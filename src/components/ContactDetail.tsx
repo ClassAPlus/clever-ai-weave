@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { 
   Loader2, User, Phone, Mail, Clock, ArrowLeft,
   PhoneIncoming, PhoneMissed, MessageSquare, Calendar,
-  UserX, UserCheck, Bot, Send, FileText, Save, X, Tag, Plus, Globe
+  UserX, UserCheck, Bot, Send, FileText, Save, X, Tag, Plus, Globe, AlertTriangle
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
@@ -498,6 +499,23 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
           </div>
         </CardContent>
       </Card>
+
+      {/* Opted-Out Re-subscribe Instructions */}
+      {contact.opted_out && (
+        <Alert className="bg-amber-500/10 border-amber-500/30">
+          <AlertTriangle className="h-4 w-4 text-amber-400" />
+          <AlertTitle className="text-amber-300">Contact has opted out of SMS</AlertTitle>
+          <AlertDescription className="text-amber-200/80">
+            This contact replied <span className="font-mono font-semibold">STOP</span> to unsubscribe from messages. 
+            To receive SMS again, they need to text <span className="font-mono font-semibold bg-amber-500/20 px-1.5 py-0.5 rounded">START</span> to your business number.
+            {contact.opted_out_at && (
+              <span className="block mt-1 text-sm text-amber-200/60">
+                Opted out {formatDistanceToNow(new Date(contact.opted_out_at), { addSuffix: true })}
+              </span>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Notes Section */}
       <Card className="bg-gray-800/50 border-gray-700">

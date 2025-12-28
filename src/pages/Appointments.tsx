@@ -439,9 +439,23 @@ export default function Appointments() {
         });
         fetchAppointments();
       } else {
-        toast.error("Failed to send reminder", {
-          description: data?.error || "Unknown error"
-        });
+        const errorMsg = data?.error || "Unknown error";
+        const appointment = appointments.find(a => a.id === appointmentId);
+        
+        // Check if it's an opted-out error and we have contact info
+        if (errorMsg.includes('opted out') && appointment?.contact?.id) {
+          toast.error("Contact has opted out of SMS", {
+            description: "They need to text START to re-subscribe.",
+            action: {
+              label: "View Contact",
+              onClick: () => window.location.href = `/dashboard/contacts?contact=${appointment.contact!.id}`
+            }
+          });
+        } else {
+          toast.error("Failed to send reminder", {
+            description: errorMsg
+          });
+        }
       }
     } catch (error) {
       console.error("Error:", error);

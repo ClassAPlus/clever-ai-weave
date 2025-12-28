@@ -485,6 +485,38 @@ export default function Appointments() {
     [businessHours, businessTimezone]
   );
 
+  // Get business hours for a specific day (returns { start, end } or null if closed)
+  const getBusinessHoursForDay = useCallback(
+    (day: Date): { start: string; end: string } | null => {
+      if (!businessHours) return null;
+
+      const weekdayShort = new Intl.DateTimeFormat("en-US", {
+        weekday: "short",
+        timeZone: businessTimezone || undefined,
+      }).format(day);
+
+      const dayKey = weekdayShort.toLowerCase();
+      const hours = businessHours[dayKey];
+      if (!hours || !hours.start || !hours.end) return null;
+      return hours;
+    },
+    [businessHours, businessTimezone]
+  );
+
+  // Check if a given hour is outside business hours for the current date
+  const isHourOutsideBusinessHours = useCallback(
+    (hour: number): boolean => {
+      const hours = getBusinessHoursForDay(currentDate);
+      if (!hours) return true; // Closed day = all hours are "outside"
+      
+      const startHour = parseInt(hours.start.split(":")[0], 10);
+      const endHour = parseInt(hours.end.split(":")[0], 10);
+      
+      return hour < startHour || hour >= endHour;
+    },
+    [getBusinessHoursForDay, currentDate]
+  );
+
   const getDateRangeLabel = () => {
     const { start, end } = getDateRange();
     switch (viewMode) {
@@ -732,6 +764,7 @@ export default function Appointments() {
           const dayAppointments = getAppointmentsForDay(day);
           const isCurrentDay = isToday(day);
           const closed = isDayClosed(day);
+          const dayHours = getBusinessHoursForDay(day);
           
           return (
             <DayHoverPreview key={day.toISOString()} day={day} appointments={dayAppointments}>
@@ -740,6 +773,7 @@ export default function Appointments() {
                   day={day}
                   isCurrentDay={isCurrentDay}
                   isClosed={closed}
+                  businessHours={dayHours}
                   onClick={() => handleDayClick(day)}
                   variant="week"
                 >
@@ -792,6 +826,7 @@ export default function Appointments() {
             const isCurrentDay = isToday(day);
             const isCurrentMonth = isSameMonth(day, currentDate);
             const closed = isDayClosed(day);
+            const dayHours = getBusinessHoursForDay(day);
             
             return (
               <DayHoverPreview key={day.toISOString()} day={day} appointments={dayAppointments}>
@@ -801,6 +836,7 @@ export default function Appointments() {
                     isCurrentDay={isCurrentDay}
                     isCurrentMonth={isCurrentMonth}
                     isClosed={closed}
+                    businessHours={dayHours}
                     onClick={() => handleDayClick(day)}
                     variant="month"
                   >
@@ -888,13 +924,17 @@ export default function Appointments() {
               const hourAppointments = getAppointmentsForHour(hour);
               const timeLabel = format(setHours(new Date(), hour), "h a");
               const isCurrentHour = isToday(currentDate) && getHours(new Date()) === hour;
+              const isOutsideHours = isHourOutsideBusinessHours(hour);
               
               return (
                 <div 
                   key={hour} 
-                  className={`relative flex min-h-[60px] hover:bg-gray-700/20 transition-colors cursor-pointer ${
-                    isCurrentHour ? 'bg-purple-500/10 border-l-2 border-purple-500' : ''
-                  }`}
+                  className={cn(
+                    "relative flex min-h-[60px] transition-colors cursor-pointer",
+                    isCurrentHour && "bg-purple-500/10 border-l-2 border-purple-500",
+                    isOutsideHours && !isCurrentHour && "bg-gray-900/60 opacity-50",
+                    !isOutsideHours && "hover:bg-gray-700/20"
+                  )}
                   onClick={() => {
                     const dateWithHour = setHours(currentDate, hour);
                     setSelectedDateForCreate(dateWithHour);
@@ -905,9 +945,10 @@ export default function Appointments() {
                   <BusyHourIndicator hour={hour} appointments={appointments} currentDate={currentDate} />
                   
                   {/* Time column */}
-                  <div className={`w-20 flex-shrink-0 p-3 text-right border-r border-gray-700/50 relative z-10 ${
-                    isCurrentHour ? 'text-purple-400 font-medium' : 'text-gray-500'
-                  }`}>
+                  <div className={cn(
+                    "w-20 flex-shrink-0 p-3 text-right border-r border-gray-700/50 relative z-10",
+                    isCurrentHour ? "text-purple-400 font-medium" : isOutsideHours ? "text-gray-600" : "text-gray-500"
+                  )}>
                     <span className="text-sm">{timeLabel}</span>
                   </div>
                   

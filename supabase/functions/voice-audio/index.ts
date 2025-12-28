@@ -30,28 +30,16 @@ const DEFAULT_MESSAGES: Record<string, Record<string, string>> = {
   },
 };
 
-// Google Cloud TTS voices - organized by language
-const GOOGLE_VOICES: Record<string, { female: string; male: string }> = {
-  'he-IL': { female: 'he-IL-Wavenet-A', male: 'he-IL-Wavenet-B' },
-  'en-US': { female: 'en-US-Neural2-C', male: 'en-US-Neural2-D' },
-  'en-GB': { female: 'en-GB-Neural2-A', male: 'en-GB-Neural2-B' },
-  'ar-XA': { female: 'ar-XA-Wavenet-A', male: 'ar-XA-Wavenet-B' },
-  'es-ES': { female: 'es-ES-Neural2-A', male: 'es-ES-Neural2-B' },
-  'fr-FR': { female: 'fr-FR-Neural2-A', male: 'fr-FR-Neural2-B' },
-  'de-DE': { female: 'de-DE-Neural2-A', male: 'de-DE-Neural2-B' },
-  'pt-BR': { female: 'pt-BR-Neural2-A', male: 'pt-BR-Neural2-B' },
-  'pt-PT': { female: 'pt-PT-Wavenet-A', male: 'pt-PT-Wavenet-B' },
-  'it-IT': { female: 'it-IT-Neural2-A', male: 'it-IT-Neural2-C' },
-  'nl-NL': { female: 'nl-NL-Wavenet-A', male: 'nl-NL-Wavenet-B' },
-  'pl-PL': { female: 'pl-PL-Wavenet-A', male: 'pl-PL-Wavenet-B' },
-  'ru-RU': { female: 'ru-RU-Wavenet-A', male: 'ru-RU-Wavenet-B' },
-  'zh-CN': { female: 'cmn-CN-Wavenet-A', male: 'cmn-CN-Wavenet-B' },
-  'ja-JP': { female: 'ja-JP-Neural2-B', male: 'ja-JP-Neural2-C' },
-  'ko-KR': { female: 'ko-KR-Neural2-A', male: 'ko-KR-Neural2-C' },
-  'tr-TR': { female: 'tr-TR-Wavenet-A', male: 'tr-TR-Wavenet-B' },
-  'hi-IN': { female: 'hi-IN-Neural2-A', male: 'hi-IN-Neural2-B' },
-  'th-TH': { female: 'th-TH-Standard-A', male: 'th-TH-Standard-A' },
-  'vi-VN': { female: 'vi-VN-Wavenet-A', male: 'vi-VN-Wavenet-B' },
+// ElevenLabs multilingual voices - these work great for Hebrew and English
+const ELEVENLABS_VOICES = {
+  female: {
+    primary: 'EXAVITQu4vr4xnSDxMaL', // Sarah - warm, natural
+    alt: 'XrExE9yKIg1WjnnlVkGX',     // Matilda
+  },
+  male: {
+    primary: 'onwK4e9ZLuTAKqWW03F9', // Daniel - clear, professional
+    alt: 'TX3LPaxmHKxFdv7VOQHJ',     // Liam
+  },
 };
 
 serve(async (req) => {
@@ -92,7 +80,7 @@ serve(async (req) => {
     const twilioSettings = business.twilio_settings || {};
     const voiceLanguage = twilioSettings.voiceLanguage || 'en-US';
     const voiceGender = twilioSettings.voiceGender || 'female';
-    const customVoiceName = twilioSettings.googleVoiceName;
+    const customVoiceId = twilioSettings.elevenLabsVoiceId;
 
     // Determine the text to speak
     let textToSpeak = customText;
@@ -110,60 +98,50 @@ serve(async (req) => {
       }
     }
 
-    // Get Google Cloud API key
-    const GOOGLE_CLOUD_API_KEY = Deno.env.get('GOOGLE_CLOUD_API_KEY');
-    if (!GOOGLE_CLOUD_API_KEY) {
-      console.error("GOOGLE_CLOUD_API_KEY not configured");
+    // Get ElevenLabs API key
+    const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
+    if (!ELEVENLABS_API_KEY) {
+      console.error("ELEVENLABS_API_KEY not configured");
       return new Response("Voice service not configured", { status: 500, headers: corsHeaders });
     }
 
     // Determine the voice to use
-    const voiceConfig = GOOGLE_VOICES[voiceLanguage] || GOOGLE_VOICES['en-US'];
-    const voiceName = customVoiceName || (voiceGender === 'male' ? voiceConfig.male : voiceConfig.female);
-    const ssmlGender = voiceGender === 'male' ? 'MALE' : 'FEMALE';
+    const voiceId = customVoiceId || 
+      (voiceGender === 'male' ? ELEVENLABS_VOICES.male.primary : ELEVENLABS_VOICES.female.primary);
 
-    console.log(`Generating audio with Google TTS: voice=${voiceName}, lang=${voiceLanguage}, text="${textToSpeak.substring(0, 50)}..."`);
+    console.log(`Generating audio with ElevenLabs: voice=${voiceId}, lang=${voiceLanguage}, text="${textToSpeak.substring(0, 50)}..."`);
 
-    // Generate audio with Google Cloud TTS
-    const googleResponse = await fetch(
-      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GOOGLE_CLOUD_API_KEY}`,
+    // Generate audio with ElevenLabs
+    const elevenLabsResponse = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
       {
         method: 'POST',
         headers: {
+          'xi-api-key': ELEVENLABS_API_KEY,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          input: { text: textToSpeak },
-          voice: {
-            languageCode: voiceLanguage,
-            name: voiceName,
-            ssmlGender: ssmlGender,
-          },
-          audioConfig: {
-            audioEncoding: 'MP3',
-            speakingRate: 1.0,
-            pitch: 0,
-            effectsProfileId: ['telephony-class-application'],
+          text: textToSpeak,
+          model_id: 'eleven_multilingual_v2', // Best quality, supports Hebrew + English
+          output_format: 'mp3_44100_128',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.3,
+            use_speaker_boost: true,
           },
         }),
       }
     );
 
-    if (!googleResponse.ok) {
-      const errorText = await googleResponse.text();
-      console.error("Google TTS API error:", googleResponse.status, errorText);
+    if (!elevenLabsResponse.ok) {
+      const errorText = await elevenLabsResponse.text();
+      console.error("ElevenLabs API error:", elevenLabsResponse.status, errorText);
       return new Response("Voice generation failed", { status: 500, headers: corsHeaders });
     }
 
-    const data = await googleResponse.json();
-    const audioContent = data.audioContent;
-
-    // Decode base64 to binary
-    const binaryString = atob(audioContent);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
+    const audioBuffer = await elevenLabsResponse.arrayBuffer();
+    const bytes = new Uint8Array(audioBuffer);
 
     console.log(`Audio generated successfully, size: ${bytes.byteLength} bytes`);
 

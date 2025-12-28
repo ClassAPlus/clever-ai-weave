@@ -284,6 +284,36 @@ const getSystemPrompt = (businessName: string, instructions: string, language: s
   const languageName = langMap[language] || "English";
   const isHebrew = language.startsWith("he");
   
+  // Get current date and day of week in business timezone
+  const now = new Date();
+  const dateFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  const timeFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+  const currentDateStr = dateFormatter.format(now);
+  const currentTimeStr = timeFormatter.format(now);
+  
+  // Also calculate tomorrow and day after for reference
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const dayAfter = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+  const tomorrowFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric'
+  });
+  const tomorrowStr = tomorrowFormatter.format(tomorrow);
+  const dayAfterStr = tomorrowFormatter.format(dayAfter);
+  
   // Build context about the caller
   let callerInfo = "";
   
@@ -354,6 +384,20 @@ const getSystemPrompt = (businessName: string, instructions: string, language: s
   return `You are a friendly and professional AI receptionist for ${businessName}. 
 Your DEFAULT language is ${languageName}.
 Be concise but warm. Help callers with their questions, take messages, and schedule appointments.
+
+=== CURRENT DATE AND TIME (CRITICAL - USE THIS FOR ALL DATE CALCULATIONS) ===
+TODAY is: ${currentDateStr}
+Current time: ${currentTimeStr}
+Tomorrow is: ${tomorrowStr}
+Day after tomorrow is: ${dayAfterStr}
+Business timezone: ${timezone}
+
+CRITICAL DATE CALCULATION RULES:
+- ALWAYS use the dates above as your reference point when calculating future dates
+- If the caller says "tomorrow", that means ${tomorrowStr}
+- If the caller says "the day after tomorrow", that means ${dayAfterStr}
+- When given a date like "December 30", check what day of the week it is by counting from today
+- NEVER guess the day of the week - calculate it based on the current date above
 
 === DYNAMIC LANGUAGE SWITCHING ===
 CRITICAL: You CAN and SHOULD switch languages during the conversation if the caller requests it.

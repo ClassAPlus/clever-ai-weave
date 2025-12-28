@@ -205,7 +205,7 @@ interface CallerContext {
 }
 
 // System prompt for the AI receptionist
-const getSystemPrompt = (businessName: string, instructions: string, language: string, callerContext: CallerContext) => {
+const getSystemPrompt = (businessName: string, instructions: string, language: string, callerContext: CallerContext, timezone: string = "UTC") => {
   const langMap: Record<string, string> = {
     "he-IL": "Hebrew (עברית)",
     "en-US": "English",
@@ -246,8 +246,24 @@ const getSystemPrompt = (businessName: string, instructions: string, language: s
     
     if (upcoming.length > 0) {
       const nextAppt = upcoming[0];
-      const apptDate = new Date(nextAppt.scheduled_at).toLocaleString(language.startsWith('he') ? 'he-IL' : 'en-US');
-      callerInfo += `They have an upcoming appointment on ${apptDate} for ${nextAppt.service_type || 'a service'}.\n`;
+      // Format date with proper timezone and AM/PM
+      const apptDateTime = new Date(nextAppt.scheduled_at);
+      const dateFormatter = new Intl.DateTimeFormat(language.startsWith('he') ? 'he-IL' : 'en-US', {
+        timeZone: timezone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      const timeFormatter = new Intl.DateTimeFormat(language.startsWith('he') ? 'he-IL' : 'en-US', {
+        timeZone: timezone,
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true  // Force AM/PM format
+      });
+      const formattedDate = dateFormatter.format(apptDateTime);
+      const formattedTime = timeFormatter.format(apptDateTime);
+      callerInfo += `They have an upcoming appointment on ${formattedDate} at ${formattedTime} for ${nextAppt.service_type || 'a service'}.\n`;
     }
     
     if (past.length > 0) {
@@ -1147,7 +1163,7 @@ serve(async (req) => {
         input_audio_format: "g711_ulaw",
         output_audio_format: "g711_ulaw",
         voice: voice,
-        instructions: getSystemPrompt(businessName, instructions, voiceLanguage, callerContext),
+        instructions: getSystemPrompt(businessName, instructions, voiceLanguage, callerContext, (globalThis as any).__businessTimezone || "UTC"),
         modalities: ["text", "audio"],
         temperature: 0.8,
         tools: TOOLS,

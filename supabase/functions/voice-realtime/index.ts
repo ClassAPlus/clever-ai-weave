@@ -188,6 +188,25 @@ const TOOLS = [
   },
   {
     type: "function",
+    name: "check_available_slots",
+    description: "Check available appointment slots for a specific date. Use this when the caller asks what times are available, when they can book, or wants to know open slots before scheduling. This checks business hours and existing appointments to find free time slots.",
+    parameters: {
+      type: "object",
+      properties: {
+        date: {
+          type: "string",
+          description: "The date to check availability for in YYYY-MM-DD format (e.g., 2025-01-15). Use 'today' or 'tomorrow' for relative dates."
+        },
+        service_duration: {
+          type: "number",
+          description: "Optional: duration of the service in minutes (default: 30). Used to determine if a slot has enough time."
+        }
+      },
+      required: ["date"]
+    }
+  },
+  {
+    type: "function",
     name: "get_services_info",
     description: "Get information about available services and pricing. Use this when the caller asks about what services are offered, how much something costs, pricing, rates, or wants to know what the business does.",
     parameters: {
@@ -1137,6 +1156,199 @@ serve(async (req) => {
                     console.error("Failed to send confirmation SMS:", smsErr);
                   }
                 }
+              }
+            }
+          }
+          break;
+        }
+        
+        case "check_available_slots": {
+          const { date, service_duration = 30 } = args;
+          const businessHours = (globalThis as any).__businessHours || {};
+          const timezone = (globalThis as any).__businessTimezone || "UTC";
+          
+          // Parse the date
+          let targetDate: Date;
+          const now = new Date();
+          
+          if (date === "today") {
+            targetDate = now;
+          } else if (date === "tomorrow") {
+            targetDate = new Date(now);
+            targetDate.setDate(targetDate.getDate() + 1);
+          } else {
+            targetDate = new Date(date);
+          }
+          
+          // Get the day of week for the target date
+          const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'long' });
+          const dayName = dayFormatter.format(targetDate).toLowerCase();
+          
+          const dayMap: Record<string, string> = {
+            "monday": "mon", "tuesday": "tue", "wednesday": "wed",
+            "thursday": "thu", "friday": "fri", "saturday": "sat", "sunday": "sun"
+          };
+          const dayKey = dayMap[dayName];
+          const hours = businessHours[dayKey];
+          
+          if (!hours || !hours.start || !hours.end) {
+            result = JSON.stringify({ 
+              success: false, 
+              closed: true,
+              day: dayName,
+              message: `We are closed on ${dayName}. Please try another day.`
+            });
+          } else {
+            // Get start and end of the target date in ISO format
+            const dateStr = targetDate.toISOString().split('T')[0];
+            const startOfDay = `${dateStr}T00:00:00`;
+            const endOfDay = `${dateStr}T23:59:59`;
+            
+            // Fetch existing appointments for that day
+            const { data: existingAppts, error: fetchError } = await supabase
+              .from("appointments")
+              .select("scheduled_at, duration_minutes")
+              .eq("business_id", businessId)
+              .gte("scheduled_at", startOfDay)
+              .lte("scheduled_at", endOfDay)
+              .neq("status", "cancelled");
+            
+            if (fetchError) {
+              console.error("Error fetching appointments:", fetchError);
+              result = JSON.stringify({ success: false, error: "Could not check availability" });
+            } else {
+              // Parse business hours
+              const [openHour, openMin] = hours.start.split(':').map(Number);
+              const [closeHour, closeMin] = hours.end.split(':').map(Number);
+              
+              // Generate time slots (every 30 minutes)
+              const slots: string[] = [];
+              const bookedSlots: Set<string> = new Set();
+              
+              // Mark booked time slots
+              for (const appt of existingAppts || []) {
+                const apptTime = new Date(appt.scheduled_at);
+                const apptDuration = appt.duration_minutes || 30;
+                
+                // Mark all 30-min intervals covered by this appointment
+                for (let offset = 0; offset < apptDuration; offset += 30) {
+                  const slotTime = new Date(apptTime);
+                  slotTime.setMinutes(slotTime.getMinutes() + offset);
+                  const slotKey = slotTime.toISOString();
+                  bookedSlots.add(slotKey);
+                }
+              }
+              
+              // Generate available slots
+              const availableSlots: Array<{ time: string; display: string }> = [];
+              let currentSlot = new Date(targetDate);
+              currentSlot.setHours(openHour, openMin, 0, 0);
+              
+              const closeTime = new Date(targetDate);
+              closeTime.setHours(closeHour, closeMin, 0, 0);
+              
+              // If checking today, start from current time (rounded up to next 30 min)
+              if (date === "today") {
+                const nowInTz = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+                if (nowInTz > currentSlot) {
+                  currentSlot = new Date(nowInTz);
+                  const minutes = currentSlot.getMinutes();
+                  currentSlot.setMinutes(minutes < 30 ? 30 : 60, 0, 0);
+                  if (minutes >= 30) {
+                    currentSlot.setHours(currentSlot.getHours() + 1);
+                    currentSlot.setMinutes(0);
+                  }
+                }
+              }
+              
+              // Check each 30-min slot
+              while (currentSlot < closeTime) {
+                const slotEndTime = new Date(currentSlot);
+                slotEndTime.setMinutes(slotEndTime.getMinutes() + service_duration);
+                
+                // Check if this slot and required duration are available
+                let isAvailable = true;
+                for (let offset = 0; offset < service_duration; offset += 30) {
+                  const checkTime = new Date(currentSlot);
+                  checkTime.setMinutes(checkTime.getMinutes() + offset);
+                  
+                  // Check if beyond closing time
+                  if (checkTime >= closeTime) {
+                    isAvailable = false;
+                    break;
+                  }
+                  
+                  // Check if this 30-min block is booked
+                  const checkKey = checkTime.toISOString();
+                  if (bookedSlots.has(checkKey)) {
+                    isAvailable = false;
+                    break;
+                  }
+                }
+                
+                if (isAvailable) {
+                  const timeFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
+                    timeZone: timezone,
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  });
+                  availableSlots.push({
+                    time: currentSlot.toISOString(),
+                    display: timeFormatter.format(currentSlot)
+                  });
+                }
+                
+                // Move to next 30-min slot
+                currentSlot.setMinutes(currentSlot.getMinutes() + 30);
+              }
+              
+              // Format date for display
+              const dateFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
+                timeZone: timezone,
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric'
+              });
+              const displayDate = dateFormatter.format(targetDate);
+              
+              if (availableSlots.length === 0) {
+                result = JSON.stringify({
+                  success: true,
+                  fully_booked: true,
+                  date: displayDate,
+                  message: `We are fully booked on ${displayDate}. Would you like to check another day?`
+                });
+              } else {
+                // Group slots by time of day for easier communication
+                const morning = availableSlots.filter(s => {
+                  const hour = new Date(s.time).getHours();
+                  return hour < 12;
+                });
+                const afternoon = availableSlots.filter(s => {
+                  const hour = new Date(s.time).getHours();
+                  return hour >= 12 && hour < 17;
+                });
+                const evening = availableSlots.filter(s => {
+                  const hour = new Date(s.time).getHours();
+                  return hour >= 17;
+                });
+                
+                const summary = [];
+                if (morning.length > 0) summary.push(`${morning.length} morning slots (${morning[0].display} - ${morning[morning.length-1].display})`);
+                if (afternoon.length > 0) summary.push(`${afternoon.length} afternoon slots (${afternoon[0].display} - ${afternoon[afternoon.length-1].display})`);
+                if (evening.length > 0) summary.push(`${evening.length} evening slots (${evening[0].display} - ${evening[evening.length-1].display})`);
+                
+                result = JSON.stringify({
+                  success: true,
+                  date: displayDate,
+                  total_available: availableSlots.length,
+                  morning_slots: morning.map(s => s.display),
+                  afternoon_slots: afternoon.map(s => s.display),
+                  evening_slots: evening.map(s => s.display),
+                  summary: summary.join(', '),
+                  message: `On ${displayDate}, we have ${availableSlots.length} available slots: ${summary.join(', ')}. Would you like to book one of these times?`
+                });
               }
             }
           }

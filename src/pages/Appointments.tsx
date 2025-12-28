@@ -70,6 +70,10 @@ interface AppointmentStats {
   customerCancelled: number;
 }
 
+interface BusinessHours {
+  [key: string]: { start: string; end: string } | null;
+}
+
 type ViewMode = "day" | "week" | "month" | "agenda";
 
 export default function Appointments() {
@@ -80,6 +84,7 @@ export default function Appointments() {
     remindersSent: 0, customerConfirmed: 0, customerCancelled: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [businessHours, setBusinessHours] = useState<BusinessHours>({});
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "completed" | "cancelled">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
@@ -263,7 +268,7 @@ export default function Appointments() {
     try {
       const { data: business, error: bizError } = await supabase
         .from("businesses")
-        .select("id")
+        .select("id, business_hours")
         .eq("owner_user_id", user.id)
         .maybeSingle();
 
@@ -278,6 +283,7 @@ export default function Appointments() {
       }
 
       setBusinessId(business.id);
+      setBusinessHours((business.business_hours as BusinessHours) || {});
 
       const { start, end } = getDateRange();
 
@@ -458,6 +464,17 @@ export default function Appointments() {
   };
 
   const goToToday = () => setCurrentDate(new Date());
+
+  // Check if a day is closed based on business hours
+  const isDayClosed = useCallback((day: Date): boolean => {
+    const dayOfWeek = getDay(day);
+    const dayMap: Record<number, string> = {
+      0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat"
+    };
+    const dayKey = dayMap[dayOfWeek];
+    const hours = businessHours[dayKey];
+    return !hours || !hours.start || !hours.end;
+  }, [businessHours]);
 
   const getDateRangeLabel = () => {
     const { start, end } = getDateRange();
@@ -705,6 +722,7 @@ export default function Appointments() {
         {days.map(day => {
           const dayAppointments = getAppointmentsForDay(day);
           const isCurrentDay = isToday(day);
+          const closed = isDayClosed(day);
           
           return (
             <DayHoverPreview key={day.toISOString()} day={day} appointments={dayAppointments}>
@@ -712,6 +730,7 @@ export default function Appointments() {
                 <DroppableDayCell
                   day={day}
                   isCurrentDay={isCurrentDay}
+                  isClosed={closed}
                   onClick={() => handleDayClick(day)}
                   variant="week"
                 >
@@ -763,6 +782,7 @@ export default function Appointments() {
             const dayAppointments = getAppointmentsForDay(day);
             const isCurrentDay = isToday(day);
             const isCurrentMonth = isSameMonth(day, currentDate);
+            const closed = isDayClosed(day);
             
             return (
               <DayHoverPreview key={day.toISOString()} day={day} appointments={dayAppointments}>
@@ -771,6 +791,7 @@ export default function Appointments() {
                     day={day}
                     isCurrentDay={isCurrentDay}
                     isCurrentMonth={isCurrentMonth}
+                    isClosed={closed}
                     onClick={() => handleDayClick(day)}
                     variant="month"
                   >

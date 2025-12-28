@@ -124,11 +124,12 @@ serve(async (req) => {
     const isRTL = ['hebrew', 'arabic'].includes(effectiveLanguage);
     const scheduledDate = new Date(appointment.scheduled_at);
 
-    // Format the appointment time based on effective language
-    const timeStr = scheduledDate.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-US', {
-      hour: '2-digit',
+    // Format the appointment time - always use 12h format for user-friendly display
+    // Hebrew/Arabic speakers are familiar with AM/PM style in modern contexts
+    const timeStr = scheduledDate.toLocaleTimeString('en-US', {
+      hour: 'numeric',
       minute: '2-digit',
-      hour12: !isHebrew && effectiveLanguage !== 'arabic'
+      hour12: true
     });
 
     const dateStr = scheduledDate.toLocaleDateString(

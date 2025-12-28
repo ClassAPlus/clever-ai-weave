@@ -118,11 +118,11 @@ serve(async (req) => {
         const isHebrew = business.ai_language === 'hebrew';
         const scheduledDate = new Date(appointment.scheduled_at);
         
-        // Format the appointment time
-        const timeStr = scheduledDate.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-US', {
-          hour: '2-digit',
+        // Format the appointment time - always use 12h format for user-friendly display
+        const timeStr = scheduledDate.toLocaleTimeString('en-US', {
+          hour: 'numeric',
           minute: '2-digit',
-          hour12: !isHebrew
+          hour12: true
         });
 
         const dateStr = scheduledDate.toLocaleDateString(isHebrew ? 'he-IL' : 'en-US', {

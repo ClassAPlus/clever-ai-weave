@@ -79,6 +79,7 @@ interface Appointment {
     id: string;
     name: string | null;
     phone_number: string;
+    opted_out?: boolean | null;
   } | null;
 }
 
@@ -638,16 +639,24 @@ export function AppointmentDetailsDialog({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="flex-1 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
+                      className={cn(
+                        "flex-1",
+                        appointment.contact?.opted_out
+                          ? "border-gray-500/30 text-gray-500 cursor-not-allowed"
+                          : "border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
+                      )}
                       onClick={sendReminder}
-                      disabled={isSendingReminder}
+                      disabled={isSendingReminder || !!appointment.contact?.opted_out}
+                      title={appointment.contact?.opted_out ? "Contact has opted out of SMS" : undefined}
                     >
                       {isSendingReminder ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <Send className="h-4 w-4 mr-2" />
                       )}
-                      {appointment.reminder_sent_at ? "Resend" : "Remind"}
+                      {appointment.contact?.opted_out 
+                        ? "Opted Out" 
+                        : appointment.reminder_sent_at ? "Resend" : "Remind"}
                     </Button>
                   </div>
                 )}

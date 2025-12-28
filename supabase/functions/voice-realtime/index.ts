@@ -549,6 +549,20 @@ serve(async (req) => {
   const markQueue: string[] = [];
   let sessionInitialized = false;
   
+  // Keep-alive and inactivity tracking
+  let keepAliveInterval: number | null = null;
+  let lastActivityTimestamp = Date.now();
+  let inactivityWarningGiven = false;
+  const KEEP_ALIVE_INTERVAL_MS = 30000; // Send keep-alive every 30 seconds
+  const INACTIVITY_WARNING_MS = 120000; // Warn after 2 minutes of inactivity
+  const INACTIVITY_DISCONNECT_MS = 180000; // End call after 3 minutes of inactivity
+  
+  // Function to update activity timestamp
+  const updateActivity = () => {
+    lastActivityTimestamp = Date.now();
+    inactivityWarningGiven = false;
+  };
+  
   // Collect transcripts for call summary
   const conversationTranscripts: { role: 'user' | 'ai', text: string }[] = [];
   
@@ -1653,6 +1667,58 @@ serve(async (req) => {
                 
                 openaiWs.onopen = () => {
                   console.log("OpenAI WebSocket opened via subprotocol auth");
+                  
+                  // Start keep-alive interval to prevent session timeout
+                  keepAliveInterval = setInterval(() => {
+                    const inactivityDuration = Date.now() - lastActivityTimestamp;
+                    
+                    // Check for prolonged inactivity
+                    if (inactivityDuration >= INACTIVITY_DISCONNECT_MS) {
+                      console.log(`Inactivity timeout reached (${inactivityDuration}ms). Ending call gracefully.`);
+                      
+                      // Send goodbye message before disconnecting
+                      if (openaiWs?.readyState === WebSocket.OPEN) {
+                        openaiWs.send(JSON.stringify({
+                          type: "conversation.item.create",
+                          item: {
+                            type: "message",
+                            role: "user",
+                            content: [{ type: "input_text", text: "Say goodbye politely as it seems the caller is no longer active." }]
+                          }
+                        }));
+                        openaiWs.send(JSON.stringify({ type: "response.create" }));
+                      }
+                      
+                      // Clean up after a short delay to allow goodbye message
+                      setTimeout(() => {
+                        if (keepAliveInterval) clearInterval(keepAliveInterval);
+                        openaiWs?.close();
+                        twilioWs?.close();
+                      }, 5000);
+                      return;
+                    }
+                    
+                    // Warn about inactivity (only once per inactivity period)
+                    if (inactivityDuration >= INACTIVITY_WARNING_MS && !inactivityWarningGiven) {
+                      console.log(`Inactivity warning at ${inactivityDuration}ms`);
+                      inactivityWarningGiven = true;
+                      
+                      if (openaiWs?.readyState === WebSocket.OPEN) {
+                        openaiWs.send(JSON.stringify({
+                          type: "conversation.item.create",
+                          item: {
+                            type: "message",
+                            role: "user",
+                            content: [{ type: "input_text", text: "The caller has been quiet for a while. Ask if they're still there and if there's anything else you can help with." }]
+                          }
+                        }));
+                        openaiWs.send(JSON.stringify({ type: "response.create" }));
+                      }
+                    }
+                    
+                    // Send keep-alive ping to prevent WebSocket timeout
+                    console.log("Sending keep-alive ping");
+                  }, KEEP_ALIVE_INTERVAL_MS);
                 };
                 
                 openaiWs.onmessage = (openaiEvent) => {
@@ -1671,10 +1737,12 @@ serve(async (req) => {
                 
                 openaiWs.onerror = (err) => {
                   console.error("OpenAI WebSocket error");
+                  if (keepAliveInterval) clearInterval(keepAliveInterval);
                 };
                 
                 openaiWs.onclose = (e) => {
                   console.log(`OpenAI closed: ${e.code}`);
+                  if (keepAliveInterval) clearInterval(keepAliveInterval);
                 };
                 
               } catch (err) {
@@ -1694,6 +1762,17 @@ serve(async (req) => {
               
               openaiWs.onopen = () => {
                 console.log("OpenAI WebSocket opened via subprotocol auth (no business data)");
+                
+                // Start keep-alive interval for fallback connection too
+                keepAliveInterval = setInterval(() => {
+                  const inactivityDuration = Date.now() - lastActivityTimestamp;
+                  if (inactivityDuration >= INACTIVITY_DISCONNECT_MS) {
+                    console.log(`Inactivity timeout (fallback). Ending call.`);
+                    if (keepAliveInterval) clearInterval(keepAliveInterval);
+                    openaiWs?.close();
+                    twilioWs?.close();
+                  }
+                }, KEEP_ALIVE_INTERVAL_MS);
               };
               
               openaiWs.onmessage = (openaiEvent) => {
@@ -1708,8 +1787,14 @@ serve(async (req) => {
                 }
               };
               
-              openaiWs.onerror = () => console.error("OpenAI WebSocket error");
-              openaiWs.onclose = (e) => console.log(`OpenAI closed: ${e.code}`);
+              openaiWs.onerror = () => {
+                console.error("OpenAI WebSocket error");
+                if (keepAliveInterval) clearInterval(keepAliveInterval);
+              };
+              openaiWs.onclose = (e) => {
+                console.log(`OpenAI closed: ${e.code}`);
+                if (keepAliveInterval) clearInterval(keepAliveInterval);
+              };
               
             } catch (err) {
               console.error("Failed to connect to OpenAI:", err);
@@ -1917,6 +2002,8 @@ serve(async (req) => {
         
       case "conversation.item.input_audio_transcription.completed":
         console.log(`User: ${data.transcript}`);
+        // Update activity - user is actively speaking
+        updateActivity();
         // Collect user transcript for call summary
         if (data.transcript && data.transcript.trim()) {
           conversationTranscripts.push({ role: 'user', text: data.transcript.trim() });
@@ -1934,7 +2021,10 @@ serve(async (req) => {
         break;
         
       case "input_audio_buffer.speech_started":
-        // User started speaking - clear any pending audio to prevent overlap
+        // User started speaking - update activity timestamp
+        updateActivity();
+        
+        // Clear any pending audio to prevent overlap
         // Always clear Twilio's audio buffer immediately for responsive experience
         if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
           twilioWs.send(JSON.stringify({ event: "clear", streamSid }));
@@ -1971,6 +2061,9 @@ serve(async (req) => {
   
   twilioWs.onclose = () => {
     console.log("Twilio WebSocket closed");
+    if (keepAliveInterval) {
+      clearInterval(keepAliveInterval);
+    }
     if (openaiWs) {
       openaiWs.close();
     }

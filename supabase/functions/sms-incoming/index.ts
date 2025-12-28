@@ -14,6 +14,9 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')!;
 // Hebrew opt-out keywords
 const OPT_OUT_KEYWORDS = ['stop', 'unsubscribe', 'עצור', 'הסר', 'הפסק'];
 
+// Re-subscribe keywords
+const RESUBSCRIBE_KEYWORDS = ['start', 'subscribe', 'unstop', 'התחל', 'הרשם', 'חזור'];
+
 // Appointment confirmation keywords
 const CONFIRM_KEYWORDS = ['yes', 'confirm', 'כן', 'אישור', 'מאשר', 'אשר'];
 const CANCEL_KEYWORDS = ['cancel', 'no', 'ביטול', 'לא', 'בטל'];
@@ -168,8 +171,8 @@ serve(async (req) => {
         .eq('id', contact?.id);
 
       const optOutReply = business.ai_language === 'hebrew'
-        ? 'הוסרת מרשימת ההודעות שלנו. לא תקבל עוד הודעות מאיתנו.'
-        : 'You have been unsubscribed. You will no longer receive messages from us.';
+        ? 'הוסרת מרשימת ההודעות שלנו. לא תקבל עוד הודעות מאיתנו. שלח START כדי להירשם מחדש.'
+        : 'You have been unsubscribed. You will no longer receive messages from us. Reply START to re-subscribe.';
 
       await sendSMS(toNumber, fromNumber, optOutReply);
 
@@ -179,9 +182,40 @@ serve(async (req) => {
       );
     }
 
+    // Check for re-subscribe keywords
+    if (RESUBSCRIBE_KEYWORDS.some(kw => lowerMessage === kw)) {
+      console.log("Re-subscribe request received from:", fromNumber);
+      
+      await supabase
+        .from('contacts')
+        .update({
+          opted_out: false,
+          opted_out_at: null,
+        })
+        .eq('id', contact?.id);
+
+      const resubscribeReply = business.ai_language === 'hebrew'
+        ? `ברוכים השבים! 🎉 נרשמת מחדש לקבלת הודעות מ${business.name}. איך אפשר לעזור לך היום?`
+        : `Welcome back! 🎉 You have been re-subscribed to messages from ${business.name}. How can we help you today?`;
+
+      await sendSMS(toNumber, fromNumber, resubscribeReply);
+
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
+        { headers: { ...corsHeaders, 'Content-Type': 'text/xml' } }
+      );
+    }
+
     // Check if contact has opted out
     if (contact?.opted_out) {
-      console.log("Contact has opted out, ignoring message");
+      console.log("Contact has opted out, sending re-subscribe instructions");
+      
+      const optedOutReply = business.ai_language === 'hebrew'
+        ? 'הסרת את עצמך מרשימת ההודעות. שלח START כדי להירשם מחדש ולקבל הודעות.'
+        : 'You are currently unsubscribed. Reply START to re-subscribe and receive messages.';
+      
+      await sendSMS(toNumber, fromNumber, optedOutReply);
+      
       return new Response(
         `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
         { headers: { ...corsHeaders, 'Content-Type': 'text/xml' } }

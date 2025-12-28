@@ -178,6 +178,16 @@ const TOOLS = [
   },
   {
     type: "function",
+    name: "confirm_appointment",
+    description: "Confirm an existing upcoming appointment. Use this when the caller wants to confirm or verify their appointment is still scheduled. This updates the appointment status to 'confirmed'.",
+    parameters: {
+      type: "object",
+      properties: {},
+      required: []
+    }
+  },
+  {
+    type: "function",
     name: "get_services_info",
     description: "Get information about available services and pricing. Use this when the caller asks about what services are offered, how much something costs, pricing, rates, or wants to know what the business does.",
     parameters: {
@@ -1043,6 +1053,88 @@ serve(async (req) => {
                     console.log("Cancellation SMS sent");
                   } catch (smsErr) {
                     console.error("Failed to send cancellation SMS:", smsErr);
+                  }
+                }
+              }
+            }
+          }
+          break;
+        }
+        
+        case "confirm_appointment": {
+          if (!contactId) {
+            result = JSON.stringify({ success: false, error: "No contact found for this caller" });
+          } else {
+            const timezone = (globalThis as any).__businessTimezone || "UTC";
+            
+            // Find the caller's upcoming appointment
+            const { data: upcomingAppts, error: fetchError } = await supabase
+              .from("appointments")
+              .select("id, scheduled_at, service_type, confirmation_code, status")
+              .eq("contact_id", contactId)
+              .gte("scheduled_at", new Date().toISOString())
+              .neq("status", "cancelled")
+              .order("scheduled_at", { ascending: true })
+              .limit(1);
+            
+            if (fetchError || !upcomingAppts || upcomingAppts.length === 0) {
+              result = JSON.stringify({ success: false, error: "No upcoming appointment found to confirm" });
+            } else {
+              const appointment = upcomingAppts[0];
+              
+              // Format the date with proper timezone and AM/PM
+              const apptDateTime = new Date(appointment.scheduled_at);
+              const dateFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
+                timeZone: timezone,
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              });
+              const timeFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
+                timeZone: timezone,
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              });
+              const formattedDate = dateFormatter.format(apptDateTime);
+              const formattedTime = timeFormatter.format(apptDateTime);
+              
+              // Update appointment status to confirmed
+              const { error: updateError } = await supabase
+                .from("appointments")
+                .update({ 
+                  status: "confirmed",
+                  updated_at: new Date().toISOString()
+                })
+                .eq("id", appointment.id);
+              
+              if (updateError) {
+                console.error("Error confirming appointment:", updateError);
+                result = JSON.stringify({ success: false, error: updateError.message });
+              } else {
+                console.log("Appointment confirmed:", appointment.id);
+                result = JSON.stringify({ 
+                  success: true, 
+                  date: formattedDate,
+                  time: formattedTime,
+                  service_type: appointment.service_type,
+                  confirmation_code: appointment.confirmation_code,
+                  previous_status: appointment.status,
+                  message: `Your appointment on ${formattedDate} at ${formattedTime} for ${appointment.service_type || 'your service'} is confirmed. Confirmation code: ${appointment.confirmation_code}`
+                });
+                
+                // Send SMS confirmation if possible
+                if (callerPhone && businessPhone) {
+                  const confirmMsg = voiceLanguage.startsWith("he") 
+                    ? `התור שלך אושר! ${formattedDate} בשעה ${formattedTime}. קוד אישור: ${appointment.confirmation_code}`
+                    : `Appointment confirmed! ${formattedDate} at ${formattedTime}. Confirmation: ${appointment.confirmation_code}`;
+                  
+                  try {
+                    await sendSMS(businessPhone, callerPhone, confirmMsg);
+                    console.log("Confirmation SMS sent");
+                  } catch (smsErr) {
+                    console.error("Failed to send confirmation SMS:", smsErr);
                   }
                 }
               }

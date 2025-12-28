@@ -224,11 +224,19 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Error in send-appointment-reminder:", error);
+    
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Check if it's a user-recoverable error (not a server error)
+    const isUserError = errorMessage.includes('opted out') || 
+                        errorMessage.includes('Invalid phone') ||
+                        errorMessage.includes('Cannot send SMS');
+    
     return new Response(JSON.stringify({ 
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: errorMessage
     }), {
-      status: 500,
+      status: isUserError ? 400 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

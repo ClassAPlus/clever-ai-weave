@@ -84,7 +84,7 @@ export default function Appointments() {
     remindersSent: 0, customerConfirmed: 0, customerCancelled: 0
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [businessHours, setBusinessHours] = useState<BusinessHours>({});
+  const [businessHours, setBusinessHours] = useState<BusinessHours | null>(null);
   const [filter, setFilter] = useState<"all" | "pending" | "confirmed" | "completed" | "cancelled">("all");
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
@@ -467,6 +467,9 @@ export default function Appointments() {
 
   // Check if a day is closed based on business hours
   const isDayClosed = useCallback((day: Date): boolean => {
+    // Don't show closed indicator until business hours are loaded
+    if (!businessHours) return false;
+    
     const dayOfWeek = getDay(day);
     const dayMap: Record<number, string> = {
       0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat"

@@ -59,6 +59,8 @@ import {
   Save,
   RefreshCw,
   Copy,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -104,6 +106,8 @@ export function AppointmentDetailsDialog({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [isReEnablingSms, setIsReEnablingSms] = useState(false);
+  const [contactOptedOut, setContactOptedOut] = useState(appointment?.contact?.opted_out ?? false);
   const [conflictAcknowledged, setConflictAcknowledged] = useState(false);
 
   // Form state
@@ -138,12 +142,40 @@ export function AppointmentDetailsDialog({
       setServiceType(appointment.service_type || "");
       setNotes(appointment.notes || "");
       setStatus(appointment.status || "pending");
+      setContactOptedOut(appointment.contact?.opted_out ?? false);
       setIsEditing(false);
       setIsQuickReschedule(false);
       setConflictAcknowledged(false);
       clearConflicts();
     }
   }, [appointment, open, clearConflicts]);
+
+  const reEnableSms = async () => {
+    if (!appointment?.contact?.id) return;
+    
+    setIsReEnablingSms(true);
+    try {
+      const { error } = await supabase
+        .from("contacts")
+        .update({ opted_out: false, opted_out_at: null })
+        .eq("id", appointment.contact.id);
+
+      if (error) {
+        console.error("Error re-enabling SMS:", error);
+        toast.error("Failed to re-enable SMS");
+        return;
+      }
+
+      setContactOptedOut(false);
+      toast.success("SMS re-enabled for this contact");
+      onAppointmentUpdated();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to re-enable SMS");
+    } finally {
+      setIsReEnablingSms(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!appointment || !selectedDate) return;
@@ -623,6 +655,29 @@ export function AppointmentDetailsDialog({
                   </Badge>
                 </div>
               )}
+              {/* Opted out notice with re-enable button */}
+              {contactOptedOut && (
+                <div className="flex items-center justify-between p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                  <div className="flex items-center gap-2 text-amber-300 text-sm">
+                    <UserX className="h-4 w-4" />
+                    <span>Contact has opted out of SMS</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
+                    onClick={reEnableSms}
+                    disabled={isReEnablingSms}
+                  >
+                    {isReEnablingSms ? (
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    ) : (
+                      <UserCheck className="h-3 w-3 mr-1" />
+                    )}
+                    Re-enable
+                  </Button>
+                </div>
+              )}
               {!isPastAppointment &&
                 status !== "completed" &&
                 status !== "cancelled" && (
@@ -641,20 +696,20 @@ export function AppointmentDetailsDialog({
                       variant="outline"
                       className={cn(
                         "flex-1",
-                        appointment.contact?.opted_out
+                        contactOptedOut
                           ? "border-gray-500/30 text-gray-500 cursor-not-allowed"
                           : "border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20"
                       )}
                       onClick={sendReminder}
-                      disabled={isSendingReminder || !!appointment.contact?.opted_out}
-                      title={appointment.contact?.opted_out ? "Contact has opted out of SMS" : undefined}
+                      disabled={isSendingReminder || contactOptedOut}
+                      title={contactOptedOut ? "Contact has opted out of SMS" : undefined}
                     >
                       {isSendingReminder ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <Send className="h-4 w-4 mr-2" />
                       )}
-                      {appointment.contact?.opted_out 
+                      {contactOptedOut 
                         ? "Opted Out" 
                         : appointment.reminder_sent_at ? "Resend" : "Remind"}
                     </Button>

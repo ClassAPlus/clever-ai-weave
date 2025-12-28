@@ -510,18 +510,38 @@ export default function Appointments() {
     [businessHours, businessTimezone]
   );
 
+  // Parse time string (handles both "14:00" and "2:00 PM" formats)
+  const parseTimeToHour = useCallback((timeStr: string): number => {
+    const cleanTime = timeStr.trim().toUpperCase();
+    
+    // Check if 12h format with AM/PM
+    if (cleanTime.includes("AM") || cleanTime.includes("PM")) {
+      const isPM = cleanTime.includes("PM");
+      const timePart = cleanTime.replace(/\s*(AM|PM)/i, "");
+      const [hourStr] = timePart.split(":");
+      let hour = parseInt(hourStr, 10);
+      if (isPM && hour !== 12) hour += 12;
+      if (!isPM && hour === 12) hour = 0;
+      return hour;
+    }
+    
+    // 24h format
+    const [hourStr] = timeStr.split(":");
+    return parseInt(hourStr, 10);
+  }, []);
+
   // Check if a given hour is outside business hours for the current date
   const isHourOutsideBusinessHours = useCallback(
     (hour: number): boolean => {
       const hours = getBusinessHoursForDay(currentDate);
       if (!hours) return true; // Closed day = all hours are "outside"
       
-      const startHour = parseInt(hours.start.split(":")[0], 10);
-      const endHour = parseInt(hours.end.split(":")[0], 10);
+      const startHour = parseTimeToHour(hours.start);
+      const endHour = parseTimeToHour(hours.end);
       
       return hour < startHour || hour >= endHour;
     },
-    [getBusinessHoursForDay, currentDate]
+    [getBusinessHoursForDay, currentDate, parseTimeToHour]
   );
 
   const getDateRangeLabel = () => {

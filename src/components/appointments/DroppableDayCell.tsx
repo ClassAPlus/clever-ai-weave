@@ -16,8 +16,28 @@ interface DroppableDayCellProps {
 
 // Format time from 24h to 12h format (e.g., "09:00" -> "9a", "18:00" -> "6p")
 function formatBusinessTime(time: string): string {
+  // Handle various input formats: "14:00", "14:30", "2:00 PM", etc.
+  const cleanTime = time.trim().toUpperCase();
+  
+  // Check if already in 12h format with AM/PM
+  if (cleanTime.includes("AM") || cleanTime.includes("PM")) {
+    const isPM = cleanTime.includes("PM");
+    const timePart = cleanTime.replace(/\s*(AM|PM)/i, "");
+    const [hourStr] = timePart.split(":");
+    let hour = parseInt(hourStr, 10);
+    if (isPM && hour !== 12) hour += 12;
+    if (!isPM && hour === 12) hour = 0;
+    // Now format consistently
+    if (hour === 0) return "12a";
+    if (hour === 12) return "12p";
+    if (hour < 12) return `${hour}a`;
+    return `${hour - 12}p`;
+  }
+  
+  // Handle 24h format: "14:00", "09:00"
   const [hourStr] = time.split(":");
   const hour = parseInt(hourStr, 10);
+  if (isNaN(hour)) return time; // Fallback for invalid input
   if (hour === 0) return "12a";
   if (hour === 12) return "12p";
   if (hour < 12) return `${hour}a`;

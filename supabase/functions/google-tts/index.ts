@@ -40,12 +40,11 @@ serve(async (req) => {
     const selectedVoiceId = voiceId || 
       (selectedGender === 'male' ? ELEVENLABS_VOICES.male.primary : ELEVENLABS_VOICES.female.primary);
 
-    // Map language codes to ElevenLabs ISO 639-1 codes
-    const languageMap: Record<string, string> = {
-      'he-IL': 'he',
+    // Languages supported by eleven_turbo_v2_5 with language_code parameter
+    // Hebrew is NOT supported by turbo model - must use multilingual_v2 which auto-detects
+    const turboSupportedLanguages: Record<string, string> = {
       'en-US': 'en',
       'en-GB': 'en',
-      'ar-XA': 'ar',
       'es-ES': 'es',
       'fr-FR': 'fr',
       'de-DE': 'de',
@@ -54,24 +53,23 @@ serve(async (req) => {
       'it-IT': 'it',
       'nl-NL': 'nl',
       'pl-PL': 'pl',
-      'ru-RU': 'ru',
-      'zh-CN': 'zh',
       'ja-JP': 'ja',
       'ko-KR': 'ko',
-      'tr-TR': 'tr',
-      'hi-IN': 'hi',
-      'vi-VN': 'vi',
+      'zh-CN': 'zh',
     };
 
-    // Get the ElevenLabs language code (2-letter ISO)
-    const elevenLabsLang = languageCode ? languageMap[languageCode] : undefined;
+    // Check if language is supported by turbo model
+    const elevenLabsLang = languageCode ? turboSupportedLanguages[languageCode] : undefined;
+    
+    // Use turbo for supported languages, multilingual_v2 for Hebrew/Arabic/others (better auto-detection)
+    const useMultilingual = !elevenLabsLang || languageCode === 'he-IL' || languageCode === 'ar-XA';
 
-    console.log(`ElevenLabs TTS request: lang=${languageCode || 'auto'} (${elevenLabsLang || 'auto-detect'}), voice=${selectedVoiceId}, text length=${text.length}`);
+    console.log(`ElevenLabs TTS request: lang=${languageCode || 'auto'}, model=${useMultilingual ? 'multilingual_v2' : 'turbo_v2_5'}, voice=${selectedVoiceId}, text length=${text.length}`);
 
-    // Build request body - use eleven_turbo_v2_5 for better language handling when language is specified
+    // Build request body
     const requestBody: Record<string, any> = {
       text,
-      model_id: elevenLabsLang ? 'eleven_turbo_v2_5' : 'eleven_multilingual_v2',
+      model_id: useMultilingual ? 'eleven_multilingual_v2' : 'eleven_turbo_v2_5',
       output_format: 'mp3_44100_128',
       voice_settings: {
         stability: 0.5,
@@ -81,8 +79,8 @@ serve(async (req) => {
       },
     };
 
-    // Add language_code for Turbo 2.5 to force correct language pronunciation
-    if (elevenLabsLang) {
+    // Only add language_code for turbo model (multilingual auto-detects from text)
+    if (!useMultilingual && elevenLabsLang) {
       requestBody.language_code = elevenLabsLang;
     }
 

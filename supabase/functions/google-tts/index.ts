@@ -40,7 +40,51 @@ serve(async (req) => {
     const selectedVoiceId = voiceId || 
       (selectedGender === 'male' ? ELEVENLABS_VOICES.male.primary : ELEVENLABS_VOICES.female.primary);
 
-    console.log(`ElevenLabs TTS request: lang=${languageCode || 'auto'}, voice=${selectedVoiceId}, text length=${text.length}`);
+    // Map language codes to ElevenLabs ISO 639-1 codes
+    const languageMap: Record<string, string> = {
+      'he-IL': 'he',
+      'en-US': 'en',
+      'en-GB': 'en',
+      'ar-XA': 'ar',
+      'es-ES': 'es',
+      'fr-FR': 'fr',
+      'de-DE': 'de',
+      'pt-BR': 'pt',
+      'pt-PT': 'pt',
+      'it-IT': 'it',
+      'nl-NL': 'nl',
+      'pl-PL': 'pl',
+      'ru-RU': 'ru',
+      'zh-CN': 'zh',
+      'ja-JP': 'ja',
+      'ko-KR': 'ko',
+      'tr-TR': 'tr',
+      'hi-IN': 'hi',
+      'vi-VN': 'vi',
+    };
+
+    // Get the ElevenLabs language code (2-letter ISO)
+    const elevenLabsLang = languageCode ? languageMap[languageCode] : undefined;
+
+    console.log(`ElevenLabs TTS request: lang=${languageCode || 'auto'} (${elevenLabsLang || 'auto-detect'}), voice=${selectedVoiceId}, text length=${text.length}`);
+
+    // Build request body - use eleven_turbo_v2_5 for better language handling when language is specified
+    const requestBody: Record<string, any> = {
+      text,
+      model_id: elevenLabsLang ? 'eleven_turbo_v2_5' : 'eleven_multilingual_v2',
+      output_format: 'mp3_44100_128',
+      voice_settings: {
+        stability: 0.5,
+        similarity_boost: 0.75,
+        style: 0.3,
+        use_speaker_boost: true,
+      },
+    };
+
+    // Add language_code for Turbo 2.5 to force correct language pronunciation
+    if (elevenLabsLang) {
+      requestBody.language_code = elevenLabsLang;
+    }
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
@@ -50,17 +94,7 @@ serve(async (req) => {
           'xi-api-key': ELEVENLABS_API_KEY,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_multilingual_v2', // Best quality, supports Hebrew + English
-          output_format: 'mp3_44100_128',
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.3,
-            use_speaker_boost: true,
-          },
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 

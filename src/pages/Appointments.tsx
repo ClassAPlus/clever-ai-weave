@@ -689,9 +689,14 @@ export default function Appointments() {
             <Button
               size="sm"
               variant="ghost"
-              className="h-6 px-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20"
+              className={`h-6 px-2 ${
+                appointment.contact?.opted_out 
+                  ? "text-gray-500 cursor-not-allowed" 
+                  : "text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20"
+              }`}
               onClick={() => sendManualReminder(appointment.id)}
-              disabled={sendingReminderId === appointment.id}
+              disabled={sendingReminderId === appointment.id || !!appointment.contact?.opted_out}
+              title={appointment.contact?.opted_out ? "Contact has opted out of SMS" : "Send reminder"}
             >
               {sendingReminderId === appointment.id ? (
                 <Loader2 className="h-3 w-3 animate-spin" />

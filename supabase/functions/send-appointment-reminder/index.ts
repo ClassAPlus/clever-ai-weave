@@ -212,15 +212,23 @@ serve(async (req) => {
         reminderMessage
       );
     } catch (err) {
-      // If Twilio says the recipient opted out, persist that to our DB so the UI can disable sending next time.
       const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("opted out") && contact?.id) {
-        const { error: optOutErr } = await supabase
-          .from("contacts")
-          .update({ opted_out: true, opted_out_at: new Date().toISOString() })
-          .eq("id", contact.id);
-
-        if (optOutErr) console.error("Failed to mark contact as opted out:", optOutErr);
+      
+      // If Twilio says the recipient opted out at carrier level, return a helpful message
+      // but do NOT auto-set opted_out in DB - the admin may have deliberately re-enabled 
+      // to retry. The contact must text START to the Twilio number to truly re-subscribe.
+      if (msg.includes("opted out")) {
+        console.log(`Twilio reports carrier-level opt-out for contact ${contact.id}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'This recipient is still opted out at the carrier level. They must text START to your business number to re-subscribe.',
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
       throw err;
     }

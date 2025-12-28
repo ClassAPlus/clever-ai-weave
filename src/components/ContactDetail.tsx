@@ -113,6 +113,32 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
   const [isSavingTags, setIsSavingTags] = useState(false);
   const [preferredLanguage, setPreferredLanguage] = useState<string | null>(contact.preferred_language);
   const [isSavingLanguage, setIsSavingLanguage] = useState(false);
+  const [isOptedOut, setIsOptedOut] = useState(contact.opted_out);
+  const [isReEnabling, setIsReEnabling] = useState(false);
+
+  const reEnableSms = async () => {
+    setIsReEnabling(true);
+    try {
+      const { error } = await supabase
+        .from("contacts")
+        .update({ opted_out: false, opted_out_at: null })
+        .eq("id", contact.id);
+
+      if (error) {
+        console.error("Error re-enabling SMS:", error);
+        toast.error("Failed to re-enable SMS");
+        return;
+      }
+
+      setIsOptedOut(false);
+      toast.success("SMS re-enabled for this contact");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Failed to re-enable SMS");
+    } finally {
+      setIsReEnabling(false);
+    }
+  };
 
   const fetchContactData = useCallback(async () => {
     setIsLoading(true);
@@ -177,7 +203,7 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
       return;
     }
 
-    if (contact.opted_out) {
+    if (isOptedOut) {
       toast.error("Cannot send SMS to opted-out contact");
       return;
     }
@@ -383,15 +409,15 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
       <Card className="bg-gray-800/50 border-gray-700">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className={`p-4 rounded-full ${contact.opted_out ? "bg-red-500/20" : "bg-purple-500/20"}`}>
-              <User className={`h-8 w-8 ${contact.opted_out ? "text-red-400" : "text-purple-400"}`} />
+            <div className={`p-4 rounded-full ${isOptedOut ? "bg-red-500/20" : "bg-purple-500/20"}`}>
+              <User className={`h-8 w-8 ${isOptedOut ? "text-red-400" : "text-purple-400"}`} />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="text-xl font-semibold text-white">
                   {contact.name || "Unknown"}
                 </h2>
-                {contact.opted_out ? (
+                {isOptedOut ? (
                   <Badge className="bg-red-500/20 text-red-300 border-red-500/30">
                     <UserX className="h-3 w-3 mr-1" />
                     Opted Out
@@ -442,7 +468,7 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
                 <DialogTrigger asChild>
                   <Button
                     className="bg-purple-600 hover:bg-purple-700"
-                    disabled={contact.opted_out === true}
+                    disabled={isOptedOut === true}
                   >
                     <Send className="h-4 w-4 mr-2" />
                     Send SMS
@@ -501,18 +527,35 @@ export default function ContactDetail({ contact, businessId, onBack }: ContactDe
       </Card>
 
       {/* Opted-Out Re-subscribe Instructions */}
-      {contact.opted_out && (
+      {isOptedOut && (
         <Alert className="bg-amber-500/10 border-amber-500/30">
           <AlertTriangle className="h-4 w-4 text-amber-400" />
           <AlertTitle className="text-amber-300">Contact has opted out of SMS</AlertTitle>
           <AlertDescription className="text-amber-200/80">
-            This contact replied <span className="font-mono font-semibold">STOP</span> to unsubscribe from messages. 
-            To receive SMS again, they need to text <span className="font-mono font-semibold bg-amber-500/20 px-1.5 py-0.5 rounded">START</span> to your business number.
-            {contact.opted_out_at && (
-              <span className="block mt-1 text-sm text-amber-200/60">
-                Opted out {formatDistanceToNow(new Date(contact.opted_out_at), { addSuffix: true })}
-              </span>
-            )}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                This contact replied <span className="font-mono font-semibold">STOP</span> to unsubscribe from messages. 
+                To receive SMS again, they can text <span className="font-mono font-semibold bg-amber-500/20 px-1.5 py-0.5 rounded">START</span> to your business number, or you can manually re-enable below.
+                {contact.opted_out_at && (
+                  <span className="block mt-1 text-sm text-amber-200/60">
+                    Opted out {formatDistanceToNow(new Date(contact.opted_out_at), { addSuffix: true })}
+                  </span>
+                )}
+              </div>
+              <Button
+                onClick={reEnableSms}
+                disabled={isReEnabling}
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 text-white shrink-0"
+              >
+                {isReEnabling ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <UserCheck className="h-4 w-4 mr-2" />
+                )}
+                Re-enable SMS
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}

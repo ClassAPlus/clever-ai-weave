@@ -15,9 +15,27 @@ serve(async (req) => {
   }
 
   try {
-    const { businessId, greeting, targetPhones, testType } = await req.json();
+    const { businessId, greeting, targetPhones, testType, to, from, message } = await req.json();
 
-    console.log("Send test SMS request for business:", businessId, "type:", testType || "greeting");
+    console.log("Send test SMS request:", { businessId, testType, to, from });
+
+    // Handle direct message sending (for SMS preview test)
+    if (to && from && message) {
+      console.log("Sending direct test SMS from", from, "to", to);
+      
+      const smsResult = await sendSMS(from, to, message);
+      console.log("Direct SMS sent successfully:", smsResult.sid);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          messageSid: smsResult.sid,
+          sentTo: to,
+          message: message
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!businessId) {
       return new Response(

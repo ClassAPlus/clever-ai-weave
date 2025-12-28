@@ -35,6 +35,7 @@ import { GoogleCalendarSync } from "@/components/settings/GoogleCalendarSync";
 import { AppointmentTemplateManager } from "@/components/appointments/AppointmentTemplateManager";
 import { Badge } from "@/components/ui/badge";
 import { AITestCall } from "@/components/settings/AITestCall";
+import { SMSPreviewTest } from "@/components/settings/SMSPreviewTest";
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -1260,15 +1261,15 @@ export default function Settings() {
                         
                         const displayTemplate = template || defaultTemplates[lang] || defaultTemplates.english;
                         
-                        // Sample data per language
+                        // Sample data per language - always use 12h format for consistency
                         const sampleDataByLang: Record<string, { name: string; service: string; time: string; date: string }> = {
-                          hebrew: { name: "ישראל ישראלי", service: "תספורת", time: "14:30", date: "יום שלישי, 15 בינואר" },
-                          arabic: { name: "أحمد محمد", service: "قص شعر", time: "14:30", date: "الثلاثاء، 15 يناير" },
+                          hebrew: { name: "ישראל ישראלי", service: "תספורת", time: "2:30 PM", date: "יום שלישי, 15 בינואר" },
+                          arabic: { name: "أحمد محمد", service: "قص شعر", time: "2:30 PM", date: "الثلاثاء، 15 يناير" },
                           english: { name: "John Smith", service: "Haircut", time: "2:30 PM", date: "Tuesday, January 15" },
-                          russian: { name: "Иван Петров", service: "Стрижка", time: "14:30", date: "Вторник, 15 января" },
-                          spanish: { name: "Juan García", service: "Corte de pelo", time: "14:30", date: "Martes, 15 de enero" },
-                          french: { name: "Jean Dupont", service: "Coupe de cheveux", time: "14h30", date: "Mardi 15 janvier" },
-                          german: { name: "Hans Müller", service: "Haarschnitt", time: "14:30", date: "Dienstag, 15. Januar" },
+                          russian: { name: "Иван Петров", service: "Стрижка", time: "2:30 PM", date: "Вторник, 15 января" },
+                          spanish: { name: "Juan García", service: "Corte de pelo", time: "2:30 PM", date: "Martes, 15 de enero" },
+                          french: { name: "Jean Dupont", service: "Coupe de cheveux", time: "2:30 PM", date: "Mardi 15 janvier" },
+                          german: { name: "Hans Müller", service: "Haarschnitt", time: "2:30 PM", date: "Dienstag, 15. Januar" },
                         };
                         
                         const sampleData = sampleDataByLang[lang] || sampleDataByLang.english;
@@ -1324,6 +1325,25 @@ export default function Settings() {
                           </div>
                         );
                       })}
+                      
+                      {/* SMS Test Feature */}
+                      {primaryLanguage && (
+                        <SMSPreviewTest
+                          businessId={business?.id || ""}
+                          businessName={name}
+                          twilioPhoneNumber={business?.twilio_phone_number || null}
+                          ownerPhone={ownerPhone}
+                          template={
+                            twilioSettings.appointmentReminderTemplates?.[primaryLanguage] || 
+                            (primaryLanguage === 'hebrew' 
+                              ? 'שלום {name}! תזכורת מ{business}: יש לך {service} מחר ב-{time}. השב "כן" לאישור או "ביטול" לביטול התור.'
+                              : 'Hi {name}! Reminder from {business}: You have an {service} tomorrow at {time}. Reply YES to confirm or CANCEL to cancel.'
+                            )
+                          }
+                          language={primaryLanguage}
+                          disabled={!isEditingNotifications}
+                        />
+                      )}
                     </div>
                   </div>
                 )}

@@ -247,7 +247,20 @@ export function AppointmentDetailsDialog({
         toast.success("Reminder sent!");
         onAppointmentUpdated();
       } else {
-        toast.error(data?.error || "Failed to send reminder");
+        const errorMsg = data?.error || "Failed to send reminder";
+        
+        // Check if it's an opted-out error and we have contact info
+        if (errorMsg.includes('opted out') && appointment?.contact?.id) {
+          toast.error("Contact has opted out of SMS", {
+            description: "They need to text START to re-subscribe.",
+            action: {
+              label: "View Contact",
+              onClick: () => window.location.href = `/dashboard/contacts?contact=${appointment.contact!.id}`
+            }
+          });
+        } else {
+          toast.error(errorMsg);
+        }
       }
     } catch (error) {
       console.error("Error sending reminder:", error);

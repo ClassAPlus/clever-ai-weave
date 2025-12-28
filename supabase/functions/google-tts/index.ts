@@ -40,49 +40,22 @@ serve(async (req) => {
     const selectedVoiceId = voiceId || 
       (selectedGender === 'male' ? ELEVENLABS_VOICES.male.primary : ELEVENLABS_VOICES.female.primary);
 
-    // Languages supported by eleven_turbo_v2_5 with language_code parameter
-    // Hebrew is NOT supported by turbo model - must use multilingual_v2 which auto-detects
-    const turboSupportedLanguages: Record<string, string> = {
-      'en-US': 'en',
-      'en-GB': 'en',
-      'es-ES': 'es',
-      'fr-FR': 'fr',
-      'de-DE': 'de',
-      'pt-BR': 'pt',
-      'pt-PT': 'pt',
-      'it-IT': 'it',
-      'nl-NL': 'nl',
-      'pl-PL': 'pl',
-      'ja-JP': 'ja',
-      'ko-KR': 'ko',
-      'zh-CN': 'zh',
-    };
+    // Always use eleven_multilingual_v2 - it has the best language detection and pronunciation
+    // The model auto-detects language from the text content itself
+    console.log(`ElevenLabs TTS request: lang=${languageCode || 'auto'}, model=multilingual_v2, voice=${selectedVoiceId}, text length=${text.length}`);
 
-    // Check if language is supported by turbo model
-    const elevenLabsLang = languageCode ? turboSupportedLanguages[languageCode] : undefined;
-    
-    // Use turbo for supported languages, multilingual_v2 for Hebrew/Arabic/others (better auto-detection)
-    const useMultilingual = !elevenLabsLang || languageCode === 'he-IL' || languageCode === 'ar-XA';
-
-    console.log(`ElevenLabs TTS request: lang=${languageCode || 'auto'}, model=${useMultilingual ? 'multilingual_v2' : 'turbo_v2_5'}, voice=${selectedVoiceId}, text length=${text.length}`);
-
-    // Build request body
+    // Build request body - always use multilingual_v2 for best pronunciation across all languages
     const requestBody: Record<string, any> = {
       text,
-      model_id: useMultilingual ? 'eleven_multilingual_v2' : 'eleven_turbo_v2_5',
+      model_id: 'eleven_multilingual_v2',
       output_format: 'mp3_44100_128',
       voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.75,
-        style: 0.3,
+        stability: 0.4,        // Lower stability for more natural prosody
+        similarity_boost: 0.8, // Higher similarity for clearer pronunciation
+        style: 0.2,            // Moderate style for natural speech
         use_speaker_boost: true,
       },
     };
-
-    // Only add language_code for turbo model (multilingual auto-detects from text)
-    if (!useMultilingual && elevenLabsLang) {
-      requestBody.language_code = elevenLabsLang;
-    }
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,

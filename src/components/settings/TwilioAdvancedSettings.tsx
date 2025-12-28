@@ -50,27 +50,28 @@ const AI_LANGUAGE_TO_VOICE_CODE: Record<string, string> = {
 };
 
 // ElevenLabs voices - multilingual_v2 supports all languages including Hebrew
+// Voices marked as "Multilingual" are specifically optimized for non-English languages
 const ELEVENLABS_VOICES = [
-  // Female voices
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', gender: 'female', description: 'Warm, natural, conversational', accent: 'American' },
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', gender: 'female', description: 'Friendly, clear', accent: 'American' },
+  // Female voices - Best for Hebrew marked first
+  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica', gender: 'female', description: '⭐ Best for Hebrew - Professional, clear', accent: 'Multilingual' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', gender: 'female', description: 'Warm, natural, conversational', accent: 'Multilingual' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', gender: 'female', description: 'Friendly, clear', accent: 'Multilingual' },
   { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', gender: 'female', description: 'Soft, gentle', accent: 'British' },
   { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', gender: 'female', description: 'Young, bright', accent: 'British' },
-  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica', gender: 'female', description: 'Professional, clear', accent: 'American' },
-  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', gender: 'female', description: 'Calm, professional', accent: 'American' },
+  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', gender: 'female', description: 'Calm, professional', accent: 'Multilingual' },
   { id: 'SAz9YHcvj6GT2YYXdXww', name: 'River', gender: 'female', description: 'Confident, articulate', accent: 'American' },
   { id: 'jsCqWAovK2LkecY7zXl4', name: 'Freya', gender: 'female', description: 'Nordic, elegant', accent: 'Scandinavian' },
-  { id: 'oWAxZDx7w5VEj9dCyTzz', name: 'Grace', gender: 'female', description: 'Southern charm', accent: 'American Southern' },
+  { id: 'oWAxZDx7w5VEj9dCyTzz', name: 'Grace', gender: 'female', description: 'Southern charm', accent: 'American' },
   { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', gender: 'female', description: 'Swedish, melodic', accent: 'Swedish' },
   { id: 'pMsXgVXv3BLzUgSXRplE', name: 'Serena', gender: 'female', description: 'Soothing, calm', accent: 'American' },
   { id: 'z9fAnlkpzviPz146aGWa', name: 'Glinda', gender: 'female', description: 'Warm, motherly', accent: 'American' },
-  // Male voices
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', gender: 'male', description: 'Clear, professional', accent: 'British' },
-  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', gender: 'male', description: 'Friendly, warm', accent: 'American' },
+  // Male voices - Best for Hebrew marked first
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', gender: 'male', description: '⭐ Best for Hebrew - Clear, professional', accent: 'Multilingual' },
+  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', gender: 'male', description: 'Friendly, warm', accent: 'Multilingual' },
   { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'male', description: 'British, refined', accent: 'British' },
   { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', gender: 'male', description: 'Casual, approachable', accent: 'Australian' },
   { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric', gender: 'male', description: 'Deep, authoritative', accent: 'American' },
-  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', gender: 'male', description: 'Warm, trustworthy', accent: 'American' },
+  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', gender: 'male', description: 'Warm, trustworthy', accent: 'Multilingual' },
   { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum', gender: 'male', description: 'Scottish accent', accent: 'Scottish' },
   { id: 'bIHbv24MWmeRgasZH58o', name: 'Will', gender: 'male', description: 'Young, energetic', accent: 'American' },
   { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger', gender: 'male', description: 'Mature, authoritative', accent: 'American' },

@@ -16,6 +16,7 @@ interface TwilioSettings {
   voiceId: string;
   googleVoiceName?: string;
   elevenLabsVoiceId?: string;
+  elevenLabsVoiceGender?: 'male' | 'female'; // Auto-derived from selected voice
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;
@@ -118,7 +119,7 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
   const [useCustomVoice, setUseCustomVoice] = useState(false);
   const [voiceFilter, setVoiceFilter] = useState<'all' | 'female' | 'male'>('all');
 
-  const [accountVoices, setAccountVoices] = useState<Array<{ voice_id: string; name: string; category?: string }>>([]);
+  const [accountVoices, setAccountVoices] = useState<Array<{ voice_id: string; name: string; category?: string; labels?: { gender?: string } }>>([]);
   const [accountVoicesLoading, setAccountVoicesLoading] = useState(false);
   const [accountVoicesError, setAccountVoicesError] = useState<string | null>(null);
   const [selectedAccountVoiceId, setSelectedAccountVoiceId] = useState<string>("");
@@ -149,15 +150,32 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
     }
   }, [primaryLanguage]);
 
-  // Set default ElevenLabs voice if not set
+  // Set default ElevenLabs voice if not set, and ensure gender is stored
   useEffect(() => {
     if (!settings.elevenLabsVoiceId) {
       const defaultVoice = settings.voiceGender === 'male' 
         ? 'onwK4e9ZLuTAKqWW03F9' // Daniel
         : 'cgSgspJ2msm6clMCkdW9'; // Jessica (best multilingual)
-      updateSettings({ elevenLabsVoiceId: defaultVoice });
+      const defaultGender = settings.voiceGender === 'male' ? 'male' : 'female';
+      updateSettings({ elevenLabsVoiceId: defaultVoice, elevenLabsVoiceGender: defaultGender as 'male' | 'female' });
     }
   }, []);
+
+  // Helper function to get gender from voice ID (from hardcoded list or account voices)
+  const getVoiceGender = (voiceId: string): 'male' | 'female' => {
+    // Check hardcoded voices first
+    const hardcodedVoice = ELEVENLABS_VOICES.find(v => v.id === voiceId);
+    if (hardcodedVoice) {
+      return hardcodedVoice.gender as 'male' | 'female';
+    }
+    // Check account voices (from ElevenLabs API)
+    const accountVoice = accountVoices.find(v => v.voice_id === voiceId);
+    if (accountVoice?.labels?.gender) {
+      return accountVoice.labels.gender === 'male' ? 'male' : 'female';
+    }
+    // Default to female if unknown
+    return 'female';
+  };
 
   const fetchAccountVoices = async () => {
     try {
@@ -167,7 +185,7 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
       const { data, error } = await supabase.functions.invoke("elevenlabs-voices");
       if (error) throw error;
 
-      const voices = (data?.voices as Array<{ voice_id: string; name: string; category?: string }>) || [];
+      const voices = (data?.voices as Array<{ voice_id: string; name: string; category?: string; labels?: { gender?: string } }>) || [];
       setAccountVoices(voices);
       setSelectedAccountVoiceId((prev) => prev || voices?.[0]?.voice_id || "");
     } catch (e) {
@@ -376,11 +394,12 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
               <Select
                 value={settings.voiceGender}
                 onValueChange={(value) => {
-                  // Auto-select first voice of the new gender
+                  // Auto-select first voice of the new gender and store gender
                   const firstVoice = ELEVENLABS_VOICES.find((v) => v.gender === value);
                   updateSettings({
                     voiceGender: value,
                     elevenLabsVoiceId: firstVoice?.id || 'EXAVITQu4vr4xnSDxMaL',
+                    elevenLabsVoiceGender: value as 'male' | 'female',
                   });
                 }}
               >
@@ -489,8 +508,13 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
                       onClick={() => {
                         if (!selectedAccountVoiceId) return;
                         setUseCustomVoice(false);
-                        updateSettings({ elevenLabsVoiceId: selectedAccountVoiceId });
-                        toast({ title: "Voice selected", description: "Saved your ElevenLabs voice for calls." });
+                        const detectedGender = getVoiceGender(selectedAccountVoiceId);
+                        updateSettings({ 
+                          elevenLabsVoiceId: selectedAccountVoiceId,
+                          elevenLabsVoiceGender: detectedGender,
+                          voiceGender: detectedGender,
+                        });
+                        toast({ title: "Voice selected", description: `Saved your ElevenLabs voice (${detectedGender}) for calls.` });
                       }}
                       disabled={!selectedAccountVoiceId}
                       className="border-gray-600 text-white hover:bg-gray-700"
@@ -533,8 +557,13 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
                     size="sm"
                     onClick={() => {
                       if (customVoiceId) {
-                        updateSettings({ elevenLabsVoiceId: customVoiceId });
-                        toast({ title: "Custom voice saved", description: "Your custom voice ID has been set." });
+                        // For custom voices, try to detect gender, default to current voiceGender
+                        const detectedGender = getVoiceGender(customVoiceId);
+                        updateSettings({ 
+                          elevenLabsVoiceId: customVoiceId,
+                          elevenLabsVoiceGender: detectedGender,
+                        });
+                        toast({ title: "Custom voice saved", description: `Voice ID set (gender: ${detectedGender}).` });
                       }
                     }}
                     disabled={!customVoiceId}
@@ -583,7 +612,11 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
                         }`}
                         onClick={() => {
                           setUseCustomVoice(false);
-                          updateSettings({ elevenLabsVoiceId: voice.id });
+                          updateSettings({ 
+                            elevenLabsVoiceId: voice.id,
+                            elevenLabsVoiceGender: voice.gender as 'male' | 'female',
+                            voiceGender: voice.gender,
+                          });
                         }}
                       >
                         <div className="flex items-center justify-between">

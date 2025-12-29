@@ -823,17 +823,18 @@ serve(async (req) => {
         voiceLanguage = langMapping[primaryLang] || settings?.voiceLanguage || "en-US";
         
         // Get ElevenLabs voice settings
-        voiceGender = settings?.voiceGender || "female";
+        // Use elevenLabsVoiceGender (auto-derived from selected voice) for consistency
+        voiceGender = settings?.elevenLabsVoiceGender || settings?.voiceGender || "female";
         elevenLabsVoiceId = settings?.elevenLabsVoiceId || null;
         
-        const gender = settings?.voiceGender || "female";
+        const gender = voiceGender;
         voice = gender === "male" ? "ash" : "alloy";
         // Store business hours for the check_business_hours tool
         (globalThis as any).__businessHours = business.business_hours;
         (globalThis as any).__businessTimezone = business.timezone || "UTC";
         // Store time format preference (12h = AM/PM, 24h = 24-hour)
         (globalThis as any).__timeFormat = settings?.timeFormat || "12h";
-        // AI gender for Hebrew grammatical forms is derived from voice gender
+        // AI gender for Hebrew grammatical forms - use the voice's gender
         (globalThis as any).__aiGender = voiceGender;
         // Store services and knowledge base for the get_services_info tool
         (globalThis as any).__businessServices = business.services || [];

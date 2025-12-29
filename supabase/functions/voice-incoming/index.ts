@@ -146,7 +146,7 @@ serve(async (req) => {
     };
 
     const pollyVoiceName = getVoiceName(voiceLanguage, voiceGender);
-    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage, "AI receptionist:", enableAiReceptionist, "ElevenLabs:", useElevenLabsAgent);
+    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage, "AI receptionist:", enableAiReceptionist, "ElevenLabs agentId set:", !!elevenLabsAgentId);
 
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
 

@@ -55,6 +55,7 @@ interface TwilioSettings {
   appointmentReminderTemplate?: string; // Legacy single template
   appointmentReminderTemplates?: Record<string, string>; // Templates per language
   appointmentReminderTiming?: 'same_day' | '1_day' | '2_days';
+  timeFormat?: '12h' | '24h'; // AM/PM vs 24-hour format
 }
 
 interface Business {

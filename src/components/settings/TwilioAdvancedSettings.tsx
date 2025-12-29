@@ -20,6 +20,7 @@ interface TwilioSettings {
   dailyMessageLimit: number;
   rateLimitWindow: number;
   enableAiReceptionist?: boolean;
+  timeFormat?: '12h' | '24h'; // AM/PM vs 24-hour format
 }
 
 interface TwilioAdvancedSettingsProps {
@@ -308,6 +309,46 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
               🎙️ When enabled, callers will have a real-time voice conversation with your AI assistant powered by OpenAI Realtime API.
             </p>
           )}
+        </div>
+
+        {/* Time Format Toggle */}
+        <div className="p-4 rounded-lg bg-gray-700/30 border border-gray-600 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Volume2 className="h-5 w-5 text-blue-400" />
+              <div>
+                <Label className="text-white font-medium">Time Format</Label>
+                <p className="text-xs text-gray-400">How times are spoken and displayed in SMS</p>
+              </div>
+            </div>
+            <div className="flex gap-2 bg-gray-700/50 rounded-lg p-1">
+              <button
+                onClick={() => updateSettings({ timeFormat: '12h' })}
+                className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                  (settings.timeFormat || '12h') === '12h'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                }`}
+              >
+                AM/PM
+              </button>
+              <button
+                onClick={() => updateSettings({ timeFormat: '24h' })}
+                className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                  settings.timeFormat === '24h'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                }`}
+              >
+                24-hour
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400">
+            {settings.timeFormat === '24h' 
+              ? '📞 AI will say "14:00" instead of "2 PM"' 
+              : '📞 AI will say "2 PM" instead of "14:00"'}
+          </p>
         </div>
 
         {/* Voice Settings */}

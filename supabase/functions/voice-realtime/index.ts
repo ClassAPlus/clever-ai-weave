@@ -1687,6 +1687,9 @@ serve(async (req) => {
                 if (afternoon.length > 0) summary.push(`${afternoon.length} afternoon slots (${getDisplay(afternoon[0])} - ${getDisplay(afternoon[afternoon.length - 1])})`);
                 if (evening.length > 0) summary.push(`${evening.length} evening slots (${getDisplay(evening[0])} - ${getDisplay(evening[evening.length - 1])})`);
 
+                // Build list of quoted slots for audit log
+                const quotedSlots = availableSlots.map(getDisplay);
+
                 result = JSON.stringify({
                   success: true,
                   date: displayDate,
@@ -1701,6 +1704,29 @@ serve(async (req) => {
                   all_slots: availableSlots.map(s => ({ time: s.time, display: getDisplay(s), display_24h: s.display_24h, display_12h: s.display_12h })),
                   message: `On ${displayDate}, we have ${availableSlots.length} available slots: ${summary.join(', ')}. Would you like to book one of these times?`,
                 });
+
+                // Log availability quote to audit table
+                if (businessId && quotedSlots.length > 0) {
+                  try {
+                    const { error: logError } = await supabase
+                      .from("ai_availability_logs")
+                      .insert({
+                        business_id: businessId,
+                        caller_phone: callerPhone || null,
+                        requested_date: dateStr,
+                        quoted_slots: quotedSlots,
+                        slot_count: quotedSlots.length,
+                        time_format: preferredFormat,
+                      });
+                    if (logError) {
+                      console.error("Error logging availability quote:", logError);
+                    } else {
+                      console.log(`Logged availability quote: ${quotedSlots.length} slots for ${dateStr}`);
+                    }
+                  } catch (logErr) {
+                    console.error("Exception logging availability:", logErr);
+                  }
+                }
               }
             }
           }

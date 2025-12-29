@@ -616,8 +616,9 @@ serve(async (req) => {
     console.log(`ElevenLabs TTS: voice=${selectedVoiceId}, model=${modelId}, isHebrew=${isHebrew}, text="${text.substring(0, 50)}..."`);
     
     try {
+      // Use streaming endpoint with output_format as query param for Twilio-compatible ulaw audio
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
+        `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}/stream?output_format=ulaw_8000&optimize_streaming_latency=3`,
         {
           method: 'POST',
           headers: {
@@ -627,7 +628,6 @@ serve(async (req) => {
           body: JSON.stringify({
             text,
             model_id: modelId,
-            output_format: 'ulaw_8000', // Twilio-compatible format
             voice_settings: {
               stability: 0.5,
               similarity_boost: 0.75,

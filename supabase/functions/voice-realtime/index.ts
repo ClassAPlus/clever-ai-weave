@@ -2136,44 +2136,73 @@ serve(async (req) => {
         
       // In text-only mode, OpenAI sends text instead of audio
       // We synthesize with ElevenLabs and send to Twilio
+      // IMPORTANT: OpenAI may send multiple events for the same text (response.text.done, 
+      // response.content_part.done, response.audio_transcript.done). We dedupe by tracking
+      // item_id + text hash to avoid repeating the same audio multiple times.
       case "response.text.done":
         // Text response completed - synthesize with ElevenLabs
         if (data.text && data.text.trim()) {
-          console.log(`AI text response: ${data.text.substring(0, 100)}...`);
+          const textKey = `${data.item_id || 'noitem'}_${data.text.trim().substring(0, 50)}`;
+          const alreadyProcessed = (globalThis as any).__processedTextKeys?.has(textKey);
           
-          // Track response timing
-          if (responseStartTimestamp === null) {
-            responseStartTimestamp = latestMediaTimestamp;
+          if (!alreadyProcessed) {
+            // Track this text to avoid duplicates
+            if (!(globalThis as any).__processedTextKeys) {
+              (globalThis as any).__processedTextKeys = new Set();
+            }
+            (globalThis as any).__processedTextKeys.add(textKey);
+            
+            console.log(`AI text response: ${data.text.substring(0, 100)}...`);
+            
+            // Track response timing
+            if (responseStartTimestamp === null) {
+              responseStartTimestamp = latestMediaTimestamp;
+            }
+            if (data.item_id) {
+              lastAssistantItem = data.item_id;
+            }
+            
+            // Collect for call summary
+            conversationTranscripts.push({ role: 'ai', text: data.text.trim() });
+            
+            // Synthesize with ElevenLabs and stream to Twilio
+            queueTTS(data.text);
+          } else {
+            console.log(`Skipping duplicate text (response.text.done): ${data.text.substring(0, 50)}...`);
           }
-          if (data.item_id) {
-            lastAssistantItem = data.item_id;
-          }
-          
-          // Collect for call summary
-          conversationTranscripts.push({ role: 'ai', text: data.text.trim() });
-          
-          // Synthesize with ElevenLabs and stream to Twilio
-          queueTTS(data.text);
         }
         break;
       
       case "response.content_part.done":
         // Alternative event for text content - handle in case response.text.done isn't fired
+        // But dedupe to avoid processing the same text twice
         if (data.part?.type === "text" && data.part?.text) {
-          console.log(`AI content part done: ${data.part.text.substring(0, 100)}...`);
+          const textKey = `${data.item_id || 'noitem'}_${data.part.text.trim().substring(0, 50)}`;
+          const alreadyProcessed = (globalThis as any).__processedTextKeys?.has(textKey);
           
-          if (responseStartTimestamp === null) {
-            responseStartTimestamp = latestMediaTimestamp;
+          if (!alreadyProcessed) {
+            if (!(globalThis as any).__processedTextKeys) {
+              (globalThis as any).__processedTextKeys = new Set();
+            }
+            (globalThis as any).__processedTextKeys.add(textKey);
+            
+            console.log(`AI content part done: ${data.part.text.substring(0, 100)}...`);
+            
+            if (responseStartTimestamp === null) {
+              responseStartTimestamp = latestMediaTimestamp;
+            }
+            if (data.item_id) {
+              lastAssistantItem = data.item_id;
+            }
+            
+            // Collect for call summary
+            conversationTranscripts.push({ role: 'ai', text: data.part.text.trim() });
+            
+            // Synthesize with ElevenLabs
+            queueTTS(data.part.text);
+          } else {
+            console.log(`Skipping duplicate text (response.content_part.done): ${data.part.text.substring(0, 50)}...`);
           }
-          if (data.item_id) {
-            lastAssistantItem = data.item_id;
-          }
-          
-          // Collect for call summary
-          conversationTranscripts.push({ role: 'ai', text: data.part.text.trim() });
-          
-          // Synthesize with ElevenLabs
-          queueTTS(data.part.text);
         }
         break;
         

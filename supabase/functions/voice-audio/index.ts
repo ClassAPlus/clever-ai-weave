@@ -30,15 +30,17 @@ const DEFAULT_MESSAGES: Record<string, Record<string, string>> = {
   },
 };
 
-// ElevenLabs multilingual voices - these work great for Hebrew and English
+// ElevenLabs voices - use native language voices for best pronunciation
 const ELEVENLABS_VOICES = {
-  female: {
-    primary: 'EXAVITQu4vr4xnSDxMaL', // Sarah - warm, natural
-    alt: 'XrExE9yKIg1WjnnlVkGX',     // Matilda
+  // Hebrew native voices (from ElevenLabs voice library)
+  hebrew: {
+    female: 'cgSgspJ2msm6clMCkdW9', // He-israel style voice
+    male: 'onwK4e9ZLuTAKqWW03F9',
   },
-  male: {
-    primary: 'onwK4e9ZLuTAKqWW03F9', // Daniel - clear, professional
-    alt: 'TX3LPaxmHKxFdv7VOQHJ',     // Liam
+  // Default English voices
+  english: {
+    female: 'EXAVITQu4vr4xnSDxMaL', // Sarah
+    male: 'onwK4e9ZLuTAKqWW03F9',   // Daniel
   },
 };
 
@@ -105,55 +107,36 @@ serve(async (req) => {
       return new Response("Voice service not configured", { status: 500, headers: corsHeaders });
     }
 
-    // Determine the voice to use
-    const voiceId = customVoiceId || 
-      (voiceGender === 'male' ? ELEVENLABS_VOICES.male.primary : ELEVENLABS_VOICES.female.primary);
+    // Detect if Hebrew based on language setting or text content
+    const isHebrew = voiceLanguage?.startsWith('he') || /[\u0590-\u05FF]/.test(textToSpeak);
 
-    // Map language codes to ElevenLabs ISO 639-1 codes
-    const languageMap: Record<string, string> = {
-      'he-IL': 'he',
-      'en-US': 'en',
-      'en-GB': 'en',
-      'ar-XA': 'ar',
-      'es-ES': 'es',
-      'fr-FR': 'fr',
-      'de-DE': 'de',
-      'pt-BR': 'pt',
-      'pt-PT': 'pt',
-      'it-IT': 'it',
-      'nl-NL': 'nl',
-      'pl-PL': 'pl',
-      'ru-RU': 'ru',
-      'zh-CN': 'zh',
-      'ja-JP': 'ja',
-      'ko-KR': 'ko',
-      'tr-TR': 'tr',
-      'hi-IN': 'hi',
-      'vi-VN': 'vi',
-    };
+    // Determine the voice to use - prefer custom voice, then language-specific voice
+    let voiceId = customVoiceId;
+    if (!voiceId) {
+      if (isHebrew) {
+        voiceId = voiceGender === 'male' ? ELEVENLABS_VOICES.hebrew.male : ELEVENLABS_VOICES.hebrew.female;
+      } else {
+        voiceId = voiceGender === 'male' ? ELEVENLABS_VOICES.english.male : ELEVENLABS_VOICES.english.female;
+      }
+    }
 
-    // Get the ElevenLabs language code (2-letter ISO)
-    const elevenLabsLang = languageMap[voiceLanguage];
+    // Use eleven_v3 for Hebrew (best pronunciation), multilingual_v2 for other languages
+    const modelId = isHebrew ? 'eleven_v3' : 'eleven_multilingual_v2';
 
-    console.log(`Generating audio with ElevenLabs: voice=${voiceId}, lang=${voiceLanguage} (${elevenLabsLang || 'auto'}), text="${textToSpeak.substring(0, 50)}..."`);
+    console.log(`Generating audio with ElevenLabs: voice=${voiceId}, lang=${voiceLanguage}, isHebrew=${isHebrew}, model=${modelId}, text="${textToSpeak.substring(0, 50)}..."`);
 
-    // Build request body - use eleven_turbo_v2_5 for better language handling when language is specified
+    // Build request body
     const requestBody: Record<string, any> = {
       text: textToSpeak,
-      model_id: elevenLabsLang ? 'eleven_turbo_v2_5' : 'eleven_multilingual_v2',
+      model_id: modelId,
       output_format: 'mp3_44100_128',
       voice_settings: {
         stability: 0.5,
         similarity_boost: 0.75,
-        style: 0.3,
+        style: 0.0,
         use_speaker_boost: true,
       },
     };
-
-    // Add language_code for Turbo 2.5 to force correct language pronunciation
-    if (elevenLabsLang) {
-      requestBody.language_code = elevenLabsLang;
-    }
 
     // Generate audio with ElevenLabs
     const elevenLabsResponse = await fetch(

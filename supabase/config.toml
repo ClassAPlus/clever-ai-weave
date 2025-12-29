@@ -77,3 +77,6 @@ verify_jwt = true
 
 [functions.ai-test-call]
 verify_jwt = true
+
+[functions.agent-webhook]
+verify_jwt = false

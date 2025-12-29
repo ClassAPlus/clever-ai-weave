@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useConversation } from "@elevenlabs/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Phone, 
   PhoneOff, 
@@ -18,10 +19,34 @@ import {
   ExternalLink,
   Zap,
   AlertCircle,
-  Settings2
+  Settings2,
+  Play,
+  Square
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+// Top ElevenLabs voices
+const ELEVENLABS_VOICES = [
+  { id: "CwhRBWXzGAHq8TQ4Fs17", name: "Roger", description: "Male, Warm & Professional" },
+  { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah", description: "Female, Friendly & Clear" },
+  { id: "FGY2WhTYpPnrIDTdsKH5", name: "Laura", description: "Female, Soft & Calm" },
+  { id: "IKne3meq5aSn9XLyUdCD", name: "Charlie", description: "Male, Casual & Friendly" },
+  { id: "JBFqnCBsd6RMkjVDRZzb", name: "George", description: "Male, British Accent" },
+  { id: "N2lVS1w4EtoT3dr4eOWO", name: "Callum", description: "Male, Narrative" },
+  { id: "SAz9YHcvj6GT2YYXdXww", name: "River", description: "Non-binary, Calm" },
+  { id: "TX3LPaxmHKxFdv7VOQHJ", name: "Liam", description: "Male, Articulate" },
+  { id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice", description: "Female, British Accent" },
+  { id: "XrExE9yKIg1WjnnlVkGX", name: "Matilda", description: "Female, Warm & Friendly" },
+  { id: "bIHbv24MWmeRgasZH58o", name: "Will", description: "Male, Friendly" },
+  { id: "cgSgspJ2msm6clMCkdW9", name: "Jessica", description: "Female, Expressive" },
+  { id: "cjVigY5qzO86Huf0OWal", name: "Eric", description: "Male, Friendly American" },
+  { id: "iP95p4xoKVk53GoZ742B", name: "Chris", description: "Male, Casual" },
+  { id: "nPczCjzI2devNBz1zQrb", name: "Brian", description: "Male, Deep & Narration" },
+  { id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", description: "Male, British Authoritative" },
+  { id: "pFZP5JQG7iQjIQuC4Bku", name: "Lily", description: "Female, British Narration" },
+  { id: "pqHfZKP75CvOlQylNhV4", name: "Bill", description: "Male, Documentary" },
+];
 
 interface ElevenLabsAgentSettingsProps {
   businessId: string;
@@ -29,6 +54,7 @@ interface ElevenLabsAgentSettingsProps {
   twilioSettings: {
     elevenLabsAgentId?: string;
     useElevenLabsAgent?: boolean;
+    elevenLabsVoiceId?: string;
     [key: string]: any;
   } | null;
   onSettingsChange: (settings: any) => void;
@@ -47,9 +73,13 @@ export function ElevenLabsAgentSettings({
   const [isMuted, setIsMuted] = useState(false);
   const [transcript, setTranscript] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const agentId = twilioSettings?.elevenLabsAgentId || "";
   const useElevenLabsAgent = twilioSettings?.useElevenLabsAgent ?? false;
+  const selectedVoiceId = twilioSettings?.elevenLabsVoiceId || "";
   
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-webhook`;
 
@@ -167,6 +197,79 @@ export function ElevenLabsAgentSettings({
     });
   };
 
+  const handleVoiceChange = (voiceId: string) => {
+    onSettingsChange({
+      ...twilioSettings,
+      elevenLabsVoiceId: voiceId,
+    });
+  };
+
+  const previewVoice = async (voiceId: string) => {
+    // Stop current preview if playing
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    if (previewingVoiceId === voiceId && isPreviewPlaying) {
+      setIsPreviewPlaying(false);
+      setPreviewingVoiceId(null);
+      return;
+    }
+
+    setIsPreviewPlaying(true);
+    setPreviewingVoiceId(voiceId);
+
+    try {
+      // Use ElevenLabs preview samples (these are publicly available)
+      const previewUrl = `https://api.elevenlabs.io/v1/voices/${voiceId}/preview`;
+      
+      // Alternatively, use a simple fetch to get voice samples
+      const response = await fetch(`https://api.elevenlabs.io/v1/voices/${voiceId}`, {
+        method: "GET",
+      });
+      
+      if (response.ok) {
+        const voiceData = await response.json();
+        const previewAudioUrl = voiceData.preview_url;
+        
+        if (previewAudioUrl) {
+          const audio = new Audio(previewAudioUrl);
+          audioRef.current = audio;
+          
+          audio.onended = () => {
+            setIsPreviewPlaying(false);
+            setPreviewingVoiceId(null);
+          };
+          
+          audio.onerror = () => {
+            toast({
+              title: "Preview unavailable",
+              description: "Could not load voice preview.",
+              variant: "destructive",
+            });
+            setIsPreviewPlaying(false);
+            setPreviewingVoiceId(null);
+          };
+          
+          await audio.play();
+        } else {
+          throw new Error("No preview available");
+        }
+      } else {
+        throw new Error("Failed to fetch voice data");
+      }
+    } catch (error) {
+      console.error("Voice preview error:", error);
+      toast({
+        title: "Preview unavailable",
+        description: "Could not load voice preview. The voice will still work in your agent.",
+      });
+      setIsPreviewPlaying(false);
+      setPreviewingVoiceId(null);
+    }
+  };
+
   const isConnected = conversation.status === "connected";
 
   return (
@@ -223,7 +326,64 @@ export function ElevenLabsAgentSettings({
           </p>
         </div>
 
-        {/* Webhook URL */}
+        {/* Voice Selection */}
+        <div className="space-y-2">
+          <Label className="text-gray-300">Agent Voice</Label>
+          <div className="flex gap-2">
+            <Select
+              value={selectedVoiceId}
+              onValueChange={handleVoiceChange}
+              disabled={!isEditing}
+            >
+              <SelectTrigger className="bg-gray-700 border-gray-600 text-white flex-1">
+                <SelectValue placeholder="Select a voice for your agent..." />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-700 max-h-[300px]">
+                {ELEVENLABS_VOICES.map((voice) => (
+                  <SelectItem 
+                    key={voice.id} 
+                    value={voice.id}
+                    className="text-white hover:bg-gray-700 focus:bg-gray-700"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{voice.name}</span>
+                      <span className="text-xs text-gray-400">{voice.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedVoiceId && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => previewVoice(selectedVoiceId)}
+                disabled={!selectedVoiceId}
+                className="border-gray-600 hover:bg-gray-700"
+                title="Preview voice"
+              >
+                {isPreviewPlaying && previewingVoiceId === selectedVoiceId ? (
+                  <Square className="h-4 w-4 text-red-400" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-gray-500">
+            Select a voice for your AI agent. Configure this voice in your ElevenLabs agent settings.
+            <a 
+              href="https://elevenlabs.io/voice-library" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-purple-400 hover:underline inline-flex items-center gap-1 ml-1"
+            >
+              Browse more voices
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </p>
+        </div>
+
         <div className="space-y-2">
           <Label className="text-gray-300">Webhook URL</Label>
           <div className="flex gap-2">

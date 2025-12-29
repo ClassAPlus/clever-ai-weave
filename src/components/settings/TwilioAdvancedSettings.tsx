@@ -21,6 +21,7 @@ interface TwilioSettings {
   rateLimitWindow: number;
   enableAiReceptionist?: boolean;
   timeFormat?: '12h' | '24h'; // AM/PM vs 24-hour format
+  aiGender?: 'female' | 'male'; // AI receptionist's grammatical gender (for Hebrew)
 }
 
 interface TwilioAdvancedSettingsProps {
@@ -351,7 +352,47 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
           </p>
         </div>
 
-        {/* Voice Settings */}
+        {/* AI Receptionist Gender (for Hebrew grammar) */}
+        <div className="p-4 rounded-lg bg-gray-700/30 border border-gray-600 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <User className="h-5 w-5 text-purple-400" />
+              <div>
+                <Label className="text-white font-medium">AI Receptionist Gender</Label>
+                <p className="text-xs text-gray-400">Controls Hebrew grammatical forms (עברית מגודרת)</p>
+              </div>
+            </div>
+            <div className="flex gap-2 bg-gray-700/50 rounded-lg p-1">
+              <button
+                onClick={() => updateSettings({ aiGender: 'female' })}
+                className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                  (settings.aiGender || 'female') === 'female'
+                    ? 'bg-purple-500 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                }`}
+              >
+                Female (נקבה)
+              </button>
+              <button
+                onClick={() => updateSettings({ aiGender: 'male' })}
+                className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                  settings.aiGender === 'male'
+                    ? 'bg-purple-500 text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-600'
+                }`}
+              >
+                Male (זכר)
+              </button>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400">
+            {settings.aiGender === 'male' 
+              ? '🎙️ AI will say "אני שמח לעזור" (I am happy-masc to help)' 
+              : '🎙️ AI will say "אני שמחה לעזור" (I am happy-fem to help)'}
+          </p>
+        </div>
+
+
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-gray-700">
             <Phone className="h-4 w-4 text-purple-400" />

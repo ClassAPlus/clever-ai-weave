@@ -284,7 +284,7 @@ interface CallerContext {
 }
 
 // System prompt for the AI receptionist
-const getSystemPrompt = (businessName: string, instructions: string, language: string, callerContext: CallerContext, timezone: string = "UTC", timeFormat: '12h' | '24h' = '12h') => {
+const getSystemPrompt = (businessName: string, instructions: string, language: string, callerContext: CallerContext, timezone: string = "UTC", timeFormat: '12h' | '24h' = '12h', aiGender: 'female' | 'male' = 'female') => {
   const langMap: Record<string, string> = {
     "he-IL": "Hebrew (עברית)",
     "en-US": "English",
@@ -427,9 +427,14 @@ CRITICAL: You CAN and SHOULD switch languages during the conversation if the cal
 CRITICAL: Hebrew is a GENDERED language. When speaking Hebrew, you MUST adjust verb forms, adjectives, and pronouns based on gender.
 
 YOUR GENDER (as the AI receptionist):
-- You are speaking as a FEMALE receptionist by default (use female verb forms for yourself).
-- Example: "אני שמחה לעזור לך" (I am happy-fem to help you), NOT "אני שמח לעזור לך" (happy-masc)
-- Example: "אני רוצה לאשר" (I want-fem to confirm), NOT "אני רוצה לאשר" (want-masc sounds the same but adjectives differ)
+- You are speaking as a ${aiGender === 'male' ? 'MALE' : 'FEMALE'} receptionist (use ${aiGender === 'male' ? 'masculine' : 'feminine'} verb forms for yourself).
+${aiGender === 'male' 
+  ? `- Example: "אני שמח לעזור לך" (I am happy-masc to help you)
+- Example: "אני רוצה לאשר" (I want-masc to confirm)
+- Example: "אני יכול לעזור" (I can-masc help)`
+  : `- Example: "אני שמחה לעזור לך" (I am happy-fem to help you)
+- Example: "אני רוצה לאשר" (I want-fem to confirm)  
+- Example: "אני יכולה לעזור" (I can-fem help)`}
 
 CALLER'S GENDER (listen for cues):
 - Pay attention to how the caller refers to themselves (verb forms they use).
@@ -438,16 +443,22 @@ CALLER'S GENDER (listen for cues):
   * Male caller: "אתה רוצה לקבוע תור?" (Do you-masc want to schedule?)
   * Female caller: "את רוצה לקבוע תור?" (Do you-fem want to schedule?)
 
-COMMON GENDERED FORMS:
-| Meaning | Masculine | Feminine |
-|---------|-----------|----------|
+COMMON GENDERED FORMS FOR YOU (AI as ${aiGender === 'male' ? 'male' : 'female'}):
+| When you say... | Hebrew (${aiGender === 'male' ? 'masc' : 'fem'}) |
+|-----------------|-------------|
+| I'm happy to help | ${aiGender === 'male' ? 'אני שמח לעזור' : 'אני שמחה לעזור'} |
+| I can help | ${aiGender === 'male' ? 'אני יכול לעזור' : 'אני יכולה לעזור'} |
+| I want to confirm | ${aiGender === 'male' ? 'אני רוצה לאשר' : 'אני רוצה לאשר'} |
+| I'm checking | ${aiGender === 'male' ? 'אני בודק' : 'אני בודקת'} |
+| I'll send you | ${aiGender === 'male' ? 'אני אשלח לך' : 'אני אשלח לך'} |
+
+COMMON GENDERED FORMS FOR CALLER:
+| Meaning | To Male | To Female |
+|---------|---------|-----------|
 | You want | אתה רוצה | את רוצה |
 | You can | אתה יכול | את יכולה |
 | You need | אתה צריך | את צריכה |
 | You're invited | אתה מוזמן | את מוזמנת |
-| Thank you (to caller) | תודה לך | תודה לך (same) |
-| I'll help you | אעזור לך | אעזור לך (same, but "I'm happy to help": אני שמחה/שמח) |
-| You confirmed | אישרת (masc) | אישרת (same in past) |
 | You'll receive | תקבל | תקבלי |
 
 CRITICAL: Maintain gender consistency throughout the conversation. Once you determine the caller's gender, use it consistently.
@@ -822,6 +833,8 @@ serve(async (req) => {
         (globalThis as any).__businessTimezone = business.timezone || "UTC";
         // Store time format preference (12h = AM/PM, 24h = 24-hour)
         (globalThis as any).__timeFormat = settings?.timeFormat || "12h";
+        // Store AI gender for Hebrew grammatical forms
+        (globalThis as any).__aiGender = settings?.aiGender || "female";
         // Store services and knowledge base for the get_services_info tool
         (globalThis as any).__businessServices = business.services || [];
         (globalThis as any).__knowledgeBase = business.knowledge_base || {};
@@ -1879,7 +1892,7 @@ serve(async (req) => {
         },
         input_audio_format: "g711_ulaw",
         // No output_audio_format - we're using text-only output with ElevenLabs TTS
-        instructions: getSystemPrompt(businessName, instructions, voiceLanguage, callerContext, (globalThis as any).__businessTimezone || "UTC", (globalThis as any).__timeFormat || "12h"),
+        instructions: getSystemPrompt(businessName, instructions, voiceLanguage, callerContext, (globalThis as any).__businessTimezone || "UTC", (globalThis as any).__timeFormat || "12h", (globalThis as any).__aiGender || "female"),
         modalities: ["text"],  // TEXT ONLY - no audio output from OpenAI
         temperature: 0.8,
         tools: TOOLS,

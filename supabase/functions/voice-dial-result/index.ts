@@ -59,8 +59,12 @@ serve(async (req) => {
     const projectId = 'wqhakzywmqirucmetnuo';
     const twilioSettings = business.twilio_settings || {};
     const enableAiReceptionist = twilioSettings.enableAiReceptionist !== false; // Default true
+    
+    // ElevenLabs settings
+    const useElevenLabsAgent = twilioSettings.useElevenLabsAgent === true;
+    const elevenLabsAgentId = twilioSettings.elevenLabsAgentId || '';
 
-    console.log(`Call ${callSid}: status=${dialCallStatus}, answered=${wasAnswered}, duration=${callDuration}, aiReceptionist=${enableAiReceptionist}`);
+    console.log(`Call ${callSid}: status=${dialCallStatus}, answered=${wasAnswered}, duration=${callDuration}, aiReceptionist=${enableAiReceptionist}, elevenLabs=${useElevenLabsAgent}`);
 
     // Update call record
     await supabase
@@ -176,10 +180,20 @@ serve(async (req) => {
     // Handle missed call - either connect to AI or play message
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
     
-    if (isMissedCall && enableAiReceptionist) {
-      // Connect to AI receptionist for real-time conversation
+    if (isMissedCall && enableAiReceptionist && useElevenLabsAgent && elevenLabsAgentId) {
+      // Connect to ElevenLabs Conversational AI
+      console.log("Connecting missed call to ElevenLabs agent:", elevenLabsAgentId, "for business:", business.id);
+      
+      const elevenLabsWsUrl = `wss://api.elevenlabs.io/v1/convai/twilio/audio-socket?agent_id=${elevenLabsAgentId}&business_id=${business.id}&caller_phone=${encodeURIComponent(callerPhone)}`;
+      
+      twiml += `<Connect><Stream url="${elevenLabsWsUrl}">`;
+      twiml += `<Parameter name="business_id" value="${business.id}"/>`;
+      twiml += `<Parameter name="caller_phone" value="${callerPhone}"/>`;
+      twiml += `</Stream></Connect>`;
+    } else if (isMissedCall && enableAiReceptionist) {
+      // Connect to legacy OpenAI AI receptionist
       const realtimeWsUrl = `wss://${projectId}.functions.supabase.co/functions/v1/voice-realtime`;
-      console.log("Connecting missed call to AI receptionist for business:", business.id);
+      console.log("Connecting missed call to legacy AI receptionist for business:", business.id);
       twiml += `<Connect><Stream url="${realtimeWsUrl}">`;
       twiml += `<Parameter name="businessId" value="${business.id}"/>`;
       twiml += `<Parameter name="callSid" value="${callSid}"/>`;

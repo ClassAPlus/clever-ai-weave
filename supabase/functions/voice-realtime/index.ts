@@ -833,8 +833,8 @@ serve(async (req) => {
         (globalThis as any).__businessTimezone = business.timezone || "UTC";
         // Store time format preference (12h = AM/PM, 24h = 24-hour)
         (globalThis as any).__timeFormat = settings?.timeFormat || "12h";
-        // Store AI gender for Hebrew grammatical forms
-        (globalThis as any).__aiGender = settings?.aiGender || "female";
+        // AI gender for Hebrew grammatical forms is derived from voice gender
+        (globalThis as any).__aiGender = voiceGender;
         // Store services and knowledge base for the get_services_info tool
         (globalThis as any).__businessServices = business.services || [];
         (globalThis as any).__knowledgeBase = business.knowledge_base || {};

@@ -113,7 +113,7 @@ serve(async (req) => {
     
     // ElevenLabs settings - now the only AI backend
     const elevenLabsAgentId = twilioSettings.elevenLabsAgentId || '';
-    const elevenLabsAgentId = twilioSettings.elevenLabsAgentId || '';
+    const enableAiReceptionist = twilioSettings.enableAiReceptionist !== false;
 
     // Check if Google Cloud TTS is configured
     const useGoogleTTS = !!Deno.env.get('GOOGLE_CLOUD_API_KEY');

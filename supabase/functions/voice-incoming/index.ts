@@ -111,6 +111,10 @@ serve(async (req) => {
     const voiceLanguage = twilioSettings.voiceLanguage || 'he-IL';
     const voiceGender = twilioSettings.voiceGender || 'female';
     const enableAiReceptionist = twilioSettings.enableAiReceptionist !== false; // Default to true
+    
+    // ElevenLabs settings
+    const useElevenLabsAgent = twilioSettings.useElevenLabsAgent === true;
+    const elevenLabsAgentId = twilioSettings.elevenLabsAgentId || '';
 
     // Check if Google Cloud TTS is configured
     const useGoogleTTS = !!Deno.env.get('GOOGLE_CLOUD_API_KEY');
@@ -143,7 +147,7 @@ serve(async (req) => {
     };
 
     const pollyVoiceName = getVoiceName(voiceLanguage, voiceGender);
-    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage, "AI receptionist:", enableAiReceptionist);
+    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage, "AI receptionist:", enableAiReceptionist, "ElevenLabs:", useElevenLabsAgent);
 
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
 
@@ -157,9 +161,20 @@ serve(async (req) => {
       }
       
       twiml += `</Dial>`;
+    } else if (enableAiReceptionist && useElevenLabsAgent && elevenLabsAgentId) {
+      // ElevenLabs Conversational AI - use their Twilio integration
+      console.log("Connecting to ElevenLabs agent:", elevenLabsAgentId, "for business:", business.id);
+      
+      // ElevenLabs Twilio WebSocket URL with dynamic variables
+      const elevenLabsWsUrl = `wss://api.elevenlabs.io/v1/convai/twilio/audio-socket?agent_id=${elevenLabsAgentId}&business_id=${business.id}&caller_phone=${encodeURIComponent(callerPhone)}`;
+      
+      twiml += `<Connect><Stream url="${elevenLabsWsUrl}">`;
+      twiml += `<Parameter name="business_id" value="${business.id}"/>`;
+      twiml += `<Parameter name="caller_phone" value="${callerPhone}"/>`;
+      twiml += `</Stream></Connect>`;
     } else if (enableAiReceptionist) {
-      // No forward numbers - go directly to AI receptionist
-      console.log("Connecting to AI receptionist for business:", business.id);
+      // Legacy OpenAI voice-realtime system
+      console.log("Connecting to legacy AI receptionist for business:", business.id);
       const realtimeWsUrl = `wss://${projectId}.functions.supabase.co/functions/v1/voice-realtime`;
       twiml += `<Connect><Stream url="${realtimeWsUrl}">`;
       twiml += `<Parameter name="businessId" value="${business.id}"/>`;

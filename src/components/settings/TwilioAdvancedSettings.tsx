@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useConversation } from "@elevenlabs/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Phone, MessageSquare, Volume2, Loader2, Square, User, Bot, Play, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Phone, MessageSquare, Volume2, Loader2, Square, User, Bot, Play, RefreshCw, PhoneOff, Mic, MicOff, Copy, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,6 +19,8 @@ interface TwilioSettings {
   googleVoiceName?: string;
   elevenLabsVoiceId?: string;
   elevenLabsVoiceGender?: 'male' | 'female'; // Auto-derived from selected voice
+  elevenLabsAgentId?: string;
+  useElevenLabsAgent?: boolean;
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;
@@ -28,6 +32,7 @@ interface TwilioAdvancedSettingsProps {
   settings: TwilioSettings;
   onChange: (settings: TwilioSettings) => void;
   primaryLanguage?: string; // From AI Configuration - auto-syncs voice language
+  businessId?: string; // For test calls
 }
 
 // Map AI language names to voice language codes (for display purposes)

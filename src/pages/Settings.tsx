@@ -34,7 +34,7 @@ import { SettingsSkeleton } from "@/components/settings/SettingsSkeleton";
 import { GoogleCalendarSync } from "@/components/settings/GoogleCalendarSync";
 import { AppointmentTemplateManager } from "@/components/appointments/AppointmentTemplateManager";
 import { Badge } from "@/components/ui/badge";
-import { AITestCall } from "@/components/settings/AITestCall";
+
 import { SMSPreviewTest } from "@/components/settings/SMSPreviewTest";
 
 
@@ -1792,13 +1792,6 @@ export default function Settings() {
 
         {/* Developer Tab */}
         <TabsContent value="developer" className="space-y-6">
-          {/* AI Test Call (Legacy OpenAI) - only show when NOT using ElevenLabs */}
-          {business && twilioSettings?.enableAiReceptionist && !twilioSettings?.useElevenLabsAgent && (
-            <AITestCall
-              businessId={business.id}
-              businessName={name}
-            />
-          )}
 
           {/* API Status Dashboard - Admin Only */}
           {isAdmin && business && <APIStatusDashboard businessId={business.id} />}

@@ -63,7 +63,7 @@ serve(async (req) => {
     // ElevenLabs settings - now the only AI backend
     const elevenLabsAgentId = twilioSettings.elevenLabsAgentId || '';
 
-    console.log(`Call ${callSid}: status=${dialCallStatus}, answered=${wasAnswered}, duration=${callDuration}, aiReceptionist=${enableAiReceptionist}, elevenLabs=${useElevenLabsAgent}`);
+    console.log(`Call ${callSid}: status=${dialCallStatus}, answered=${wasAnswered}, duration=${callDuration}, aiReceptionist=${enableAiReceptionist}, elevenLabsAgentIdSet=${!!elevenLabsAgentId}`);
 
     // Update call record
     await supabase

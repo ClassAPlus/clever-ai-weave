@@ -408,8 +408,8 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* AI Receptionist Toggle */}
-        <div className="p-4 rounded-lg bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 space-y-3">
+        {/* AI Receptionist - Powered by ElevenLabs */}
+        <div className="p-4 rounded-lg bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Bot className="h-5 w-5 text-purple-400" />
@@ -420,147 +420,129 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
             </div>
             <Switch
               checked={settings.enableAiReceptionist !== false}
-              onCheckedChange={(checked) => updateSettings({ enableAiReceptionist: checked })}
+              onCheckedChange={(checked) => {
+                updateSettings({ 
+                  enableAiReceptionist: checked,
+                  useElevenLabsAgent: checked // Always use ElevenLabs when enabled
+                });
+              }}
             />
           </div>
+          
           {settings.enableAiReceptionist !== false && (
-            <p className="text-xs text-purple-300">
-              🎙️ When enabled, callers will have a real-time voice conversation with your AI assistant{settings.useElevenLabsAgent ? " powered by ElevenLabs Conversational AI." : " powered by OpenAI Realtime API."}
-            </p>
-          )}
-        </div>
+            <>
+              <p className="text-xs text-purple-300">
+                🎙️ When enabled, callers will have a real-time voice conversation with your AI assistant powered by ElevenLabs Conversational AI.
+              </p>
 
-        {/* ElevenLabs Agent Configuration - Only show when AI Receptionist is enabled */}
-        {settings.enableAiReceptionist !== false && (
-          <div className="p-4 rounded-lg bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Volume2 className="h-5 w-5 text-yellow-400" />
-                <div>
-                  <Label className="text-white font-medium flex items-center gap-2">
-                    Use ElevenLabs Agent
-                    <Badge variant="outline" className="text-[10px] border-yellow-500/50 text-yellow-400">New</Badge>
-                  </Label>
-                  <p className="text-xs text-gray-400">Ultra-low latency with advanced conversational AI</p>
+              {/* Agent ID Input */}
+              <div className="space-y-2 pt-2 border-t border-purple-500/20">
+                <Label className="text-gray-300 text-sm">ElevenLabs Agent ID</Label>
+                <Input
+                  value={settings.elevenLabsAgentId || ""}
+                  onChange={(e) => updateSettings({ elevenLabsAgentId: e.target.value })}
+                  placeholder="Enter your ElevenLabs Agent ID..."
+                  className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
+                />
+                <p className="text-xs text-gray-500">
+                  Get your Agent ID from the{" "}
+                  <a 
+                    href="https://elevenlabs.io/app/conversational-ai" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-purple-400 hover:underline inline-flex items-center gap-1"
+                  >
+                    ElevenLabs Dashboard
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </p>
+              </div>
+
+              {/* Webhook URL */}
+              <div className="space-y-2">
+                <Label className="text-gray-300 text-sm">Webhook URL (for ElevenLabs tools)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={webhookUrl}
+                    readOnly
+                    className="bg-gray-900 border-gray-600 text-gray-400 font-mono text-xs"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={copyWebhookUrl}
+                    className="border-gray-600 hover:bg-gray-700 shrink-0"
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                  </Button>
                 </div>
               </div>
-              <Switch
-                checked={settings.useElevenLabsAgent === true}
-                onCheckedChange={(checked) => updateSettings({ useElevenLabsAgent: checked })}
-              />
-            </div>
 
-            {settings.useElevenLabsAgent && (
-              <div className="space-y-4 pt-2 border-t border-yellow-500/20">
-                {/* Agent ID Input */}
-                <div className="space-y-2">
-                  <Label className="text-gray-300 text-sm">ElevenLabs Agent ID</Label>
-                  <Input
-                    value={settings.elevenLabsAgentId || ""}
-                    onChange={(e) => updateSettings({ elevenLabsAgentId: e.target.value })}
-                    placeholder="Enter your ElevenLabs Agent ID..."
-                    className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Get your Agent ID from the{" "}
-                    <a 
-                      href="https://elevenlabs.io/app/conversational-ai" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-purple-400 hover:underline inline-flex items-center gap-1"
-                    >
-                      ElevenLabs Dashboard
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </p>
-                </div>
-
-                {/* Webhook URL */}
-                <div className="space-y-2">
-                  <Label className="text-gray-300 text-sm">Webhook URL (for ElevenLabs tools)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={webhookUrl}
-                      readOnly
-                      className="bg-gray-900 border-gray-600 text-gray-400 font-mono text-xs"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={copyWebhookUrl}
-                      className="border-gray-600 hover:bg-gray-700 shrink-0"
-                    >
-                      {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Test Call Section */}
-                {settings.elevenLabsAgentId && (
-                  <div className="space-y-3 pt-3 border-t border-yellow-500/20">
-                    <Label className="text-gray-300 text-sm">Test Your Agent</Label>
-                    
-                    <div className="flex items-center gap-3">
-                      {!isTestCallConnected ? (
-                        <Button
-                          onClick={startTestCall}
-                          disabled={isTestCallConnecting || !settings.elevenLabsAgentId}
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          {isTestCallConnecting ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Phone className="h-4 w-4 mr-2" />
-                          )}
-                          {isTestCallConnecting ? "Connecting..." : "Start Test Call"}
+              {/* Test Call Section */}
+              {settings.elevenLabsAgentId && (
+                <div className="space-y-3 pt-3 border-t border-purple-500/20">
+                  <Label className="text-gray-300 text-sm">Test Your Agent</Label>
+                  
+                  <div className="flex items-center gap-3">
+                    {!isTestCallConnected ? (
+                      <Button
+                        onClick={startTestCall}
+                        disabled={isTestCallConnecting || !settings.elevenLabsAgentId}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {isTestCallConnecting ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Phone className="h-4 w-4 mr-2" />
+                        )}
+                        {isTestCallConnecting ? "Connecting..." : "Start Test Call"}
+                      </Button>
+                    ) : (
+                      <>
+                        <Button onClick={endTestCall} variant="destructive" size="sm">
+                          <PhoneOff className="h-4 w-4 mr-2" />
+                          End Call
                         </Button>
-                      ) : (
-                        <>
-                          <Button onClick={endTestCall} variant="destructive" size="sm">
-                            <PhoneOff className="h-4 w-4 mr-2" />
-                            End Call
-                          </Button>
-                          <Button
-                            onClick={() => setIsMuted(prev => !prev)}
-                            variant="outline"
-                            size="icon"
-                            className={isMuted ? "bg-red-500/20 border-red-500/50" : "border-gray-600"}
-                          >
-                            {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                          </Button>
-                        </>
-                      )}
-                      
-                      <Badge variant={isTestCallConnected ? "default" : isTestCallConnecting ? "secondary" : "outline"}>
-                        {isTestCallConnected && "In Call"}
-                        {isTestCallConnecting && "Connecting..."}
-                        {!isTestCallConnected && !isTestCallConnecting && "Ready"}
-                      </Badge>
-                      
-                      {isTestCallConnected && conversation.isSpeaking && (
-                        <div className="flex items-center gap-2 text-purple-400">
-                          <Volume2 className="h-4 w-4 animate-pulse" />
-                          <span className="text-xs">AI Speaking...</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {transcript.length > 0 && (
-                      <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700 max-h-40 overflow-y-auto">
-                        <div className="space-y-1 text-xs">
-                          {transcript.map((line, i) => (
-                            <p key={i} className="text-gray-300">{line}</p>
-                          ))}
-                        </div>
+                        <Button
+                          onClick={() => setIsMuted(prev => !prev)}
+                          variant="outline"
+                          size="icon"
+                          className={isMuted ? "bg-red-500/20 border-red-500/50" : "border-gray-600"}
+                        >
+                          {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                        </Button>
+                      </>
+                    )}
+                    
+                    <Badge variant={isTestCallConnected ? "default" : isTestCallConnecting ? "secondary" : "outline"}>
+                      {isTestCallConnected && "In Call"}
+                      {isTestCallConnecting && "Connecting..."}
+                      {!isTestCallConnected && !isTestCallConnecting && "Ready"}
+                    </Badge>
+                    
+                    {isTestCallConnected && conversation.isSpeaking && (
+                      <div className="flex items-center gap-2 text-purple-400">
+                        <Volume2 className="h-4 w-4 animate-pulse" />
+                        <span className="text-xs">AI Speaking...</span>
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+
+                  {transcript.length > 0 && (
+                    <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700 max-h-40 overflow-y-auto">
+                      <div className="space-y-1 text-xs">
+                        {transcript.map((line, i) => (
+                          <p key={i} className="text-gray-300">{line}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Time Format Toggle */}
         <div className="p-4 rounded-lg bg-gray-700/30 border border-gray-600 space-y-3">

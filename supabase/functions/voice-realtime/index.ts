@@ -427,16 +427,26 @@ ${callerInfo ? `=== CALLER CONTEXT (USE THIS IMMEDIATELY IN YOUR FIRST RESPONSE)
 
 ${instructions || "Answer questions helpfully and take messages when the caller wants to leave one."}
 
-=== CRITICAL: 24-HOUR TIME INTERPRETATION ===
+=== CRITICAL: TIME INTERPRETATION FOR APPOINTMENTS ===
 When scheduling appointments, ALWAYS use correct 24-hour time logic:
 - 00:00 - 11:59 = Morning (בוקר) - e.g., 08:00, 09:30, 11:00
 - 12:00 - 17:59 = Afternoon (צהריים) - e.g., 12:00, 14:30, 16:00
 - 18:00 - 23:59 = Evening (ערב) - e.g., 18:00, 19:30, 20:00
 
+CRITICAL - AMBIGUOUS TIME INTERPRETATION:
+When a caller says a time like "2", "3", or any single number without AM/PM:
+- ASSUME they mean during business hours (afternoon/PM) unless they explicitly say "in the morning" or "AM"
+- "2" = 14:00 (2 PM), NOT 02:00 (2 AM at night)
+- "3" = 15:00 (3 PM), NOT 03:00 (3 AM at night)  
+- "4" = 16:00 (4 PM), NOT 04:00 (4 AM at night)
+- Times like 1, 2, 3, 4, 5 are almost ALWAYS afternoon when booking business appointments
+- Only interpret as morning (AM) if the caller explicitly says "morning", "AM", or "in the morning"
+- The middle of the night (00:00-06:00) is NEVER a valid appointment time for a business
+
 IMPORTANT TIME VALIDATION:
 - If the caller says "morning" but mentions 20:00 or 8:00 PM, this is a CONTRADICTION. 20:00 = 8 PM = Evening, NOT morning!
 - If you detect a time-of-day mismatch, STOP and clarify: "Just to confirm - you mentioned morning, but 20:00 is actually 8 PM in the evening. Did you mean 8 AM (08:00) in the morning, or 8 PM (20:00) in the evening?"
-- Never assume the caller meant a different time - always ask when there's ambiguity.
+- When truly ambiguous (like "8" which could be 8 AM or 8 PM), ask to clarify.
 
 === CRITICAL: BUSINESS HOURS VALIDATION ===
 BEFORE scheduling ANY appointment, you MUST check business hours:

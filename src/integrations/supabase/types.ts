@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_availability_logs: {
+        Row: {
+          business_id: string
+          caller_phone: string | null
+          created_at: string
+          id: string
+          quoted_slots: string[]
+          requested_date: string
+          slot_count: number
+          time_format: string | null
+        }
+        Insert: {
+          business_id: string
+          caller_phone?: string | null
+          created_at?: string
+          id?: string
+          quoted_slots: string[]
+          requested_date: string
+          slot_count: number
+          time_format?: string | null
+        }
+        Update: {
+          business_id?: string
+          caller_phone?: string | null
+          created_at?: string
+          id?: string
+          quoted_slots?: string[]
+          requested_date?: string
+          slot_count?: number
+          time_format?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_availability_logs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointment_templates: {
         Row: {
           auto_confirm: boolean | null

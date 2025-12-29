@@ -60,8 +60,7 @@ serve(async (req) => {
     const twilioSettings = business.twilio_settings || {};
     const enableAiReceptionist = twilioSettings.enableAiReceptionist !== false; // Default true
     
-    // ElevenLabs settings
-    const useElevenLabsAgent = twilioSettings.useElevenLabsAgent === true;
+    // ElevenLabs settings - now the only AI backend
     const elevenLabsAgentId = twilioSettings.elevenLabsAgentId || '';
 
     console.log(`Call ${callSid}: status=${dialCallStatus}, answered=${wasAnswered}, duration=${callDuration}, aiReceptionist=${enableAiReceptionist}, elevenLabs=${useElevenLabsAgent}`);
@@ -180,7 +179,7 @@ serve(async (req) => {
     // Handle missed call - either connect to AI or play message
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
     
-    if (isMissedCall && enableAiReceptionist && useElevenLabsAgent && elevenLabsAgentId) {
+    if (isMissedCall && enableAiReceptionist && elevenLabsAgentId) {
       // Connect to ElevenLabs Conversational AI
       console.log("Connecting missed call to ElevenLabs agent:", elevenLabsAgentId, "for business:", business.id);
       
@@ -189,14 +188,6 @@ serve(async (req) => {
       twiml += `<Connect><Stream url="${elevenLabsWsUrl}">`;
       twiml += `<Parameter name="business_id" value="${business.id}"/>`;
       twiml += `<Parameter name="caller_phone" value="${callerPhone}"/>`;
-      twiml += `</Stream></Connect>`;
-    } else if (isMissedCall && enableAiReceptionist) {
-      // Connect to legacy OpenAI AI receptionist
-      const realtimeWsUrl = `wss://${projectId}.functions.supabase.co/functions/v1/voice-realtime`;
-      console.log("Connecting missed call to legacy AI receptionist for business:", business.id);
-      twiml += `<Connect><Stream url="${realtimeWsUrl}">`;
-      twiml += `<Parameter name="businessId" value="${business.id}"/>`;
-      twiml += `<Parameter name="callSid" value="${callSid}"/>`;
       twiml += `</Stream></Connect>`;
     } else if (isMissedCall && useGoogleTTS) {
       // Play Google Cloud TTS voice message for missed calls (AI disabled)

@@ -110,10 +110,9 @@ serve(async (req) => {
     const ringTimeout = twilioSettings.ringTimeout || 30;
     const voiceLanguage = twilioSettings.voiceLanguage || 'he-IL';
     const voiceGender = twilioSettings.voiceGender || 'female';
-    const enableAiReceptionist = twilioSettings.enableAiReceptionist !== false; // Default to true
     
-    // ElevenLabs settings
-    const useElevenLabsAgent = twilioSettings.useElevenLabsAgent === true;
+    // ElevenLabs settings - now the only AI backend
+    const elevenLabsAgentId = twilioSettings.elevenLabsAgentId || '';
     const elevenLabsAgentId = twilioSettings.elevenLabsAgentId || '';
 
     // Check if Google Cloud TTS is configured
@@ -161,7 +160,7 @@ serve(async (req) => {
       }
       
       twiml += `</Dial>`;
-    } else if (enableAiReceptionist && useElevenLabsAgent && elevenLabsAgentId) {
+    } else if (enableAiReceptionist && elevenLabsAgentId) {
       // ElevenLabs Conversational AI - use their Twilio integration
       console.log("Connecting to ElevenLabs agent:", elevenLabsAgentId, "for business:", business.id);
       
@@ -171,14 +170,6 @@ serve(async (req) => {
       twiml += `<Connect><Stream url="${elevenLabsWsUrl}">`;
       twiml += `<Parameter name="business_id" value="${business.id}"/>`;
       twiml += `<Parameter name="caller_phone" value="${callerPhone}"/>`;
-      twiml += `</Stream></Connect>`;
-    } else if (enableAiReceptionist) {
-      // Legacy OpenAI voice-realtime system
-      console.log("Connecting to legacy AI receptionist for business:", business.id);
-      const realtimeWsUrl = `wss://${projectId}.functions.supabase.co/functions/v1/voice-realtime`;
-      twiml += `<Connect><Stream url="${realtimeWsUrl}">`;
-      twiml += `<Parameter name="businessId" value="${business.id}"/>`;
-      twiml += `<Parameter name="callSid" value="${callSid}"/>`;
       twiml += `</Stream></Connect>`;
     } else {
       // No forward numbers and AI disabled - play voice message

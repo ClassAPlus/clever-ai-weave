@@ -36,7 +36,7 @@ import { AppointmentTemplateManager } from "@/components/appointments/Appointmen
 import { Badge } from "@/components/ui/badge";
 import { AITestCall } from "@/components/settings/AITestCall";
 import { SMSPreviewTest } from "@/components/settings/SMSPreviewTest";
-import { ElevenLabsAgentSettings } from "@/components/settings/ElevenLabsAgentSettings";
+
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;

@@ -2,12 +2,27 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
 const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+// ElevenLabs voice configuration - use native voices for best pronunciation
+const ELEVENLABS_VOICES = {
+  // Hebrew native voices
+  hebrew: {
+    female: 'cgSgspJ2msm6clMCkdW9',
+    male: 'onwK4e9ZLuTAKqWW03F9',
+  },
+  // Default English voices  
+  english: {
+    female: 'EXAVITQu4vr4xnSDxMaL', // Sarah
+    male: 'onwK4e9ZLuTAKqWW03F9',   // Daniel
+  },
+};
 
 const LOG_EVENT_TYPES = [
   "response.content.done",
@@ -549,6 +564,14 @@ serve(async (req) => {
   const markQueue: string[] = [];
   let sessionInitialized = false;
   
+  // ElevenLabs voice settings from business config
+  let elevenLabsVoiceId: string | null = null;
+  let voiceGender = "female";
+  
+  // TTS synthesis queue to handle sequential audio playback
+  let isSynthesizing = false;
+  const ttsQueue: string[] = [];
+  
   // Keep-alive and inactivity tracking
   let keepAliveInterval: number | null = null;
   let lastActivityTimestamp = Date.now();
@@ -565,6 +588,133 @@ serve(async (req) => {
   
   // Collect transcripts for call summary
   const conversationTranscripts: { role: 'user' | 'ai', text: string }[] = [];
+  
+  // ElevenLabs TTS synthesis function - generates ulaw_8000 audio for Twilio
+  const synthesizeWithElevenLabs = async (text: string): Promise<void> => {
+    if (!text || !text.trim()) return;
+    if (!ELEVENLABS_API_KEY) {
+      console.error("ELEVENLABS_API_KEY not configured - cannot synthesize speech");
+      return;
+    }
+    
+    // Detect if Hebrew based on language setting or text content
+    const isHebrew = voiceLanguage?.startsWith('he') || /[\u0590-\u05FF]/.test(text);
+    
+    // Select voice: prefer custom voice from settings, then language-specific
+    let selectedVoiceId = elevenLabsVoiceId;
+    if (!selectedVoiceId) {
+      if (isHebrew) {
+        selectedVoiceId = voiceGender === 'male' ? ELEVENLABS_VOICES.hebrew.male : ELEVENLABS_VOICES.hebrew.female;
+      } else {
+        selectedVoiceId = voiceGender === 'male' ? ELEVENLABS_VOICES.english.male : ELEVENLABS_VOICES.english.female;
+      }
+    }
+    
+    // Use eleven_v3 for Hebrew (best pronunciation), multilingual_v2 for others
+    const modelId = isHebrew ? 'eleven_v3' : 'eleven_multilingual_v2';
+    
+    console.log(`ElevenLabs TTS: voice=${selectedVoiceId}, model=${modelId}, isHebrew=${isHebrew}, text="${text.substring(0, 50)}..."`);
+    
+    try {
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
+        {
+          method: 'POST',
+          headers: {
+            'xi-api-key': ELEVENLABS_API_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text,
+            model_id: modelId,
+            output_format: 'ulaw_8000', // Twilio-compatible format
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              style: 0.0,
+              use_speaker_boost: true,
+            },
+          }),
+        }
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("ElevenLabs TTS error:", response.status, errorText);
+        return;
+      }
+      
+      const audioBuffer = await response.arrayBuffer();
+      const audioBytes = new Uint8Array(audioBuffer);
+      
+      console.log(`ElevenLabs audio generated: ${audioBytes.byteLength} bytes`);
+      
+      // Convert to base64 and send to Twilio in chunks
+      // Twilio expects 20ms frames of ulaw audio at 8kHz = 160 bytes per frame
+      const CHUNK_SIZE = 160 * 50; // 50 frames = 1 second of audio per chunk
+      
+      for (let i = 0; i < audioBytes.length; i += CHUNK_SIZE) {
+        const chunk = audioBytes.slice(i, Math.min(i + CHUNK_SIZE, audioBytes.length));
+        
+        // Convert chunk to base64
+        let binary = '';
+        for (let j = 0; j < chunk.length; j++) {
+          binary += String.fromCharCode(chunk[j]);
+        }
+        const base64Chunk = btoa(binary);
+        
+        if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
+          twilioWs.send(JSON.stringify({
+            event: "media",
+            streamSid: streamSid,
+            media: { payload: base64Chunk }
+          }));
+        }
+      }
+      
+      // Send mark to track when audio finishes
+      if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
+        twilioWs.send(JSON.stringify({
+          event: "mark",
+          streamSid: streamSid,
+          mark: { name: "ttsComplete" }
+        }));
+        markQueue.push("ttsComplete");
+      }
+      
+      console.log("ElevenLabs audio sent to Twilio");
+      
+    } catch (err) {
+      console.error("ElevenLabs TTS error:", err);
+    }
+  };
+  
+  // Process TTS queue sequentially
+  const processTtsQueue = async () => {
+    if (isSynthesizing || ttsQueue.length === 0) return;
+    
+    isSynthesizing = true;
+    const text = ttsQueue.shift()!;
+    
+    try {
+      await synthesizeWithElevenLabs(text);
+    } catch (err) {
+      console.error("TTS queue processing error:", err);
+    } finally {
+      isSynthesizing = false;
+      // Process next item if any
+      if (ttsQueue.length > 0) {
+        processTtsQueue();
+      }
+    }
+  };
+  
+  // Queue text for TTS synthesis
+  const queueTTS = (text: string) => {
+    if (!text || !text.trim()) return;
+    ttsQueue.push(text.trim());
+    processTtsQueue();
+  };
   
   // Function to load business and contact data
   const loadBusinessData = async (bizId: string, cSid: string | null) => {
@@ -609,6 +759,10 @@ serve(async (req) => {
         let primaryLang = aiLang.split(":")[0].toLowerCase().trim();
         voiceLanguage = langMapping[primaryLang] || settings?.voiceLanguage || "en-US";
         
+        // Get ElevenLabs voice settings
+        voiceGender = settings?.voiceGender || "female";
+        elevenLabsVoiceId = settings?.elevenLabsVoiceId || null;
+        
         const gender = settings?.voiceGender || "female";
         voice = gender === "male" ? "ash" : "alloy";
         // Store business hours for the check_business_hours tool
@@ -617,7 +771,7 @@ serve(async (req) => {
         // Store services and knowledge base for the get_services_info tool
         (globalThis as any).__businessServices = business.services || [];
         (globalThis as any).__knowledgeBase = business.knowledge_base || {};
-        console.log(`Loaded business: ${businessName}, aiLang: ${aiLang}, voiceLanguage: ${voiceLanguage}, voice: ${voice}, services: ${(business.services || []).length}`);
+        console.log(`Loaded business: ${businessName}, aiLang: ${aiLang}, voiceLanguage: ${voiceLanguage}, voice: ${voice}, elevenLabsVoiceId: ${elevenLabsVoiceId}, services: ${(business.services || []).length}`);
         console.log(`Business hours loaded:`, JSON.stringify(business.business_hours));
       }
       
@@ -1567,6 +1721,7 @@ serve(async (req) => {
   const sendSessionUpdate = () => {
     if (!openaiWs || openaiWs.readyState !== WebSocket.OPEN) return;
     
+    // TEXT-ONLY mode: OpenAI handles STT, but we use ElevenLabs for TTS
     const sessionUpdate = {
       type: "session.update",
       session: {
@@ -1577,19 +1732,18 @@ serve(async (req) => {
           silence_duration_ms: 500  // How long to wait after speech stops
         },
         input_audio_format: "g711_ulaw",
-        output_audio_format: "g711_ulaw",
-        voice: voice,
+        // No output_audio_format - we're using text-only output with ElevenLabs TTS
         instructions: getSystemPrompt(businessName, instructions, voiceLanguage, callerContext, (globalThis as any).__businessTimezone || "UTC"),
-        modalities: ["text", "audio"],
+        modalities: ["text"],  // TEXT ONLY - no audio output from OpenAI
         temperature: 0.8,
         tools: TOOLS,
         tool_choice: "auto",
         input_audio_transcription: {
-          model: "whisper-1"  // Enable transcription to understand user speech better
+          model: "whisper-1"  // Enable transcription to understand user speech
         }
       }
     };
-    console.log("Sending session update with tools and transcription enabled");
+    console.log("Sending session update: TEXT-ONLY mode (ElevenLabs TTS)");
     openaiWs.send(JSON.stringify(sessionUpdate));
   };
   
@@ -1974,8 +2128,54 @@ serve(async (req) => {
         setTimeout(sendInitialGreeting, 300);
         break;
         
+      // In text-only mode, OpenAI sends text instead of audio
+      // We synthesize with ElevenLabs and send to Twilio
+      case "response.text.done":
+        // Text response completed - synthesize with ElevenLabs
+        if (data.text && data.text.trim()) {
+          console.log(`AI text response: ${data.text.substring(0, 100)}...`);
+          
+          // Track response timing
+          if (responseStartTimestamp === null) {
+            responseStartTimestamp = latestMediaTimestamp;
+          }
+          if (data.item_id) {
+            lastAssistantItem = data.item_id;
+          }
+          
+          // Collect for call summary
+          conversationTranscripts.push({ role: 'ai', text: data.text.trim() });
+          
+          // Synthesize with ElevenLabs and stream to Twilio
+          queueTTS(data.text);
+        }
+        break;
+      
+      case "response.content_part.done":
+        // Alternative event for text content - handle in case response.text.done isn't fired
+        if (data.part?.type === "text" && data.part?.text) {
+          console.log(`AI content part done: ${data.part.text.substring(0, 100)}...`);
+          
+          if (responseStartTimestamp === null) {
+            responseStartTimestamp = latestMediaTimestamp;
+          }
+          if (data.item_id) {
+            lastAssistantItem = data.item_id;
+          }
+          
+          // Collect for call summary
+          conversationTranscripts.push({ role: 'ai', text: data.part.text.trim() });
+          
+          // Synthesize with ElevenLabs
+          queueTTS(data.part.text);
+        }
+        break;
+        
+      // Keep audio delta handler as fallback in case OpenAI still sends audio
       case "response.audio.delta":
+        // This shouldn't fire in text-only mode, but handle it just in case
         if (streamSid && data.delta && twilioWs.readyState === WebSocket.OPEN) {
+          console.log("Warning: Received audio delta in text-only mode");
           twilioWs.send(JSON.stringify({
             event: "media",
             streamSid: streamSid,
@@ -1993,10 +2193,17 @@ serve(async (req) => {
         break;
         
       case "response.audio_transcript.done":
-        console.log(`AI: ${data.transcript}`);
-        // Collect AI transcript for call summary
+        // In audio mode this contains the transcript - log for debugging
+        console.log(`AI audio transcript: ${data.transcript}`);
+        // In text-only mode, this might not fire - we handle text in response.text.done
         if (data.transcript && data.transcript.trim()) {
-          conversationTranscripts.push({ role: 'ai', text: data.transcript.trim() });
+          // Only add to transcripts if not already added via response.text.done
+          const alreadyAdded = conversationTranscripts.some(
+            t => t.role === 'ai' && t.text === data.transcript.trim()
+          );
+          if (!alreadyAdded) {
+            conversationTranscripts.push({ role: 'ai', text: data.transcript.trim() });
+          }
         }
         break;
         
@@ -2024,14 +2231,15 @@ serve(async (req) => {
         // User started speaking - update activity timestamp
         updateActivity();
         
-        // Clear any pending audio to prevent overlap
-        // Always clear Twilio's audio buffer immediately for responsive experience
+        // Clear any pending audio and TTS queue to prevent overlap
         if (twilioWs.readyState === WebSocket.OPEN && streamSid) {
           twilioWs.send(JSON.stringify({ event: "clear", streamSid }));
         }
         
-        // Only cancel response if we're actively in one (have a response start timestamp)
-        // This prevents the "no active response found" error
+        // Clear TTS queue when user interrupts
+        ttsQueue.length = 0;
+        
+        // Only cancel response if we're actively in one
         if (responseStartTimestamp !== null && openaiWs?.readyState === WebSocket.OPEN) {
           try {
             openaiWs.send(JSON.stringify({ type: "response.cancel" }));
@@ -2043,6 +2251,12 @@ serve(async (req) => {
         // Reset state
         markQueue.length = 0;
         lastAssistantItem = null;
+        responseStartTimestamp = null;
+        break;
+        
+      case "response.done":
+        // Response completed - reset response state
+        console.log("Response completed");
         responseStartTimestamp = null;
         break;
         

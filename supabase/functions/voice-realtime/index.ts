@@ -1476,12 +1476,28 @@ serve(async (req) => {
               message: `We are closed on ${dayName}. Please try another day.`
             });
           } else {
-            // Get start and end of the target date in ISO format
-            const dateStr = targetDate.toISOString().split('T')[0];
-            const startOfDay = `${dateStr}T00:00:00`;
-            const endOfDay = `${dateStr}T23:59:59`;
+            // Build date boundaries in BUSINESS timezone (not server/UTC) to avoid shifting days/times
+            const tzOffset = getTimezoneOffset(timezone);
+            const getTzDateStr = (d: Date): string => {
+              const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+              }).formatToParts(d);
+              const y = parts.find(p => p.type === 'year')?.value;
+              const m = parts.find(p => p.type === 'month')?.value;
+              const da = parts.find(p => p.type === 'day')?.value;
+              return `${y}-${m}-${da}`;
+            };
+
             
-            // Fetch existing appointments for that day
+
+            const dateStr = getTzDateStr(targetDate);
+            const startOfDay = `${dateStr}T00:00:00${tzOffset}`;
+            const endOfDay = `${dateStr}T23:59:59${tzOffset}`;
+
+            // Fetch existing appointments for that day (business-local day boundaries)
             const { data: existingAppts, error: fetchError } = await supabase
               .from("appointments")
               .select("scheduled_at, duration_minutes")
@@ -1489,7 +1505,7 @@ serve(async (req) => {
               .gte("scheduled_at", startOfDay)
               .lte("scheduled_at", endOfDay)
               .neq("status", "cancelled");
-            
+
             if (fetchError) {
               console.error("Error fetching appointments:", fetchError);
               result = JSON.stringify({ success: false, error: "Could not check availability" });
@@ -1497,134 +1513,139 @@ serve(async (req) => {
               // Parse business hours
               const [openHour, openMin] = hours.start.split(':').map(Number);
               const [closeHour, closeMin] = hours.end.split(':').map(Number);
-              
-              // Generate time slots (every 30 minutes)
-              const slots: string[] = [];
-              const bookedSlots: Set<string> = new Set();
-              
-              // Mark booked time slots
+
+              // Use epoch-ms keys to avoid timezone string mismatches
+              const bookedSlots: Set<number> = new Set();
+
+              // Mark booked time slots (30-min resolution)
               for (const appt of existingAppts || []) {
                 const apptTime = new Date(appt.scheduled_at);
                 const apptDuration = appt.duration_minutes || 30;
-                
-                // Mark all 30-min intervals covered by this appointment
-                for (let offset = 0; offset < apptDuration; offset += 30) {
-                  const slotTime = new Date(apptTime);
-                  slotTime.setMinutes(slotTime.getMinutes() + offset);
-                  const slotKey = slotTime.toISOString();
-                  bookedSlots.add(slotKey);
+
+                for (let offsetMin = 0; offsetMin < apptDuration; offsetMin += 30) {
+                  bookedSlots.add(apptTime.getTime() + offsetMin * 60_000);
                 }
               }
-              
-              // Generate available slots
-              const availableSlots: Array<{ time: string; display: string }> = [];
-              let currentSlot = new Date(targetDate);
-              currentSlot.setHours(openHour, openMin, 0, 0);
-              
-              const closeTime = new Date(targetDate);
-              closeTime.setHours(closeHour, closeMin, 0, 0);
-              
-              // If checking today, start from current time (rounded up to next 30 min)
+
+              // Formatters: always provide unambiguous 24h times to the model
+              const timeFormatter24 = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
+                timeZone: timezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              });
+              const timeFormatter12 = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
+                timeZone: timezone,
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              });
+              const hourInTz = (ms: number): number => {
+                const h = new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: '2-digit', hour12: false }).format(new Date(ms));
+                return parseInt(h, 10);
+              };
+
+              // Construct open/close instants using business-local date + timezone offset
+              let currentSlotMs = new Date(`${dateStr}T${String(openHour).padStart(2, '0')}:${String(openMin).padStart(2, '0')}:00${tzOffset}`).getTime();
+              const closeTimeMs = new Date(`${dateStr}T${String(closeHour).padStart(2, '0')}:${String(closeMin).padStart(2, '0')}:00${tzOffset}`).getTime();
+
+              // If checking today, start from "now" in business timezone (rounded up to next 30 min)
               if (date === "today") {
-                const nowInTz = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
-                if (nowInTz > currentSlot) {
-                  currentSlot = new Date(nowInTz);
-                  const minutes = currentSlot.getMinutes();
-                  currentSlot.setMinutes(minutes < 30 ? 30 : 60, 0, 0);
-                  if (minutes >= 30) {
-                    currentSlot.setHours(currentSlot.getHours() + 1);
-                    currentSlot.setMinutes(0);
-                  }
-                }
+                const nowParts = new Intl.DateTimeFormat('en-US', {
+                  timeZone: timezone,
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false,
+                }).formatToParts(now);
+                const nowH = parseInt(nowParts.find(p => p.type === 'hour')?.value || '0', 10);
+                const nowM = parseInt(nowParts.find(p => p.type === 'minute')?.value || '0', 10);
+
+                // Round up to next 30-min boundary
+                let roundedH = nowH;
+                let roundedM = nowM < 30 ? 30 : 0;
+                if (nowM >= 30) roundedH += 1;
+
+                const roundedMs = new Date(`${dateStr}T${String(roundedH).padStart(2, '0')}:${String(roundedM).padStart(2, '0')}:00${tzOffset}`).getTime();
+                if (roundedMs > currentSlotMs) currentSlotMs = roundedMs;
               }
-              
-              // Check each 30-min slot
-              while (currentSlot < closeTime) {
-                const slotEndTime = new Date(currentSlot);
-                slotEndTime.setMinutes(slotEndTime.getMinutes() + service_duration);
-                
-                // Check if this slot and required duration are available
+
+              // Generate available slots
+              const availableSlots: Array<{ time: string; display_24h: string; display_12h: string }> = [];
+
+              const stepMs = 30 * 60_000;
+              const serviceMs = service_duration * 60_000;
+
+              for (let slotMs = currentSlotMs; slotMs < closeTimeMs; slotMs += stepMs) {
+                const slotEndMs = slotMs + serviceMs;
+                if (slotEndMs > closeTimeMs) break;
+
                 let isAvailable = true;
-                for (let offset = 0; offset < service_duration; offset += 30) {
-                  const checkTime = new Date(currentSlot);
-                  checkTime.setMinutes(checkTime.getMinutes() + offset);
-                  
-                  // Check if beyond closing time
-                  if (checkTime >= closeTime) {
+                for (let offsetMs = 0; offsetMs < serviceMs; offsetMs += stepMs) {
+                  const checkMs = slotMs + offsetMs;
+                  if (checkMs >= closeTimeMs) {
                     isAvailable = false;
                     break;
                   }
-                  
-                  // Check if this 30-min block is booked
-                  const checkKey = checkTime.toISOString();
-                  if (bookedSlots.has(checkKey)) {
+                  if (bookedSlots.has(checkMs)) {
                     isAvailable = false;
                     break;
                   }
                 }
-                
+
                 if (isAvailable) {
-                  const timeFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
-                    timeZone: timezone,
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                  });
+                  const slotDate = new Date(slotMs);
                   availableSlots.push({
-                    time: currentSlot.toISOString(),
-                    display: timeFormatter.format(currentSlot)
+                    time: slotDate.toISOString(),
+                    display_24h: timeFormatter24.format(slotDate),
+                    display_12h: timeFormatter12.format(slotDate),
                   });
                 }
-                
-                // Move to next 30-min slot
-                currentSlot.setMinutes(currentSlot.getMinutes() + 30);
               }
-              
+
               // Format date for display
               const dateFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
                 timeZone: timezone,
                 weekday: 'long',
                 month: 'long',
-                day: 'numeric'
+                day: 'numeric',
               });
-              const displayDate = dateFormatter.format(targetDate);
-              
+              const displayDate = dateFormatter.format(new Date(`${dateStr}T12:00:00${tzOffset}`));
+
               if (availableSlots.length === 0) {
                 result = JSON.stringify({
                   success: true,
                   fully_booked: true,
                   date: displayDate,
-                  message: `We are fully booked on ${displayDate}. Would you like to check another day?`
+                  timezone,
+                  message: `We are fully booked on ${displayDate}. Would you like to check another day?`,
                 });
               } else {
-                // Group slots by time of day for easier communication
-                const morning = availableSlots.filter(s => {
-                  const hour = new Date(s.time).getHours();
-                  return hour < 12;
-                });
+                // Group by time-of-day using BUSINESS timezone hours (not UTC)
+                const morning = availableSlots.filter(s => hourInTz(Date.parse(s.time)) < 12);
                 const afternoon = availableSlots.filter(s => {
-                  const hour = new Date(s.time).getHours();
-                  return hour >= 12 && hour < 17;
+                  const h = hourInTz(Date.parse(s.time));
+                  return h >= 12 && h < 17;
                 });
-                const evening = availableSlots.filter(s => {
-                  const hour = new Date(s.time).getHours();
-                  return hour >= 17;
-                });
-                
-                const summary = [];
-                if (morning.length > 0) summary.push(`${morning.length} morning slots (${morning[0].display} - ${morning[morning.length-1].display})`);
-                if (afternoon.length > 0) summary.push(`${afternoon.length} afternoon slots (${afternoon[0].display} - ${afternoon[afternoon.length-1].display})`);
-                if (evening.length > 0) summary.push(`${evening.length} evening slots (${evening[0].display} - ${evening[evening.length-1].display})`);
-                
+                const evening = availableSlots.filter(s => hourInTz(Date.parse(s.time)) >= 17);
+
+                // Always communicate availability in 24-hour format to avoid AM/PM ambiguity
+                const summary: string[] = [];
+                if (morning.length > 0) summary.push(`${morning.length} morning slots (${morning[0].display_24h} - ${morning[morning.length - 1].display_24h})`);
+                if (afternoon.length > 0) summary.push(`${afternoon.length} afternoon slots (${afternoon[0].display_24h} - ${afternoon[afternoon.length - 1].display_24h})`);
+                if (evening.length > 0) summary.push(`${evening.length} evening slots (${evening[0].display_24h} - ${evening[evening.length - 1].display_24h})`);
+
                 result = JSON.stringify({
                   success: true,
                   date: displayDate,
+                  timezone,
                   total_available: availableSlots.length,
-                  morning_slots: morning.map(s => s.display),
-                  afternoon_slots: afternoon.map(s => s.display),
-                  evening_slots: evening.map(s => s.display),
+                  morning_slots: morning.map(s => s.display_24h),
+                  afternoon_slots: afternoon.map(s => s.display_24h),
+                  evening_slots: evening.map(s => s.display_24h),
                   summary: summary.join(', '),
-                  message: `On ${displayDate}, we have ${availableSlots.length} available slots: ${summary.join(', ')}. Would you like to book one of these times?`
+                  // include both formats for the agent to speak naturally if desired, but prefer 24h
+                  all_slots: availableSlots.map(s => ({ time: s.time, display_24h: s.display_24h, display_12h: s.display_12h })),
+                  message: `On ${displayDate}, we have ${availableSlots.length} available slots (24-hour times): ${summary.join(', ')}. Would you like to book one of these times?`,
                 });
               }
             }

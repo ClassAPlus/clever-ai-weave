@@ -114,7 +114,7 @@ const VOICE_LANGUAGES = [
   { value: "vi-VN", label: "Vietnamese", sampleText: "Xin chào! Chào mừng. Tôi có thể giúp gì cho bạn?" },
 ];
 
-export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: TwilioAdvancedSettingsProps) {
+export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, businessId }: TwilioAdvancedSettingsProps) {
   const { toast } = useToast();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -129,7 +129,103 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
   const [accountVoicesError, setAccountVoicesError] = useState<string | null>(null);
   const [selectedAccountVoiceId, setSelectedAccountVoiceId] = useState<string>("");
 
+  // ElevenLabs test call state
+  const [isTestCallConnecting, setIsTestCallConnecting] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [transcript, setTranscript] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-webhook`;
+
+  // ElevenLabs conversation hook
+  const conversation = useConversation({
+    onConnect: () => {
+      console.log("Connected to ElevenLabs agent");
+      setTranscript(prev => [...prev, "📞 Connected - Start speaking..."]);
+    },
+    onDisconnect: () => {
+      console.log("Disconnected from ElevenLabs agent");
+      setTranscript(prev => [...prev, "📞 Call ended"]);
+      setIsTestCallConnecting(false);
+    },
+    onMessage: (message: any) => {
+      console.log("ElevenLabs message:", message);
+      if (message.type === "user_transcript") {
+        const text = message.user_transcription_event?.user_transcript;
+        if (text) {
+          setTranscript(prev => [...prev, `🎤 You: ${text}`]);
+        }
+      } else if (message.type === "agent_response") {
+        const text = message.agent_response_event?.agent_response;
+        if (text) {
+          setTranscript(prev => [...prev, `🤖 AI: ${text}`]);
+        }
+      }
+    },
+    onError: (error) => {
+      console.error("ElevenLabs error:", error);
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to voice agent. Check your Agent ID.",
+        variant: "destructive",
+      });
+      setIsTestCallConnecting(false);
+    },
+  });
+
+  const startTestCall = useCallback(async () => {
+    if (!settings.elevenLabsAgentId) {
+      toast({
+        title: "Agent ID Required",
+        description: "Please enter your ElevenLabs Agent ID first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTestCallConnecting(true);
+    setTranscript([]);
+
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      await conversation.startSession({
+        agentId: settings.elevenLabsAgentId,
+        connectionType: "webrtc",
+        dynamicVariables: {
+          business_id: businessId || "",
+          caller_phone: "+1234567890",
+        },
+      });
+    } catch (error) {
+      console.error("Failed to start conversation:", error);
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to start test call",
+        variant: "destructive",
+      });
+      setIsTestCallConnecting(false);
+    }
+  }, [settings.elevenLabsAgentId, businessId, conversation, toast]);
+
+  const endTestCall = useCallback(async () => {
+    await conversation.endSession();
+    setIsTestCallConnecting(false);
+  }, [conversation]);
+
+  const copyWebhookUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(webhookUrl);
+      setCopied(true);
+      toast({ title: "Copied!", description: "Webhook URL copied to clipboard." });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({ title: "Copy failed", description: "Please copy the URL manually.", variant: "destructive" });
+    }
+  };
+
+  const isTestCallConnected = conversation.status === "connected";
 
   // Auto-sync voice language from primary AI language (for display)
   const effectiveVoiceLanguage = primaryLanguage 

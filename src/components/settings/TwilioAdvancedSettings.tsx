@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useConversation } from "@elevenlabs/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Phone, MessageSquare, Volume2, Loader2, Square, User, Bot, Play, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Phone, MessageSquare, Volume2, Loader2, Square, User, Bot, Play, RefreshCw, PhoneOff, Mic, MicOff, Copy, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,6 +19,8 @@ interface TwilioSettings {
   googleVoiceName?: string;
   elevenLabsVoiceId?: string;
   elevenLabsVoiceGender?: 'male' | 'female'; // Auto-derived from selected voice
+  elevenLabsAgentId?: string;
+  useElevenLabsAgent?: boolean;
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;
@@ -28,6 +32,7 @@ interface TwilioAdvancedSettingsProps {
   settings: TwilioSettings;
   onChange: (settings: TwilioSettings) => void;
   primaryLanguage?: string; // From AI Configuration - auto-syncs voice language
+  businessId?: string; // For test calls
 }
 
 // Map AI language names to voice language codes (for display purposes)
@@ -109,7 +114,7 @@ const VOICE_LANGUAGES = [
   { value: "vi-VN", label: "Vietnamese", sampleText: "Xin chào! Chào mừng. Tôi có thể giúp gì cho bạn?" },
 ];
 
-export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: TwilioAdvancedSettingsProps) {
+export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, businessId }: TwilioAdvancedSettingsProps) {
   const { toast } = useToast();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -124,7 +129,103 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
   const [accountVoicesError, setAccountVoicesError] = useState<string | null>(null);
   const [selectedAccountVoiceId, setSelectedAccountVoiceId] = useState<string>("");
 
+  // ElevenLabs test call state
+  const [isTestCallConnecting, setIsTestCallConnecting] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [transcript, setTranscript] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-webhook`;
+
+  // ElevenLabs conversation hook
+  const conversation = useConversation({
+    onConnect: () => {
+      console.log("Connected to ElevenLabs agent");
+      setTranscript(prev => [...prev, "📞 Connected - Start speaking..."]);
+    },
+    onDisconnect: () => {
+      console.log("Disconnected from ElevenLabs agent");
+      setTranscript(prev => [...prev, "📞 Call ended"]);
+      setIsTestCallConnecting(false);
+    },
+    onMessage: (message: any) => {
+      console.log("ElevenLabs message:", message);
+      if (message.type === "user_transcript") {
+        const text = message.user_transcription_event?.user_transcript;
+        if (text) {
+          setTranscript(prev => [...prev, `🎤 You: ${text}`]);
+        }
+      } else if (message.type === "agent_response") {
+        const text = message.agent_response_event?.agent_response;
+        if (text) {
+          setTranscript(prev => [...prev, `🤖 AI: ${text}`]);
+        }
+      }
+    },
+    onError: (error) => {
+      console.error("ElevenLabs error:", error);
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to voice agent. Check your Agent ID.",
+        variant: "destructive",
+      });
+      setIsTestCallConnecting(false);
+    },
+  });
+
+  const startTestCall = useCallback(async () => {
+    if (!settings.elevenLabsAgentId) {
+      toast({
+        title: "Agent ID Required",
+        description: "Please enter your ElevenLabs Agent ID first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTestCallConnecting(true);
+    setTranscript([]);
+
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      await conversation.startSession({
+        agentId: settings.elevenLabsAgentId,
+        connectionType: "webrtc",
+        dynamicVariables: {
+          business_id: businessId || "",
+          caller_phone: "+1234567890",
+        },
+      });
+    } catch (error) {
+      console.error("Failed to start conversation:", error);
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to start test call",
+        variant: "destructive",
+      });
+      setIsTestCallConnecting(false);
+    }
+  }, [settings.elevenLabsAgentId, businessId, conversation, toast]);
+
+  const endTestCall = useCallback(async () => {
+    await conversation.endSession();
+    setIsTestCallConnecting(false);
+  }, [conversation]);
+
+  const copyWebhookUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(webhookUrl);
+      setCopied(true);
+      toast({ title: "Copied!", description: "Webhook URL copied to clipboard." });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({ title: "Copy failed", description: "Please copy the URL manually.", variant: "destructive" });
+    }
+  };
+
+  const isTestCallConnected = conversation.status === "connected";
 
   // Auto-sync voice language from primary AI language (for display)
   const effectiveVoiceLanguage = primaryLanguage 
@@ -324,10 +425,142 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage }: 
           </div>
           {settings.enableAiReceptionist !== false && (
             <p className="text-xs text-purple-300">
-              🎙️ When enabled, callers will have a real-time voice conversation with your AI assistant powered by OpenAI Realtime API.
+              🎙️ When enabled, callers will have a real-time voice conversation with your AI assistant{settings.useElevenLabsAgent ? " powered by ElevenLabs Conversational AI." : " powered by OpenAI Realtime API."}
             </p>
           )}
         </div>
+
+        {/* ElevenLabs Agent Configuration - Only show when AI Receptionist is enabled */}
+        {settings.enableAiReceptionist !== false && (
+          <div className="p-4 rounded-lg bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Volume2 className="h-5 w-5 text-yellow-400" />
+                <div>
+                  <Label className="text-white font-medium flex items-center gap-2">
+                    Use ElevenLabs Agent
+                    <Badge variant="outline" className="text-[10px] border-yellow-500/50 text-yellow-400">New</Badge>
+                  </Label>
+                  <p className="text-xs text-gray-400">Ultra-low latency with advanced conversational AI</p>
+                </div>
+              </div>
+              <Switch
+                checked={settings.useElevenLabsAgent === true}
+                onCheckedChange={(checked) => updateSettings({ useElevenLabsAgent: checked })}
+              />
+            </div>
+
+            {settings.useElevenLabsAgent && (
+              <div className="space-y-4 pt-2 border-t border-yellow-500/20">
+                {/* Agent ID Input */}
+                <div className="space-y-2">
+                  <Label className="text-gray-300 text-sm">ElevenLabs Agent ID</Label>
+                  <Input
+                    value={settings.elevenLabsAgentId || ""}
+                    onChange={(e) => updateSettings({ elevenLabsAgentId: e.target.value })}
+                    placeholder="Enter your ElevenLabs Agent ID..."
+                    className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Get your Agent ID from the{" "}
+                    <a 
+                      href="https://elevenlabs.io/app/conversational-ai" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-purple-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      ElevenLabs Dashboard
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </p>
+                </div>
+
+                {/* Webhook URL */}
+                <div className="space-y-2">
+                  <Label className="text-gray-300 text-sm">Webhook URL (for ElevenLabs tools)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={webhookUrl}
+                      readOnly
+                      className="bg-gray-900 border-gray-600 text-gray-400 font-mono text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={copyWebhookUrl}
+                      className="border-gray-600 hover:bg-gray-700 shrink-0"
+                    >
+                      {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Test Call Section */}
+                {settings.elevenLabsAgentId && (
+                  <div className="space-y-3 pt-3 border-t border-yellow-500/20">
+                    <Label className="text-gray-300 text-sm">Test Your Agent</Label>
+                    
+                    <div className="flex items-center gap-3">
+                      {!isTestCallConnected ? (
+                        <Button
+                          onClick={startTestCall}
+                          disabled={isTestCallConnecting || !settings.elevenLabsAgentId}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {isTestCallConnecting ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Phone className="h-4 w-4 mr-2" />
+                          )}
+                          {isTestCallConnecting ? "Connecting..." : "Start Test Call"}
+                        </Button>
+                      ) : (
+                        <>
+                          <Button onClick={endTestCall} variant="destructive" size="sm">
+                            <PhoneOff className="h-4 w-4 mr-2" />
+                            End Call
+                          </Button>
+                          <Button
+                            onClick={() => setIsMuted(prev => !prev)}
+                            variant="outline"
+                            size="icon"
+                            className={isMuted ? "bg-red-500/20 border-red-500/50" : "border-gray-600"}
+                          >
+                            {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                          </Button>
+                        </>
+                      )}
+                      
+                      <Badge variant={isTestCallConnected ? "default" : isTestCallConnecting ? "secondary" : "outline"}>
+                        {isTestCallConnected && "In Call"}
+                        {isTestCallConnecting && "Connecting..."}
+                        {!isTestCallConnected && !isTestCallConnecting && "Ready"}
+                      </Badge>
+                      
+                      {isTestCallConnected && conversation.isSpeaking && (
+                        <div className="flex items-center gap-2 text-purple-400">
+                          <Volume2 className="h-4 w-4 animate-pulse" />
+                          <span className="text-xs">AI Speaking...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {transcript.length > 0 && (
+                      <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700 max-h-40 overflow-y-auto">
+                        <div className="space-y-1 text-xs">
+                          {transcript.map((line, i) => (
+                            <p key={i} className="text-gray-300">{line}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Time Format Toggle */}
         <div className="p-4 rounded-lg bg-gray-700/30 border border-gray-600 space-y-3">

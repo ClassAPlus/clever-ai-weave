@@ -36,7 +36,7 @@ import { AppointmentTemplateManager } from "@/components/appointments/Appointmen
 import { Badge } from "@/components/ui/badge";
 import { AITestCall } from "@/components/settings/AITestCall";
 import { SMSPreviewTest } from "@/components/settings/SMSPreviewTest";
-import { ElevenLabsAgentSettings } from "@/components/settings/ElevenLabsAgentSettings";
+
 
 interface BusinessHours {
   [key: string]: { start: string; end: string } | undefined;
@@ -1792,18 +1792,7 @@ export default function Settings() {
 
         {/* Developer Tab */}
         <TabsContent value="developer" className="space-y-6">
-          {/* ElevenLabs Conversational AI */}
-          {business && (
-            <ElevenLabsAgentSettings
-              businessId={business.id}
-              businessName={name}
-              twilioSettings={twilioSettings}
-              onSettingsChange={setTwilioSettings}
-              isEditing={true}
-            />
-          )}
-
-          {/* AI Test Call (Legacy OpenAI) */}
+          {/* AI Test Call (Legacy OpenAI) - only show when NOT using ElevenLabs */}
           {business && twilioSettings?.enableAiReceptionist && !twilioSettings?.useElevenLabsAgent && (
             <AITestCall
               businessId={business.id}
@@ -1835,6 +1824,7 @@ export default function Settings() {
             settings={twilioSettings}
             onChange={setTwilioSettings}
             primaryLanguage={primaryLanguage}
+            businessId={business?.id}
           />
 
           {/* Admin Role Management - Admin Only */}

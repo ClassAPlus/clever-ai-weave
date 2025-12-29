@@ -938,8 +938,12 @@ serve(async (req) => {
     const body = await req.json();
     console.log("Agent webhook received:", JSON.stringify(body));
     
-    // ElevenLabs sends tool calls in this format
-    const { tool_name, parameters, business_id, caller_phone } = body;
+    // ElevenLabs sends tool calls - dynamic_variables contains business_id and caller_phone
+    const { tool_name, parameters, dynamic_variables } = body;
+    
+    // Extract business_id and caller_phone from either top level or dynamic_variables
+    const business_id = body.business_id || dynamic_variables?.business_id;
+    const caller_phone = body.caller_phone || dynamic_variables?.caller_phone;
     
     if (!tool_name) {
       return new Response(JSON.stringify({ error: "Missing tool_name" }), {

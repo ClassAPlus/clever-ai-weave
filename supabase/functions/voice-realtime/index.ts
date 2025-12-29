@@ -423,7 +423,7 @@ CRITICAL: You CAN and SHOULD switch languages during the conversation if the cal
 - When speaking Hebrew, use natural Hebrew phrasing and RTL text direction.
 - When switching languages, confirm: "${isHebrew ? 'I\'ll continue in English now.' : 'אני אמשיך בעברית עכשיו.'}"
 
-${callerInfo ? `=== CALLER CONTEXT (Use this to personalize the conversation) ===\n${callerInfo}${isReturningCaller ? 'This is a returning caller - acknowledge their history warmly.\n' : ''}===\n\n` : ''}
+${callerInfo ? `=== CALLER CONTEXT (USE THIS IMMEDIATELY IN YOUR FIRST RESPONSE) ===\n${callerInfo}${isReturningCaller ? 'This is a returning caller - USE THEIR NAME in your greeting and acknowledge their history warmly.\nIMPORTANT: You already know this information - do NOT ask for their name if you already have it.\n' : ''}===\n\n` : ''}
 
 ${instructions || "Answer questions helpfully and take messages when the caller wants to leave one."}
 
@@ -1756,6 +1756,31 @@ serve(async (req) => {
   const sendInitialGreeting = () => {
     if (!openaiWs || openaiWs.readyState !== WebSocket.OPEN) return;
     
+    // Build a personalized greeting prompt based on caller context
+    let greetingPrompt = "";
+    
+    // Check if this is a returning caller with known name
+    if (callerContext.name) {
+      greetingPrompt = `The caller is ${callerContext.name}. Greet them warmly by name.`;
+      
+      // Check for upcoming appointments to mention
+      const upcomingAppts = callerContext.appointments.filter(a => 
+        new Date(a.scheduled_at) > new Date() && a.status !== 'cancelled'
+      );
+      
+      if (upcomingAppts.length > 0) {
+        greetingPrompt += ` They have an upcoming appointment - acknowledge that you see it and ask if they're calling about it or something else.`;
+      } else if (callerContext.appointments.length > 0) {
+        greetingPrompt += ` They've been here before - welcome them back warmly.`;
+      }
+    } else if (callerContext.callHistory.length > 0) {
+      // They've called before but we don't have their name
+      greetingPrompt = `This is a returning caller (called ${callerContext.callHistory.length} time(s) before). Greet them warmly and ask how you can help them today.`;
+    } else {
+      // New caller
+      greetingPrompt = `Greet the caller warmly and ask how you can help them today.`;
+    }
+    
     const greetingEvent = {
       type: "conversation.item.create",
       item: {
@@ -1763,13 +1788,13 @@ serve(async (req) => {
         role: "user",
         content: [{
           type: "input_text",
-          text: "Greet the caller warmly and ask how you can help them today."
+          text: greetingPrompt
         }]
       }
     };
     openaiWs.send(JSON.stringify(greetingEvent));
     openaiWs.send(JSON.stringify({ type: "response.create" }));
-    console.log("Sent initial greeting request");
+    console.log(`Sent initial greeting request: ${greetingPrompt}`);
   };
   
   const sendMark = () => {

@@ -5,15 +5,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ElevenLabs multilingual voices - these work great for Hebrew and English
+// ElevenLabs voices - use native language voices for best pronunciation
 const ELEVENLABS_VOICES = {
-  female: {
-    primary: 'EXAVITQu4vr4xnSDxMaL', // Sarah - warm, natural
-    alt: 'XrExE9yKIg1WjnnlVkGX',     // Matilda
+  // Hebrew native voices (from ElevenLabs voice library)
+  hebrew: {
+    female: 'cgSgspJ2msm6clMCkdW9', // He-israel style voice
+    male: 'onwK4e9ZLuTAKqWW03F9',
   },
-  male: {
-    primary: 'onwK4e9ZLuTAKqWW03F9', // Daniel - clear, professional
-    alt: 'TX3LPaxmHKxFdv7VOQHJ',     // Liam
+  // Default English voices
+  english: {
+    female: 'EXAVITQu4vr4xnSDxMaL', // Sarah
+    male: 'onwK4e9ZLuTAKqWW03F9',   // Daniel
   },
 };
 
@@ -36,23 +38,33 @@ serve(async (req) => {
 
     const selectedGender = gender || 'female';
     
-    // Use specified voice ID or auto-select based on gender
-    const selectedVoiceId = voiceId || 
-      (selectedGender === 'male' ? ELEVENLABS_VOICES.male.primary : ELEVENLABS_VOICES.female.primary);
+    // Detect if Hebrew based on language code or text content
+    const isHebrew = languageCode?.startsWith('he') || /[\u0590-\u05FF]/.test(text);
+    
+    // Use specified voice ID, or select based on language and gender
+    let selectedVoiceId = voiceId;
+    if (!selectedVoiceId) {
+      if (isHebrew) {
+        selectedVoiceId = selectedGender === 'male' ? ELEVENLABS_VOICES.hebrew.male : ELEVENLABS_VOICES.hebrew.female;
+      } else {
+        selectedVoiceId = selectedGender === 'male' ? ELEVENLABS_VOICES.english.male : ELEVENLABS_VOICES.english.female;
+      }
+    }
 
-    // Always use eleven_multilingual_v2 - it has the best language detection and pronunciation
-    // The model auto-detects language from the text content itself
-    console.log(`ElevenLabs TTS request: lang=${languageCode || 'auto'}, model=multilingual_v2, voice=${selectedVoiceId}, text length=${text.length}`);
+    // Use eleven_v3 for Hebrew (best pronunciation), multilingual_v2 for other languages
+    const modelId = isHebrew ? 'eleven_v3' : 'eleven_multilingual_v2';
+    
+    console.log(`ElevenLabs TTS request: lang=${languageCode || 'auto'}, isHebrew=${isHebrew}, model=${modelId}, voice=${selectedVoiceId}, text length=${text.length}`);
 
-    // Build request body - always use multilingual_v2 for best pronunciation across all languages
+    // Build request body
     const requestBody: Record<string, any> = {
       text,
-      model_id: 'eleven_multilingual_v2',
+      model_id: modelId,
       output_format: 'mp3_44100_128',
       voice_settings: {
-        stability: 0.4,        // Lower stability for more natural prosody
-        similarity_boost: 0.8, // Higher similarity for clearer pronunciation
-        style: 0.2,            // Moderate style for natural speech
+        stability: 0.5,
+        similarity_boost: 0.75,
+        style: 0.0,
         use_speaker_boost: true,
       },
     };

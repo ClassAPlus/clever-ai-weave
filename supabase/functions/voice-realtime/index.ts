@@ -284,7 +284,7 @@ interface CallerContext {
 }
 
 // System prompt for the AI receptionist
-const getSystemPrompt = (businessName: string, instructions: string, language: string, callerContext: CallerContext, timezone: string = "UTC") => {
+const getSystemPrompt = (businessName: string, instructions: string, language: string, callerContext: CallerContext, timezone: string = "UTC", timeFormat: '12h' | '24h' = '12h') => {
   const langMap: Record<string, string> = {
     "he-IL": "Hebrew (עברית)",
     "en-US": "English",
@@ -492,7 +492,14 @@ The business timezone is: ${timezone}
 Current timezone offset: ${getTimezoneOffset(timezone)}
 CRITICAL: When calling create_appointment, you MUST include the timezone offset in the scheduled_date.
 Example: If the caller wants 5:00 PM (17:00), use "2025-01-15T17:00:00${getTimezoneOffset(timezone)}"
-NEVER use dates without timezone offset - this causes scheduling errors!`;
+NEVER use dates without timezone offset - this causes scheduling errors!
+
+=== TIME FORMAT PREFERENCE ===
+The business prefers times to be spoken in: ${timeFormat === '24h' ? '24-hour format (e.g., "14:00", "09:30")' : '12-hour format with AM/PM (e.g., "2 PM", "9:30 AM")'}
+${timeFormat === '24h' 
+  ? 'When mentioning times, say "fourteen hundred" or "fourteen zero zero" for 14:00, NOT "two PM".'
+  : 'When mentioning times, say "2 PM" or "two in the afternoon", NOT "fourteen hundred".'}
+ALWAYS use this format consistently when speaking about appointment times, available slots, and business hours.`;
 };
 
 // Function to send SMS via Twilio
@@ -784,6 +791,8 @@ serve(async (req) => {
         // Store business hours for the check_business_hours tool
         (globalThis as any).__businessHours = business.business_hours;
         (globalThis as any).__businessTimezone = business.timezone || "UTC";
+        // Store time format preference (12h = AM/PM, 24h = 24-hour)
+        (globalThis as any).__timeFormat = settings?.timeFormat || "12h";
         // Store services and knowledge base for the get_services_info tool
         (globalThis as any).__businessServices = business.services || [];
         (globalThis as any).__knowledgeBase = business.knowledge_base || {};
@@ -1019,9 +1028,27 @@ serve(async (req) => {
             
             // Automatically send confirmation SMS if we have the caller's phone
             if (callerPhone && businessPhone) {
+              const preferredFormat = (globalThis as any).__timeFormat || '12h';
+              const timezone = (globalThis as any).__businessTimezone || 'UTC';
+              const apptDate = new Date(scheduled_date);
+              const dateFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
+                timeZone: timezone,
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric'
+              });
+              const timeFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
+                timeZone: timezone,
+                hour: preferredFormat === '24h' ? '2-digit' : 'numeric',
+                minute: '2-digit',
+                hour12: preferredFormat !== '24h'
+              });
+              const fmtDate = dateFormatter.format(apptDate);
+              const fmtTime = timeFormatter.format(apptDate);
+              
               const confirmMsg = voiceLanguage.startsWith("he") 
-                ? `תור אושר ל-${businessName}. קוד אישור: ${confirmationCode}. תאריך: ${new Date(scheduled_date).toLocaleString('he-IL')}`
-                : `Appointment confirmed at ${businessName}. Confirmation: ${confirmationCode}. Date: ${new Date(scheduled_date).toLocaleString('en-US')}`;
+                ? `תור אושר ל-${businessName}. קוד אישור: ${confirmationCode}. ${fmtDate} בשעה ${fmtTime}`
+                : `Appointment confirmed at ${businessName}. Confirmation: ${confirmationCode}. ${fmtDate} at ${fmtTime}`;
               
               try {
                 console.log(`Sending SMS from ${businessPhone} to ${callerPhone}`);
@@ -1238,8 +1265,29 @@ serve(async (req) => {
               result = JSON.stringify({ success: false, error: "No upcoming appointment found to reschedule" });
             } else {
               const appointment = upcomingAppts[0];
-              const oldDate = new Date(appointment.scheduled_at).toLocaleString();
-              const newDateFormatted = new Date(new_date).toLocaleString();
+              const preferredFormat = (globalThis as any).__timeFormat || '12h';
+              const timezone = (globalThis as any).__businessTimezone || 'UTC';
+              
+              // Format dates in preferred format
+              const formatApptDateTime = (dateStr: string): string => {
+                const d = new Date(dateStr);
+                const dateFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
+                  timeZone: timezone,
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric'
+                });
+                const timeFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
+                  timeZone: timezone,
+                  hour: preferredFormat === '24h' ? '2-digit' : 'numeric',
+                  minute: '2-digit',
+                  hour12: preferredFormat !== '24h'
+                });
+                return `${dateFormatter.format(d)} ${voiceLanguage.startsWith('he') ? 'בשעה' : 'at'} ${timeFormatter.format(d)}`;
+              };
+              
+              const oldDate = formatApptDateTime(appointment.scheduled_at);
+              const newDateFormatted = formatApptDateTime(new_date);
               
               // Update the appointment
               const updateData: any = {
@@ -1378,8 +1426,9 @@ serve(async (req) => {
             } else {
               const appointment = upcomingAppts[0];
               
-              // Format the date with proper timezone and AM/PM
+              // Format the date with proper timezone and preferred time format
               const apptDateTime = new Date(appointment.scheduled_at);
+              const preferredFormat = (globalThis as any).__timeFormat || '12h';
               const dateFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
                 timeZone: timezone,
                 weekday: 'long',
@@ -1389,9 +1438,9 @@ serve(async (req) => {
               });
               const timeFormatter = new Intl.DateTimeFormat(voiceLanguage.startsWith('he') ? 'he-IL' : 'en-US', {
                 timeZone: timezone,
-                hour: 'numeric',
+                hour: preferredFormat === '24h' ? '2-digit' : 'numeric',
                 minute: '2-digit',
-                hour12: true
+                hour12: preferredFormat !== '24h'
               });
               const formattedDate = dateFormatter.format(apptDateTime);
               const formattedTime = timeFormatter.format(apptDateTime);
@@ -1628,24 +1677,29 @@ serve(async (req) => {
                 });
                 const evening = availableSlots.filter(s => hourInTz(Date.parse(s.time)) >= 17);
 
-                // Always communicate availability in 24-hour format to avoid AM/PM ambiguity
+                // Use preferred time format from business settings
+                const preferredFormat = (globalThis as any).__timeFormat || '12h';
+                const getDisplay = (s: { display_24h: string; display_12h: string }) => 
+                  preferredFormat === '24h' ? s.display_24h : s.display_12h;
+
                 const summary: string[] = [];
-                if (morning.length > 0) summary.push(`${morning.length} morning slots (${morning[0].display_24h} - ${morning[morning.length - 1].display_24h})`);
-                if (afternoon.length > 0) summary.push(`${afternoon.length} afternoon slots (${afternoon[0].display_24h} - ${afternoon[afternoon.length - 1].display_24h})`);
-                if (evening.length > 0) summary.push(`${evening.length} evening slots (${evening[0].display_24h} - ${evening[evening.length - 1].display_24h})`);
+                if (morning.length > 0) summary.push(`${morning.length} morning slots (${getDisplay(morning[0])} - ${getDisplay(morning[morning.length - 1])})`);
+                if (afternoon.length > 0) summary.push(`${afternoon.length} afternoon slots (${getDisplay(afternoon[0])} - ${getDisplay(afternoon[afternoon.length - 1])})`);
+                if (evening.length > 0) summary.push(`${evening.length} evening slots (${getDisplay(evening[0])} - ${getDisplay(evening[evening.length - 1])})`);
 
                 result = JSON.stringify({
                   success: true,
                   date: displayDate,
                   timezone,
+                  time_format: preferredFormat,
                   total_available: availableSlots.length,
-                  morning_slots: morning.map(s => s.display_24h),
-                  afternoon_slots: afternoon.map(s => s.display_24h),
-                  evening_slots: evening.map(s => s.display_24h),
+                  morning_slots: morning.map(getDisplay),
+                  afternoon_slots: afternoon.map(getDisplay),
+                  evening_slots: evening.map(getDisplay),
                   summary: summary.join(', '),
-                  // include both formats for the agent to speak naturally if desired, but prefer 24h
-                  all_slots: availableSlots.map(s => ({ time: s.time, display_24h: s.display_24h, display_12h: s.display_12h })),
-                  message: `On ${displayDate}, we have ${availableSlots.length} available slots (24-hour times): ${summary.join(', ')}. Would you like to book one of these times?`,
+                  // include both formats for the agent to speak naturally if desired
+                  all_slots: availableSlots.map(s => ({ time: s.time, display: getDisplay(s), display_24h: s.display_24h, display_12h: s.display_12h })),
+                  message: `On ${displayDate}, we have ${availableSlots.length} available slots: ${summary.join(', ')}. Would you like to book one of these times?`,
                 });
               }
             }
@@ -1770,7 +1824,7 @@ serve(async (req) => {
         },
         input_audio_format: "g711_ulaw",
         // No output_audio_format - we're using text-only output with ElevenLabs TTS
-        instructions: getSystemPrompt(businessName, instructions, voiceLanguage, callerContext, (globalThis as any).__businessTimezone || "UTC"),
+        instructions: getSystemPrompt(businessName, instructions, voiceLanguage, callerContext, (globalThis as any).__businessTimezone || "UTC", (globalThis as any).__timeFormat || "12h"),
         modalities: ["text"],  // TEXT ONLY - no audio output from OpenAI
         temperature: 0.8,
         tools: TOOLS,

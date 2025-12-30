@@ -10,6 +10,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 
+// Bump this when changing payload shape so we can verify deployments via error responses/logs
+const FUNCTION_VERSION = "2025-12-30T06:27Z-webhook-tool-v1";
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // Webhook URL for agent tools
@@ -313,16 +316,28 @@ function buildWebhookToolConfig(args: {
     type: "webhook",
     name: tool.name,
     description: tool.description,
-    api_schema: {
-      url: WEBHOOK_BASE_URL,
-      method: "POST",
-      path_params_schema: { type: "object", properties: {} },
-      query_params_schema: { type: "object", properties: {} },
-      request_body_schema: requestBodySchema,
+    webhook: {
+      api_schema: {
+        url: WEBHOOK_BASE_URL,
+        method: "POST",
+        // ElevenLabs expects objects here; keep path params empty.
+        path_params_schema: {},
+        // ElevenLabs currently requires query_params_schema.properties to exist and be non-empty.
+        // We include a harmless optional param to satisfy validation.
+        query_params_schema: {
+          properties: {
+            __unused: {
+              type: "string",
+              description: "Internal (unused)",
+            },
+          },
+        },
+        request_body_schema: requestBodySchema,
+        request_headers: [
+          { type: "value", name: "Content-Type", value: "application/json" },
+        ],
+      },
     },
-    request_headers: [
-      { type: "value", name: "Content-Type", value: "application/json" },
-    ],
     response_timeout_secs: tool.timeoutSecs,
     assignments: [],
     disable_interruptions: false,
@@ -348,6 +363,15 @@ async function ensureBusinessTools(args: {
     console.log(`Creating ElevenLabs tool: ${tool.name}`);
 
     const toolConfig = buildWebhookToolConfig({ tool, businessId });
+
+    if (tool.name === "create_appointment") {
+      console.log(
+        "Tool create payload version:",
+        FUNCTION_VERSION,
+        JSON.stringify({ tool_config: toolConfig })
+      );
+    }
+
     const resp = await fetch("https://api.elevenlabs.io/v1/convai/tools", {
       method: "POST",
       headers: {
@@ -536,16 +560,17 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        version: FUNCTION_VERSION,
         action,
         agent_id: agentId,
         business_id: business_id,
         business_name: business.name,
         voice_id: selectedVoiceId,
         language: langCode,
-        message: `ElevenLabs agent ${action} successfully for ${business.name}`
+        message: `ElevenLabs agent ${action} successfully for ${business.name}`,
       }),
       {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error) {
@@ -553,11 +578,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        version: FUNCTION_VERSION,
+        error: error instanceof Error ? error.message : "Unknown error",
       }),
       {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }

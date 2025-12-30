@@ -530,7 +530,7 @@ serve(async (req) => {
       console.log("Creating new ElevenLabs agent for:", business.name);
       
       const createResponse = await fetch(
-        "https://api.elevenlabs.io/v1/convai/agents",
+        "https://api.elevenlabs.io/v1/convai/agents/create",
         {
           method: "POST",
           headers: {

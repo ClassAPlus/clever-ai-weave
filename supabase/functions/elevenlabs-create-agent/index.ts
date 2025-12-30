@@ -11,7 +11,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 
 // Bump this when changing payload shape so we can verify deployments via error responses/logs
-const FUNCTION_VERSION = "2025-12-30T06:27Z-webhook-tool-v1";
+const FUNCTION_VERSION = "2025-12-30T06:50Z-webhook-tool-v2";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -272,71 +272,75 @@ function buildWebhookToolConfig(args: {
 }) {
   const { tool, businessId } = args;
 
-  // Build parameter properties as standard JSON Schema object (not array)
-  const paramProperties: Record<string, any> = {};
+  // Build parameter properties as ElevenLabs array format
+  // Each property is { id, type, description, value_type, required, constant_value? }
+  const paramPropertiesArray: any[] = [];
   for (const [key, schema] of Object.entries(tool.params)) {
     const prop: any = {
+      id: key,
       type: schema.type,
       description: schema.description || "",
+      value_type: "llm_prompt", // AI fills these from conversation
+      required: tool.required.includes(key),
     };
     if (schema.enum) prop.enum = schema.enum;
-    paramProperties[key] = prop;
+    paramPropertiesArray.push(prop);
   }
 
-  // Standard JSON Schema for request body
+  // ElevenLabs array-based request body schema format
   const requestBodySchema = {
+    id: "body",
     type: "object",
     description: `Request payload for ${tool.name}`,
-    required: ["tool_name", "business_id", "parameters"],
-    properties: {
-      tool_name: {
+    required: true,
+    properties: [
+      {
+        id: "tool_name",
         type: "string",
         description: "The tool to execute",
-        const: tool.name,
+        value_type: "constant",
+        constant_value: tool.name,
+        required: true,
       },
-      business_id: {
+      {
+        id: "business_id",
         type: "string",
         description: "Business ID",
-        const: businessId,
+        value_type: "constant",
+        constant_value: businessId,
+        required: true,
       },
-      caller_phone: {
+      {
+        id: "caller_phone",
         type: "string",
-        description: "Caller phone number (provided by the telephony integration)",
+        description: "Caller phone number (provided by telephony)",
+        value_type: "dynamic_variable",
+        required: false,
       },
-      parameters: {
+      {
+        id: "parameters",
         type: "object",
         description: "Tool parameters",
-        required: tool.required,
-        properties: paramProperties,
+        required: true,
+        properties: paramPropertiesArray,
       },
-    },
+    ],
   };
 
+  // ElevenLabs webhook tool: api_schema at top level (NOT nested under webhook)
   return {
     type: "webhook",
     name: tool.name,
     description: tool.description,
-    webhook: {
-      api_schema: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        // ElevenLabs expects objects here; keep path params empty.
-        path_params_schema: {},
-        // ElevenLabs currently requires query_params_schema.properties to exist and be non-empty.
-        // We include a harmless optional param to satisfy validation.
-        query_params_schema: {
-          properties: {
-            __unused: {
-              type: "string",
-              description: "Internal (unused)",
-            },
-          },
-        },
-        request_body_schema: requestBodySchema,
-        request_headers: [
-          { type: "value", name: "Content-Type", value: "application/json" },
-        ],
-      },
+    api_schema: {
+      url: WEBHOOK_BASE_URL,
+      method: "POST",
+      path_params_schema: [],    // Empty array, not object
+      query_params_schema: [],   // Empty array, not object
+      request_body_schema: requestBodySchema,
+      request_headers: [
+        { type: "value", name: "Content-Type", value: "application/json" },
+      ],
     },
     response_timeout_secs: tool.timeoutSecs,
     assignments: [],

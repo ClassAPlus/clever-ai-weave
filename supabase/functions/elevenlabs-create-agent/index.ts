@@ -269,64 +269,44 @@ function buildWebhookToolConfig(args: {
 }) {
   const { tool, businessId } = args;
 
-  const paramProps = Object.entries(tool.params).map(([key, schema]) => {
-    const base: any = {
-      id: key,
+  // Build parameter properties as standard JSON Schema object (not array)
+  const paramProperties: Record<string, any> = {};
+  for (const [key, schema] of Object.entries(tool.params)) {
+    const prop: any = {
       type: schema.type,
       description: schema.description || "",
-      dynamic_variable: "",
-      constant_value: "",
-      value_type: "llm_prompt",
-      required: tool.required.includes(key),
     };
-    if (schema.enum) base.enum = schema.enum;
-    return base;
-  });
+    if (schema.enum) prop.enum = schema.enum;
+    paramProperties[key] = prop;
+  }
 
-  const toolRequestSchema = {
-    id: "body",
+  // Standard JSON Schema for request body
+  const requestBodySchema = {
     type: "object",
     description: `Request payload for ${tool.name}`,
-    required: true,
-    properties: [
-      {
-        id: "tool_name",
+    required: ["tool_name", "business_id", "parameters"],
+    properties: {
+      tool_name: {
         type: "string",
         description: "The tool to execute",
-        dynamic_variable: "",
-        constant_value: tool.name,
-        value_type: "constant",
-        required: true,
+        const: tool.name,
       },
-      {
-        id: "business_id",
+      business_id: {
         type: "string",
         description: "Business ID",
-        dynamic_variable: "",
-        constant_value: businessId,
-        value_type: "constant",
-        required: true,
+        const: businessId,
       },
-      {
-        id: "caller_phone",
+      caller_phone: {
         type: "string",
         description: "Caller phone number (provided by the telephony integration)",
-        dynamic_variable: "caller_phone",
-        constant_value: "",
-        value_type: "dynamic_variable",
-        required: false,
       },
-      {
-        id: "parameters",
+      parameters: {
         type: "object",
         description: "Tool parameters",
-        dynamic_variable: "",
-        constant_value: "",
-        value_type: "llm_prompt",
-        required: true,
-        properties: paramProps,
+        required: tool.required,
+        properties: paramProperties,
       },
-    ],
+    },
   };
 
   return {
@@ -336,9 +316,9 @@ function buildWebhookToolConfig(args: {
     api_schema: {
       url: WEBHOOK_BASE_URL,
       method: "POST",
-      path_params_schema: [],
-      query_params_schema: [],
-      request_body_schema: toolRequestSchema,
+      path_params_schema: {},
+      query_params_schema: {},
+      request_body_schema: requestBodySchema,
     },
     request_headers: [
       { type: "value", name: "Content-Type", value: "application/json" },

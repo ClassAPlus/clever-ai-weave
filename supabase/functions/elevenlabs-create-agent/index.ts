@@ -137,11 +137,19 @@ function buildFirstMessage(business: any): string {
 }
 
 function buildServerTools(businessId: string): any[] {
-  const tools = [
-    {
+  // Helper to create a webhook tool with the correct ElevenLabs API schema format
+  function createWebhookTool(
+    name: string,
+    description: string,
+    toolName: string,
+    parameters: Record<string, any>,
+    requiredParams: string[] = [],
+    timeoutSecs: number = 15
+  ) {
+    return {
       type: "webhook",
-      name: "create_appointment",
-      description: "Schedule a new appointment for the caller. MUST verify time is within business hours and get caller consent first.",
+      name,
+      description,
       webhook: {
         url: WEBHOOK_BASE_URL,
         method: "POST",
@@ -149,272 +157,165 @@ function buildServerTools(businessId: string): any[] {
           "Content-Type": "application/json"
         },
         request_body_template: JSON.stringify({
-          tool_name: "create_appointment",
+          tool_name: toolName,
           business_id: businessId,
           caller_phone: "{{caller_phone}}",
-          parameters: {
-            scheduled_date: "{{scheduled_date}}",
-            service_type: "{{service_type}}",
-            caller_name: "{{caller_name}}",
-            notes: "{{notes}}"
-          }
+          parameters: Object.fromEntries(
+            Object.keys(parameters).map(key => [key, `{{${key}}}`])
+          )
         }),
-        response_timeout_secs: 20
-      },
-      parameters: {
-        type: "object",
-        properties: {
-          scheduled_date: { type: "string", description: "ISO 8601 date/time with timezone (e.g., 2025-01-15T14:00:00+02:00)" },
-          service_type: { type: "string", description: "Type of service requested" },
-          caller_name: { type: "string", description: "Caller's name" },
-          notes: { type: "string", description: "Additional notes" }
-        },
-        required: ["scheduled_date"]
-      }
-    },
-    {
-      type: "webhook",
-      name: "check_available_slots",
-      description: "Check available appointment slots for a specific date. Use this before booking.",
-      webhook: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        request_headers: { "Content-Type": "application/json" },
-        request_body_template: JSON.stringify({
-          tool_name: "check_available_slots",
-          business_id: businessId,
-          caller_phone: "{{caller_phone}}",
-          parameters: {
-            date: "{{date}}",
-            service_duration: "{{service_duration}}"
-          }
-        }),
-        response_timeout_secs: 15
-      },
-      parameters: {
-        type: "object",
-        properties: {
-          date: { type: "string", description: "Date to check: 'today', 'tomorrow', or ISO date" },
-          service_duration: { type: "number", description: "Duration in minutes (default 30)" }
-        },
-        required: ["date"]
-      }
-    },
-    {
-      type: "webhook",
-      name: "check_business_hours",
-      description: "Check if the business is open and get operating hours",
-      webhook: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        request_headers: { "Content-Type": "application/json" },
-        request_body_template: JSON.stringify({
-          tool_name: "check_business_hours",
-          business_id: businessId,
-          caller_phone: "{{caller_phone}}",
-          parameters: {
-            day_of_week: "{{day_of_week}}"
-          }
-        }),
-        response_timeout_secs: 10
-      },
-      parameters: {
-        type: "object",
-        properties: {
-          day_of_week: { 
-            type: "string", 
-            enum: ["today", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
-            description: "The day to check hours for" 
+        response_timeout_secs: timeoutSecs,
+        // api_schema is required by ElevenLabs API
+        api_schema: {
+          url: WEBHOOK_BASE_URL,
+          method: "POST",
+          path_params_schema: null,
+          query_params_schema: null,
+          request_body_schema: {
+            type: "object",
+            properties: {
+              tool_name: { type: "string", description: "The tool to execute" },
+              business_id: { type: "string", description: "Business ID" },
+              caller_phone: { type: "string", description: "Caller's phone number" },
+              parameters: {
+                type: "object",
+                properties: parameters,
+                required: requiredParams
+              }
+            },
+            required: ["tool_name", "business_id", "parameters"]
+          },
+          response_body_schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              message: { type: "string" },
+              error: { type: "string" }
+            }
           }
         }
-      }
-    },
-    {
-      type: "webhook",
-      name: "take_message",
-      description: "Record a message from the caller for the business owner",
-      webhook: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        request_headers: { "Content-Type": "application/json" },
-        request_body_template: JSON.stringify({
-          tool_name: "take_message",
-          business_id: businessId,
-          caller_phone: "{{caller_phone}}",
-          parameters: {
-            caller_name: "{{caller_name}}",
-            message: "{{message}}",
-            callback_requested: "{{callback_requested}}",
-            urgency: "{{urgency}}"
-          }
-        }),
-        response_timeout_secs: 15
       },
       parameters: {
         type: "object",
-        properties: {
-          caller_name: { type: "string", description: "Caller's name" },
-          message: { type: "string", description: "The message content" },
-          callback_requested: { type: "boolean", description: "Whether callback is requested" },
-          urgency: { type: "string", enum: ["low", "medium", "high"], description: "Message urgency" }
-        },
-        required: ["message"]
+        properties: parameters,
+        required: requiredParams
       }
-    },
-    {
-      type: "webhook",
-      name: "send_confirmation_sms",
-      description: "Send an SMS to the caller with confirmation or information",
-      webhook: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        request_headers: { "Content-Type": "application/json" },
-        request_body_template: JSON.stringify({
-          tool_name: "send_confirmation_sms",
-          business_id: businessId,
-          caller_phone: "{{caller_phone}}",
-          parameters: {
-            message: "{{message}}"
-          }
-        }),
-        response_timeout_secs: 15
+    };
+  }
+
+  const tools = [
+    createWebhookTool(
+      "create_appointment",
+      "Schedule a new appointment for the caller. MUST verify time is within business hours and get caller consent first.",
+      "create_appointment",
+      {
+        scheduled_date: { type: "string", description: "ISO 8601 date/time with timezone (e.g., 2025-01-15T14:00:00+02:00)" },
+        service_type: { type: "string", description: "Type of service requested" },
+        caller_name: { type: "string", description: "Caller's name" },
+        notes: { type: "string", description: "Additional notes" }
       },
-      parameters: {
-        type: "object",
-        properties: {
-          message: { type: "string", description: "SMS message to send" }
-        },
-        required: ["message"]
-      }
-    },
-    {
-      type: "webhook",
-      name: "update_contact_info",
-      description: "Update the caller's contact information",
-      webhook: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        request_headers: { "Content-Type": "application/json" },
-        request_body_template: JSON.stringify({
-          tool_name: "update_contact_info",
-          business_id: businessId,
-          caller_phone: "{{caller_phone}}",
-          parameters: {
-            name: "{{name}}",
-            email: "{{email}}",
-            notes: "{{notes}}"
-          }
-        }),
-        response_timeout_secs: 10
+      ["scheduled_date"],
+      20
+    ),
+    createWebhookTool(
+      "check_available_slots",
+      "Check available appointment slots for a specific date. Use this before booking.",
+      "check_available_slots",
+      {
+        date: { type: "string", description: "Date to check: 'today', 'tomorrow', or ISO date" },
+        service_duration: { type: "number", description: "Duration in minutes (default 30)" }
       },
-      parameters: {
-        type: "object",
-        properties: {
-          name: { type: "string", description: "Caller's name" },
-          email: { type: "string", description: "Email address" },
-          notes: { type: "string", description: "Notes about the caller" }
+      ["date"],
+      15
+    ),
+    createWebhookTool(
+      "check_business_hours",
+      "Check if the business is open and get operating hours",
+      "check_business_hours",
+      {
+        day_of_week: { 
+          type: "string", 
+          enum: ["today", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+          description: "The day to check hours for" 
         }
-      }
-    },
-    {
-      type: "webhook",
-      name: "reschedule_appointment",
-      description: "Reschedule the caller's upcoming appointment to a new date/time",
-      webhook: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        request_headers: { "Content-Type": "application/json" },
-        request_body_template: JSON.stringify({
-          tool_name: "reschedule_appointment",
-          business_id: businessId,
-          caller_phone: "{{caller_phone}}",
-          parameters: {
-            new_date: "{{new_date}}",
-            reason: "{{reason}}"
-          }
-        }),
-        response_timeout_secs: 20
       },
-      parameters: {
-        type: "object",
-        properties: {
-          new_date: { type: "string", description: "New date/time in ISO 8601 format with timezone" },
-          reason: { type: "string", description: "Reason for rescheduling" }
-        },
-        required: ["new_date"]
-      }
-    },
-    {
-      type: "webhook",
-      name: "cancel_appointment",
-      description: "Cancel the caller's upcoming appointment",
-      webhook: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        request_headers: { "Content-Type": "application/json" },
-        request_body_template: JSON.stringify({
-          tool_name: "cancel_appointment",
-          business_id: businessId,
-          caller_phone: "{{caller_phone}}",
-          parameters: {
-            reason: "{{reason}}"
-          }
-        }),
-        response_timeout_secs: 15
+      [],
+      10
+    ),
+    createWebhookTool(
+      "take_message",
+      "Record a message from the caller for the business owner",
+      "take_message",
+      {
+        caller_name: { type: "string", description: "Caller's name" },
+        message: { type: "string", description: "The message content" },
+        callback_requested: { type: "boolean", description: "Whether callback is requested" },
+        urgency: { type: "string", enum: ["low", "medium", "high"], description: "Message urgency" }
       },
-      parameters: {
-        type: "object",
-        properties: {
-          reason: { type: "string", description: "Reason for cancellation" }
-        }
-      }
-    },
-    {
-      type: "webhook",
-      name: "confirm_appointment",
-      description: "Confirm the caller's upcoming appointment",
-      webhook: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        request_headers: { "Content-Type": "application/json" },
-        request_body_template: JSON.stringify({
-          tool_name: "confirm_appointment",
-          business_id: businessId,
-          caller_phone: "{{caller_phone}}",
-          parameters: {}
-        }),
-        response_timeout_secs: 15
+      ["message"],
+      15
+    ),
+    createWebhookTool(
+      "send_confirmation_sms",
+      "Send an SMS to the caller with confirmation or information",
+      "send_confirmation_sms",
+      {
+        message: { type: "string", description: "SMS message to send" }
       },
-      parameters: {
-        type: "object",
-        properties: {}
-      }
-    },
-    {
-      type: "webhook",
-      name: "get_services_info",
-      description: "Get information about services offered by the business",
-      webhook: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        request_headers: { "Content-Type": "application/json" },
-        request_body_template: JSON.stringify({
-          tool_name: "get_services_info",
-          business_id: businessId,
-          caller_phone: "{{caller_phone}}",
-          parameters: {
-            service_name: "{{service_name}}"
-          }
-        }),
-        response_timeout_secs: 10
+      ["message"],
+      15
+    ),
+    createWebhookTool(
+      "update_contact_info",
+      "Update the caller's contact information",
+      "update_contact_info",
+      {
+        name: { type: "string", description: "Caller's name" },
+        email: { type: "string", description: "Email address" },
+        notes: { type: "string", description: "Notes about the caller" }
       },
-      parameters: {
-        type: "object",
-        properties: {
-          service_name: { type: "string", description: "Specific service to get info about (optional)" }
-        }
-      }
-    }
+      [],
+      10
+    ),
+    createWebhookTool(
+      "reschedule_appointment",
+      "Reschedule the caller's upcoming appointment to a new date/time",
+      "reschedule_appointment",
+      {
+        new_date: { type: "string", description: "New date/time in ISO 8601 format with timezone" },
+        reason: { type: "string", description: "Reason for rescheduling" }
+      },
+      ["new_date"],
+      20
+    ),
+    createWebhookTool(
+      "cancel_appointment",
+      "Cancel the caller's upcoming appointment",
+      "cancel_appointment",
+      {
+        reason: { type: "string", description: "Reason for cancellation" }
+      },
+      [],
+      15
+    ),
+    createWebhookTool(
+      "confirm_appointment",
+      "Confirm the caller's upcoming appointment",
+      "confirm_appointment",
+      {},
+      [],
+      15
+    ),
+    createWebhookTool(
+      "get_services_info",
+      "Get information about services offered by the business",
+      "get_services_info",
+      {
+        service_name: { type: "string", description: "Specific service to get info about (optional)" }
+      },
+      [],
+      10
+    )
   ];
 
   // Add system tools

@@ -930,42 +930,94 @@ const toolHandlers: Record<string, (args: any, ctx: any) => Promise<any>> = {
 };
 
 serve(async (req) => {
+  const requestId = `req_${Date.now().toString(36)}`;
+  console.log(`[${requestId}] ========== AGENT WEBHOOK START ==========`);
+  console.log(`[${requestId}] Method: ${req.method}`);
+  console.log(`[${requestId}] URL: ${req.url}`);
+  console.log(`[${requestId}] Headers:`, JSON.stringify(Object.fromEntries(req.headers.entries())));
+
   if (req.method === "OPTIONS") {
+    console.log(`[${requestId}] Handling CORS preflight`);
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const body = await req.json();
-    console.log("Agent webhook received:", JSON.stringify(body));
+    const rawBody = await req.text();
+    console.log(`[${requestId}] Raw body (first 2000 chars):`, rawBody.substring(0, 2000));
+    
+    let body: any;
+    try {
+      body = JSON.parse(rawBody);
+    } catch (parseErr) {
+      console.error(`[${requestId}] JSON parse error:`, parseErr);
+      return new Response(JSON.stringify({ 
+        error: "Invalid JSON body",
+        request_id: requestId,
+        raw_preview: rawBody.substring(0, 500)
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    console.log(`[${requestId}] Parsed body keys:`, Object.keys(body));
+    console.log(`[${requestId}] Full parsed body:`, JSON.stringify(body, null, 2));
     
     // ElevenLabs sends tool calls - dynamic_variables contains business_id and caller_phone
     const { tool_name, parameters, dynamic_variables } = body;
+    
+    console.log(`[${requestId}] Extracted fields:`);
+    console.log(`[${requestId}]   tool_name: ${tool_name}`);
+    console.log(`[${requestId}]   parameters:`, JSON.stringify(parameters));
+    console.log(`[${requestId}]   dynamic_variables:`, JSON.stringify(dynamic_variables));
+    console.log(`[${requestId}]   body.business_id: ${body.business_id}`);
+    console.log(`[${requestId}]   body.caller_phone: ${body.caller_phone}`);
     
     // Extract business_id and caller_phone from either top level or dynamic_variables
     const business_id = body.business_id || dynamic_variables?.business_id;
     const caller_phone = body.caller_phone || dynamic_variables?.caller_phone;
     
+    console.log(`[${requestId}] Resolved: business_id=${business_id}, caller_phone=${caller_phone}`);
+    
     if (!tool_name) {
-      return new Response(JSON.stringify({ error: "Missing tool_name" }), {
+      console.error(`[${requestId}] Missing tool_name`);
+      return new Response(JSON.stringify({ 
+        error: "Missing tool_name",
+        request_id: requestId,
+        received_keys: Object.keys(body),
+        hint: "Expected { tool_name, business_id, caller_phone, parameters }"
+      }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     
     if (!business_id) {
-      return new Response(JSON.stringify({ error: "Missing business_id" }), {
+      console.error(`[${requestId}] Missing business_id`);
+      return new Response(JSON.stringify({ 
+        error: "Missing business_id",
+        request_id: requestId,
+        received_keys: Object.keys(body),
+        dynamic_variables_keys: dynamic_variables ? Object.keys(dynamic_variables) : null
+      }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     
     // Load business context
+    console.log(`[${requestId}] Loading business context for: ${business_id}`);
     const businessContext = await loadBusinessContext(business_id);
+    console.log(`[${requestId}] Business loaded: ${businessContext.businessName}`);
     
     // Get or create contact
     let contact = null;
     if (caller_phone) {
+      console.log(`[${requestId}] Getting/creating contact for: ${caller_phone}`);
       contact = await getOrCreateContact(business_id, caller_phone);
+      console.log(`[${requestId}] Contact ID: ${contact?.id}`);
+    } else {
+      console.log(`[${requestId}] No caller_phone provided, skipping contact lookup`);
     }
     
     // Build context object for tool handlers
@@ -979,8 +1031,10 @@ serve(async (req) => {
     // Get the handler
     const handler = toolHandlers[tool_name];
     if (!handler) {
+      console.error(`[${requestId}] Unknown tool: ${tool_name}`);
       return new Response(JSON.stringify({ 
         error: `Unknown tool: ${tool_name}`,
+        request_id: requestId,
         available_tools: Object.keys(toolHandlers)
       }), {
         status: 400,
@@ -989,18 +1043,31 @@ serve(async (req) => {
     }
     
     // Execute the tool
-    console.log(`Executing tool: ${tool_name} with params:`, parameters);
-    const result = await handler(parameters || {}, ctx);
-    console.log(`Tool result:`, result);
+    console.log(`[${requestId}] Executing tool: ${tool_name}`);
+    console.log(`[${requestId}] Tool parameters:`, JSON.stringify(parameters, null, 2));
     
-    return new Response(JSON.stringify(result), {
+    const startTime = Date.now();
+    const result = await handler(parameters || {}, ctx);
+    const duration = Date.now() - startTime;
+    
+    console.log(`[${requestId}] Tool ${tool_name} completed in ${duration}ms`);
+    console.log(`[${requestId}] Tool result:`, JSON.stringify(result, null, 2));
+    console.log(`[${requestId}] ========== AGENT WEBHOOK END ==========`);
+    
+    return new Response(JSON.stringify({ ...result, request_id: requestId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
     
   } catch (e) {
-    console.error("Agent webhook error:", e);
+    console.error(`[${requestId}] ========== AGENT WEBHOOK ERROR ==========`);
+    console.error(`[${requestId}] Error type:`, e?.constructor?.name);
+    console.error(`[${requestId}] Error message:`, e instanceof Error ? e.message : String(e));
+    console.error(`[${requestId}] Error stack:`, e instanceof Error ? e.stack : "N/A");
+    
     return new Response(JSON.stringify({ 
-      error: e instanceof Error ? e.message : "Unknown error" 
+      error: e instanceof Error ? e.message : "Unknown error",
+      request_id: requestId,
+      error_type: e?.constructor?.name
     }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

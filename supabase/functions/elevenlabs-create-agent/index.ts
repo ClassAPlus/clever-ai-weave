@@ -11,7 +11,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 
 // Bump this when changing payload shape so we can verify deployments via error responses/logs
-const FUNCTION_VERSION = "2025-12-30T06:50Z-webhook-tool-v2";
+const FUNCTION_VERSION = "2025-12-30T06:40Z-webhook-tool-v3";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -272,75 +272,71 @@ function buildWebhookToolConfig(args: {
 }) {
   const { tool, businessId } = args;
 
-  // Build parameter properties as ElevenLabs array format
-  // Each property is { id, type, description, value_type, required, constant_value? }
-  const paramPropertiesArray: any[] = [];
+  // ElevenLabs tool API expects "properties" to be a dictionary (not an array)
+  const paramProperties: Record<string, any> = {};
   for (const [key, schema] of Object.entries(tool.params)) {
     const prop: any = {
-      id: key,
       type: schema.type,
       description: schema.description || "",
-      value_type: "llm_prompt", // AI fills these from conversation
-      required: tool.required.includes(key),
     };
     if (schema.enum) prop.enum = schema.enum;
-    paramPropertiesArray.push(prop);
+    paramProperties[key] = prop;
   }
 
-  // ElevenLabs array-based request body schema format
   const requestBodySchema = {
-    id: "body",
     type: "object",
     description: `Request payload for ${tool.name}`,
-    required: true,
-    properties: [
-      {
-        id: "tool_name",
+    required: ["tool_name", "business_id", "parameters"],
+    properties: {
+      tool_name: {
         type: "string",
         description: "The tool to execute",
-        value_type: "constant",
-        constant_value: tool.name,
-        required: true,
+        const: tool.name,
       },
-      {
-        id: "business_id",
+      business_id: {
         type: "string",
         description: "Business ID",
-        value_type: "constant",
-        constant_value: businessId,
-        required: true,
+        const: businessId,
       },
-      {
-        id: "caller_phone",
+      caller_phone: {
         type: "string",
-        description: "Caller phone number (provided by telephony)",
-        value_type: "dynamic_variable",
-        required: false,
+        description: "Caller phone number (provided by telephony integration)",
       },
-      {
-        id: "parameters",
+      parameters: {
         type: "object",
         description: "Tool parameters",
-        required: true,
-        properties: paramPropertiesArray,
+        required: tool.required,
+        properties: paramProperties,
       },
-    ],
+    },
   };
 
-  // ElevenLabs webhook tool: api_schema at top level (NOT nested under webhook)
+  // NOTE: ElevenLabs validates these as dictionaries and (currently) requires a non-empty properties map.
+  // We include a harmless optional __unused param to satisfy their validator.
+  const emptySchemaWithOneOptional = {
+    properties: {
+      __unused: {
+        type: "string",
+        description: "Internal (unused)",
+      },
+    },
+  };
+
   return {
     type: "webhook",
     name: tool.name,
     description: tool.description,
-    api_schema: {
-      url: WEBHOOK_BASE_URL,
-      method: "POST",
-      path_params_schema: [],    // Empty array, not object
-      query_params_schema: [],   // Empty array, not object
-      request_body_schema: requestBodySchema,
-      request_headers: [
-        { type: "value", name: "Content-Type", value: "application/json" },
-      ],
+    webhook: {
+      api_schema: {
+        url: WEBHOOK_BASE_URL,
+        method: "POST",
+        path_params_schema: emptySchemaWithOneOptional,
+        query_params_schema: emptySchemaWithOneOptional,
+        request_body_schema: requestBodySchema,
+        request_headers: {
+          "Content-Type": "application/json",
+        },
+      },
     },
     response_timeout_secs: tool.timeoutSecs,
     assignments: [],

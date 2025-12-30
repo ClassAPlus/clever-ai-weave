@@ -316,8 +316,8 @@ function buildWebhookToolConfig(args: {
     api_schema: {
       url: WEBHOOK_BASE_URL,
       method: "POST",
-      path_params_schema: {},
-      query_params_schema: {},
+      path_params_schema: { type: "object", properties: {} },
+      query_params_schema: { type: "object", properties: {} },
       request_body_schema: requestBodySchema,
     },
     request_headers: [

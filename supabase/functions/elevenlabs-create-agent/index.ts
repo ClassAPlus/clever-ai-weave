@@ -136,195 +136,265 @@ function buildFirstMessage(business: any): string {
   return `Hello! Thank you for calling ${business.name}. How can I help you today?`;
 }
 
-function buildServerTools(businessId: string): any[] {
-  // Helper to create a webhook tool with the correct ElevenLabs API schema format
-  function createWebhookTool(
-    name: string,
-    description: string,
-    toolName: string,
-    parameters: Record<string, any>,
-    requiredParams: string[] = [],
-    timeoutSecs: number = 15
-  ) {
-    return {
-      type: "webhook",
-      name,
-      description,
-      webhook: {
-        url: WEBHOOK_BASE_URL,
-        method: "POST",
-        request_headers: {
-          "Content-Type": "application/json"
-        },
-        request_body_template: JSON.stringify({
-          tool_name: toolName,
-          business_id: businessId,
-          caller_phone: "{{caller_phone}}",
-          parameters: Object.fromEntries(
-            Object.keys(parameters).map(key => [key, `{{${key}}}`])
-          )
-        }),
-        response_timeout_secs: timeoutSecs,
-        // api_schema is required by ElevenLabs API
-        api_schema: {
-          url: WEBHOOK_BASE_URL,
-          method: "POST",
-          path_params_schema: null,
-          query_params_schema: null,
-          request_body_schema: {
-            type: "object",
-            properties: {
-              tool_name: { type: "string", description: "The tool to execute" },
-              business_id: { type: "string", description: "Business ID" },
-              caller_phone: { type: "string", description: "Caller's phone number" },
-              parameters: {
-                type: "object",
-                properties: parameters,
-                required: requiredParams
-              }
-            },
-            required: ["tool_name", "business_id", "parameters"]
-          },
-          response_body_schema: {
-            type: "object",
-            properties: {
-              success: { type: "boolean" },
-              message: { type: "string" },
-              error: { type: "string" }
-            }
-          }
-        }
+type WebhookParam = {
+  type: "string" | "number" | "boolean" | "object" | "array";
+  description?: string;
+  enum?: string[];
+};
+
+type ToolDef = {
+  name: string;
+  description: string;
+  timeoutSecs: number;
+  params: Record<string, WebhookParam>;
+  required: string[];
+};
+
+const BUILT_IN_TOOLS = ["end_call", "language_detection"] as const;
+
+const TOOL_DEFS: ToolDef[] = [
+  {
+    name: "create_appointment",
+    description:
+      "Schedule a new appointment for the caller. MUST verify time is within business hours and get caller consent first.",
+    timeoutSecs: 20,
+    params: {
+      scheduled_date: {
+        type: "string",
+        description:
+          "ISO 8601 date/time with timezone (e.g., 2025-01-15T14:00:00+02:00)",
       },
-      parameters: {
-        type: "object",
-        properties: parameters,
-        required: requiredParams
-      }
+      service_type: { type: "string", description: "Type of service requested" },
+      caller_name: { type: "string", description: "Caller's name" },
+      notes: { type: "string", description: "Additional notes" },
+    },
+    required: ["scheduled_date"],
+  },
+  {
+    name: "check_available_slots",
+    description:
+      "Check available appointment slots for a specific date. Use this before booking.",
+    timeoutSecs: 15,
+    params: {
+      date: { type: "string", description: "Date to check: 'today', 'tomorrow', or ISO date" },
+      service_duration: { type: "number", description: "Duration in minutes (default 30)" },
+    },
+    required: ["date"],
+  },
+  {
+    name: "check_business_hours",
+    description: "Check if the business is open and get operating hours",
+    timeoutSecs: 10,
+    params: {
+      day_of_week: {
+        type: "string",
+        enum: ["today", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+        description: "The day to check hours for",
+      },
+    },
+    required: [],
+  },
+  {
+    name: "take_message",
+    description: "Record a message from the caller for the business owner",
+    timeoutSecs: 15,
+    params: {
+      caller_name: { type: "string", description: "Caller's name" },
+      message: { type: "string", description: "The message content" },
+      callback_requested: { type: "boolean", description: "Whether callback is requested" },
+      urgency: { type: "string", enum: ["low", "medium", "high"], description: "Message urgency" },
+    },
+    required: ["message"],
+  },
+  {
+    name: "send_confirmation_sms",
+    description: "Send an SMS to the caller with confirmation or information",
+    timeoutSecs: 15,
+    params: {
+      message: { type: "string", description: "SMS message to send" },
+    },
+    required: ["message"],
+  },
+  {
+    name: "update_contact_info",
+    description: "Update the caller's contact information",
+    timeoutSecs: 10,
+    params: {
+      name: { type: "string", description: "Caller's name" },
+      email: { type: "string", description: "Email address" },
+      notes: { type: "string", description: "Notes about the caller" },
+    },
+    required: [],
+  },
+  {
+    name: "reschedule_appointment",
+    description: "Reschedule the caller's upcoming appointment to a new date/time",
+    timeoutSecs: 20,
+    params: {
+      new_date: { type: "string", description: "New date/time in ISO 8601 format with timezone" },
+      reason: { type: "string", description: "Reason for rescheduling" },
+    },
+    required: ["new_date"],
+  },
+  {
+    name: "cancel_appointment",
+    description: "Cancel the caller's upcoming appointment",
+    timeoutSecs: 15,
+    params: {
+      reason: { type: "string", description: "Reason for cancellation" },
+    },
+    required: [],
+  },
+  {
+    name: "confirm_appointment",
+    description: "Confirm the caller's upcoming appointment",
+    timeoutSecs: 15,
+    params: {},
+    required: [],
+  },
+  {
+    name: "get_services_info",
+    description: "Get information about services offered by the business",
+    timeoutSecs: 10,
+    params: {
+      service_name: { type: "string", description: "Specific service to get info about (optional)" },
+    },
+    required: [],
+  },
+];
+
+function buildWebhookToolConfig(args: {
+  tool: ToolDef;
+  businessId: string;
+}) {
+  const { tool, businessId } = args;
+
+  const paramProps = Object.entries(tool.params).map(([key, schema]) => {
+    const base: any = {
+      id: key,
+      type: schema.type,
+      description: schema.description || "",
+      dynamic_variable: "",
+      constant_value: "",
+      value_type: "llm_prompt",
+      required: tool.required.includes(key),
     };
+    if (schema.enum) base.enum = schema.enum;
+    return base;
+  });
+
+  const toolRequestSchema = {
+    id: "body",
+    type: "object",
+    description: `Request payload for ${tool.name}`,
+    required: true,
+    properties: [
+      {
+        id: "tool_name",
+        type: "string",
+        description: "The tool to execute",
+        dynamic_variable: "",
+        constant_value: tool.name,
+        value_type: "constant",
+        required: true,
+      },
+      {
+        id: "business_id",
+        type: "string",
+        description: "Business ID",
+        dynamic_variable: "",
+        constant_value: businessId,
+        value_type: "constant",
+        required: true,
+      },
+      {
+        id: "caller_phone",
+        type: "string",
+        description: "Caller phone number (provided by the telephony integration)",
+        dynamic_variable: "caller_phone",
+        constant_value: "",
+        value_type: "dynamic_variable",
+        required: false,
+      },
+      {
+        id: "parameters",
+        type: "object",
+        description: "Tool parameters",
+        dynamic_variable: "",
+        constant_value: "",
+        value_type: "llm_prompt",
+        required: true,
+        properties: paramProps,
+      },
+    ],
+  };
+
+  return {
+    type: "webhook",
+    name: tool.name,
+    description: tool.description,
+    api_schema: {
+      url: WEBHOOK_BASE_URL,
+      method: "POST",
+      path_params_schema: [],
+      query_params_schema: [],
+      request_body_schema: toolRequestSchema,
+    },
+    request_headers: [
+      { type: "value", name: "Content-Type", value: "application/json" },
+    ],
+    response_timeout_secs: tool.timeoutSecs,
+    assignments: [],
+    disable_interruptions: false,
+    force_pre_tool_speech: false,
+    tool_call_sound: null,
+    tool_call_sound_behavior: "auto",
+    execution_mode: "immediate",
+  };
+}
+
+async function ensureBusinessTools(args: {
+  businessId: string;
+  twilioSettings: Record<string, any>;
+}): Promise<{ toolIds: string[]; toolIdMap: Record<string, string> }> {
+  const { businessId, twilioSettings } = args;
+
+  const existingMap = (twilioSettings.elevenLabsToolIds || {}) as Record<string, string>;
+  const toolIdMap: Record<string, string> = { ...existingMap };
+
+  for (const tool of TOOL_DEFS) {
+    if (toolIdMap[tool.name]) continue;
+
+    console.log(`Creating ElevenLabs tool: ${tool.name}`);
+
+    const toolConfig = buildWebhookToolConfig({ tool, businessId });
+    const resp = await fetch("https://api.elevenlabs.io/v1/convai/tools", {
+      method: "POST",
+      headers: {
+        "xi-api-key": ELEVENLABS_API_KEY!,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ tool_config: toolConfig }),
+    });
+
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      console.error("ElevenLabs tool create error:", resp.status, errorText);
+      throw new Error(`Failed to create tool '${tool.name}': ${resp.status} - ${errorText}`);
+    }
+
+    const data = await resp.json();
+    const id = data?.id as string | undefined;
+    if (!id) {
+      throw new Error(`Tool '${tool.name}' created but no id returned`);
+    }
+
+    toolIdMap[tool.name] = id;
   }
 
-  const tools = [
-    createWebhookTool(
-      "create_appointment",
-      "Schedule a new appointment for the caller. MUST verify time is within business hours and get caller consent first.",
-      "create_appointment",
-      {
-        scheduled_date: { type: "string", description: "ISO 8601 date/time with timezone (e.g., 2025-01-15T14:00:00+02:00)" },
-        service_type: { type: "string", description: "Type of service requested" },
-        caller_name: { type: "string", description: "Caller's name" },
-        notes: { type: "string", description: "Additional notes" }
-      },
-      ["scheduled_date"],
-      20
-    ),
-    createWebhookTool(
-      "check_available_slots",
-      "Check available appointment slots for a specific date. Use this before booking.",
-      "check_available_slots",
-      {
-        date: { type: "string", description: "Date to check: 'today', 'tomorrow', or ISO date" },
-        service_duration: { type: "number", description: "Duration in minutes (default 30)" }
-      },
-      ["date"],
-      15
-    ),
-    createWebhookTool(
-      "check_business_hours",
-      "Check if the business is open and get operating hours",
-      "check_business_hours",
-      {
-        day_of_week: { 
-          type: "string", 
-          enum: ["today", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
-          description: "The day to check hours for" 
-        }
-      },
-      [],
-      10
-    ),
-    createWebhookTool(
-      "take_message",
-      "Record a message from the caller for the business owner",
-      "take_message",
-      {
-        caller_name: { type: "string", description: "Caller's name" },
-        message: { type: "string", description: "The message content" },
-        callback_requested: { type: "boolean", description: "Whether callback is requested" },
-        urgency: { type: "string", enum: ["low", "medium", "high"], description: "Message urgency" }
-      },
-      ["message"],
-      15
-    ),
-    createWebhookTool(
-      "send_confirmation_sms",
-      "Send an SMS to the caller with confirmation or information",
-      "send_confirmation_sms",
-      {
-        message: { type: "string", description: "SMS message to send" }
-      },
-      ["message"],
-      15
-    ),
-    createWebhookTool(
-      "update_contact_info",
-      "Update the caller's contact information",
-      "update_contact_info",
-      {
-        name: { type: "string", description: "Caller's name" },
-        email: { type: "string", description: "Email address" },
-        notes: { type: "string", description: "Notes about the caller" }
-      },
-      [],
-      10
-    ),
-    createWebhookTool(
-      "reschedule_appointment",
-      "Reschedule the caller's upcoming appointment to a new date/time",
-      "reschedule_appointment",
-      {
-        new_date: { type: "string", description: "New date/time in ISO 8601 format with timezone" },
-        reason: { type: "string", description: "Reason for rescheduling" }
-      },
-      ["new_date"],
-      20
-    ),
-    createWebhookTool(
-      "cancel_appointment",
-      "Cancel the caller's upcoming appointment",
-      "cancel_appointment",
-      {
-        reason: { type: "string", description: "Reason for cancellation" }
-      },
-      [],
-      15
-    ),
-    createWebhookTool(
-      "confirm_appointment",
-      "Confirm the caller's upcoming appointment",
-      "confirm_appointment",
-      {},
-      [],
-      15
-    ),
-    createWebhookTool(
-      "get_services_info",
-      "Get information about services offered by the business",
-      "get_services_info",
-      {
-        service_name: { type: "string", description: "Specific service to get info about (optional)" }
-      },
-      [],
-      10
-    )
-  ];
+  const toolIds = TOOL_DEFS.map((t) => toolIdMap[t.name]).filter(Boolean);
 
-  // Add system tools
-  tools.push(
-    { type: "system", name: "end_call", description: "End the call when the conversation is complete" } as any,
-    { type: "system", name: "language_detection", description: "Detect the caller's language and switch accordingly" } as any
-  );
-
-  return tools;
+  return { toolIds, toolIdMap };
 }
 
 serve(async (req) => {
@@ -366,36 +436,43 @@ serve(async (req) => {
       selectedVoiceId = voiceGender === "male" ? voiceRecs.male : voiceRecs.female;
     }
 
-    // Build agent configuration
+    // Ensure server tools exist in ElevenLabs (new tools API) and collect their IDs
+    const { toolIds, toolIdMap } = await ensureBusinessTools({
+      businessId: business_id,
+      twilioSettings,
+    });
+
+    // Build agent configuration (new format: prompt.tool_ids + prompt.built_in_tools)
     const agentConfig = {
       name: `${business.name} AI Receptionist`,
       conversation_config: {
         agent: {
           prompt: {
             prompt: buildSystemPrompt(business),
-            tools: buildServerTools(business_id)
+            tool_ids: toolIds,
+            built_in_tools: [...BUILT_IN_TOOLS],
           },
           first_message: buildFirstMessage(business),
-          language: langCode
+          language: langCode,
         },
         tts: {
           voice_id: selectedVoiceId,
           model_id: "eleven_turbo_v2_5", // Best for real-time conversations
-          optimize_streaming_latency: 3
+          optimize_streaming_latency: 3,
         },
         stt: {
-          model: "nova-2-conversationalai" // Best quality STT
-        }
+          model: "nova-2-conversationalai", // Best quality STT
+        },
       },
       platform_settings: {
         auth: {
-          enable_auth: false // Public agent - uses Twilio connection
+          enable_auth: false, // Public agent - uses Twilio connection
         },
         evaluation: {
-          criteria: []
-        }
-      }
-    };
+          criteria: [],
+        },
+      },
+    } as const;
 
     // Check if agent already exists for this business
     const existingAgentId = twilioSettings.elevenLabsAgentId;

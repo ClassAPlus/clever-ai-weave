@@ -135,6 +135,15 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
   const [transcript, setTranscript] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
 
+  // Agent provisioning state
+  const [isProvisioningAgent, setIsProvisioningAgent] = useState(false);
+  const [provisioningResult, setProvisioningResult] = useState<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    agent_id?: string;
+  } | null>(null);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-webhook`;
@@ -222,6 +231,67 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       toast({ title: "Copy failed", description: "Please copy the URL manually.", variant: "destructive" });
+    }
+  };
+
+  const provisionAgent = async (updateExisting = false) => {
+    if (!businessId) {
+      toast({
+        title: "Error",
+        description: "Business ID not available. Please save settings first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProvisioningAgent(true);
+    setProvisioningResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("elevenlabs-create-agent", {
+        body: {
+          business_id: businessId,
+          voice_id: settings.elevenLabsVoiceId,
+          update_existing: updateExisting,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setProvisioningResult({
+          success: true,
+          message: data.message,
+          agent_id: data.agent_id,
+        });
+
+        // Update local settings with the new agent ID
+        updateSettings({
+          elevenLabsAgentId: data.agent_id,
+          enableAiReceptionist: true,
+        });
+
+        toast({
+          title: updateExisting ? "Agent Updated!" : "Agent Created!",
+          description: `Your AI receptionist is ready. Agent ID: ${data.agent_id}`,
+        });
+      } else {
+        throw new Error(data.error || "Unknown error");
+      }
+    } catch (err) {
+      console.error("Agent provisioning error:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to provision agent";
+      setProvisioningResult({
+        success: false,
+        error: errorMessage,
+      });
+      toast({
+        title: "Provisioning Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsProvisioningAgent(false);
     }
   };
 
@@ -435,48 +505,153 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
                 🎙️ When enabled, callers will have a real-time voice conversation with your AI assistant powered by ElevenLabs Conversational AI.
               </p>
 
-              {/* Agent ID Input */}
-              <div className="space-y-2 pt-2 border-t border-purple-500/20">
-                <Label className="text-gray-300 text-sm">ElevenLabs Agent ID</Label>
-                <Input
-                  value={settings.elevenLabsAgentId || ""}
-                  onChange={(e) => updateSettings({ elevenLabsAgentId: e.target.value })}
-                  placeholder="Enter your ElevenLabs Agent ID..."
-                  className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
-                />
-                <p className="text-xs text-gray-500">
-                  Get your Agent ID from the{" "}
-                  <a 
-                    href="https://elevenlabs.io/app/conversational-ai" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-purple-400 hover:underline inline-flex items-center gap-1"
-                  >
-                    ElevenLabs Dashboard
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </p>
+              {/* Agent Provisioning Section */}
+              <div className="space-y-3 pt-2 border-t border-purple-500/20">
+                <div className="flex items-center justify-between">
+                  <Label className="text-gray-300 text-sm">AI Agent Setup</Label>
+                  {settings.elevenLabsAgentId && (
+                    <Badge variant="outline" className="text-green-400 border-green-400/50">
+                      Agent Active
+                    </Badge>
+                  )}
+                </div>
+
+                {settings.elevenLabsAgentId ? (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-green-300">Agent ID:</p>
+                          <p className="text-xs text-gray-400 font-mono">{settings.elevenLabsAgentId}</p>
+                        </div>
+                        <a
+                          href={`https://elevenlabs.io/app/conversational-ai/${settings.elevenLabsAgentId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-400 hover:text-purple-300"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => provisionAgent(true)}
+                        disabled={isProvisioningAgent || !businessId}
+                        variant="outline"
+                        size="sm"
+                        className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                      >
+                        {isProvisioningAgent ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                        )}
+                        Update Agent
+                      </Button>
+                      <Button
+                        onClick={() => provisionAgent(false)}
+                        disabled={isProvisioningAgent || !businessId}
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-gray-300"
+                      >
+                        Create New
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Update syncs your business settings (hours, services, language) to the agent. Create New makes a fresh agent.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-400">
+                      Create an ElevenLabs AI agent configured with your business settings, hours, and services.
+                    </p>
+                    <Button
+                      onClick={() => provisionAgent(false)}
+                      disabled={isProvisioningAgent || !businessId}
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    >
+                      {isProvisioningAgent ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Bot className="h-4 w-4 mr-2" />
+                      )}
+                      {isProvisioningAgent ? "Creating Agent..." : "Create AI Agent"}
+                    </Button>
+                    {!businessId && (
+                      <p className="text-xs text-amber-400">
+                        ⚠️ Save your settings first to enable agent creation.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {provisioningResult && (
+                  <div className={`p-3 rounded-lg border ${
+                    provisioningResult.success 
+                      ? "bg-green-500/10 border-green-500/30" 
+                      : "bg-red-500/10 border-red-500/30"
+                  }`}>
+                    <p className={`text-sm ${provisioningResult.success ? "text-green-300" : "text-red-300"}`}>
+                      {provisioningResult.success ? "✓ " : "✗ "}
+                      {provisioningResult.message || provisioningResult.error}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* Webhook URL */}
-              <div className="space-y-2">
-                <Label className="text-gray-300 text-sm">Webhook URL (for ElevenLabs tools)</Label>
-                <div className="flex gap-2">
+              {/* Manual Agent ID Input (collapsed by default) */}
+              <details className="group">
+                <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
+                  Advanced: Enter Agent ID manually ▸
+                </summary>
+                <div className="space-y-2 pt-2 mt-2 border-t border-gray-700">
                   <Input
-                    value={webhookUrl}
-                    readOnly
-                    className="bg-gray-900 border-gray-600 text-gray-400 font-mono text-xs"
+                    value={settings.elevenLabsAgentId || ""}
+                    onChange={(e) => updateSettings({ elevenLabsAgentId: e.target.value })}
+                    placeholder="Enter your ElevenLabs Agent ID..."
+                    className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
                   />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={copyWebhookUrl}
-                    className="border-gray-600 hover:bg-gray-700 shrink-0"
-                  >
-                    {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
-                  </Button>
+                  <p className="text-xs text-gray-500">
+                    Get your Agent ID from the{" "}
+                    <a 
+                      href="https://elevenlabs.io/app/conversational-ai" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-purple-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      ElevenLabs Dashboard
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </p>
                 </div>
-              </div>
+              </details>
+
+              {/* Webhook URL */}
+              <details className="group">
+                <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
+                  View Webhook URL (for custom integrations) ▸
+                </summary>
+                <div className="space-y-2 pt-2 mt-2 border-t border-gray-700">
+                  <div className="flex gap-2">
+                    <Input
+                      value={webhookUrl}
+                      readOnly
+                      className="bg-gray-900 border-gray-600 text-gray-400 font-mono text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={copyWebhookUrl}
+                      className="border-gray-600 hover:bg-gray-700 shrink-0"
+                    >
+                      {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </details>
 
               {/* Test Call Section */}
               {settings.elevenLabsAgentId && (

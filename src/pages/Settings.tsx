@@ -47,9 +47,8 @@ interface TwilioSettings {
   voiceGender: string;
   voiceId: string;
   googleVoiceName?: string;
-  elevenLabsVoiceId?: string;
-  elevenLabsAgentId?: string;
-  useElevenLabsAgent?: boolean;
+  voiceflowProjectId?: string;
+  voiceflowVersionId?: string;
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;

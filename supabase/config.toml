@@ -54,12 +54,6 @@ verify_jwt = false
 [functions.voice-audio]
 verify_jwt = false
 
-[functions.elevenlabs-voices]
-verify_jwt = false
-
-[functions.voice-realtime]
-verify_jwt = false
-
 [functions.twilio-port-webhook]
 verify_jwt = false
 
@@ -75,8 +69,8 @@ verify_jwt = false
 [functions.send-auto-confirm-notification]
 verify_jwt = true
 
-[functions.ai-test-call]
-verify_jwt = true
-
 [functions.agent-webhook]
+verify_jwt = false
+
+[functions.voiceflow-phone]
 verify_jwt = false

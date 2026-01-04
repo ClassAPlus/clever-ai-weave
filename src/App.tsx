@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import UseCases from "./pages/UseCases";
 import Contact from "./pages/Contact";
 import Admin from "./pages/Admin";
+import AdminVoiceflow from "./pages/AdminVoiceflow";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/use-cases" element={<UseCases />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/voiceflow" element={<AdminVoiceflow />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/onboarding" element={<Onboarding />} />

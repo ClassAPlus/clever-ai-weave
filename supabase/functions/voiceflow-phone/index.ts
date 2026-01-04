@@ -96,6 +96,33 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url);
+  
+  // Health check endpoint
+  if (url.searchParams.get('health') === 'true') {
+    console.log("Health check ping received");
+    const hasVoiceflowKey = !!VOICEFLOW_API_KEY;
+    const hasSupabaseUrl = !!Deno.env.get('SUPABASE_URL');
+    const hasSupabaseKey = !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    const status = hasVoiceflowKey && hasSupabaseUrl && hasSupabaseKey ? 'healthy' : 'degraded';
+    
+    return new Response(
+      JSON.stringify({
+        status,
+        timestamp: new Date().toISOString(),
+        checks: {
+          voiceflow_api_key: hasVoiceflowKey,
+          supabase_url: hasSupabaseUrl,
+          supabase_service_key: hasSupabaseKey,
+        }
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: status === 'healthy' ? 200 : 503 
+      }
+    );
+  }
+
   const businessId = url.searchParams.get('business_id');
   const callerPhone = url.searchParams.get('caller_phone');
   const callSid = url.searchParams.get('call_sid');

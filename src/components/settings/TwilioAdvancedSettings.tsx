@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Phone, MessageSquare, Volume2, Loader2, Square, Bot, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TwilioDebuggerHints } from "./TwilioDebuggerHints";
+import { WebhookHealthCheck } from "./WebhookHealthCheck";
 
 interface TwilioSettings {
   voiceLanguage: string;
@@ -418,6 +419,9 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
             </a>
           </p>
         </div>
+
+        {/* Webhook Health Check */}
+        <WebhookHealthCheck />
 
         {/* Twilio Debugger Hints */}
         <TwilioDebuggerHints />

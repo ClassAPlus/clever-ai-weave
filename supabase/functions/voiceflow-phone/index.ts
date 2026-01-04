@@ -89,14 +89,25 @@ serve(async (req) => {
       ? { action: { type: 'launch' } }
       : { action: { type: 'text', payload: userInput } };
 
+    if (!voiceflowProjectId) {
+      console.error("Voiceflow project ID not configured for business:", businessId);
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?><Response><Say>Voice AI is not properly configured. Please try again later.</Say><Hangup/></Response>`,
+        { headers: { ...corsHeaders, 'Content-Type': 'text/xml' } }
+      );
+    }
+
+    console.log("Calling Voiceflow API - project:", voiceflowProjectId, "version:", voiceflowVersionId);
+
     const vfResponse = await fetch(
-      `${VOICEFLOW_API_URL}/state/user/${sessionId}/interact`,
+      `${VOICEFLOW_API_URL}/state/user/${sessionId}/interact?logs=off`,
       {
         method: 'POST',
         headers: {
           'Authorization': VOICEFLOW_API_KEY,
           'Content-Type': 'application/json',
           'versionID': voiceflowVersionId,
+          'projectID': voiceflowProjectId,
         },
         body: JSON.stringify({
           ...voiceflowPayload,

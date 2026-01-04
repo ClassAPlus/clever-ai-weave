@@ -23,47 +23,36 @@ export function WebhookHealthCheck() {
   const runHealthCheck = async () => {
     setIsChecking(true);
     const startTime = Date.now();
-    
+
     try {
-      const { data, error } = await supabase.functions.invoke('voiceflow-phone', {
-        body: null,
-        method: 'GET',
+      // Use supabase.functions.invoke so the request includes the right apikey/auth headers.
+      // We pass the health flag in the JSON body to avoid relying on query params.
+      const { data, error } = await supabase.functions.invoke("voiceflow-phone", {
+        body: { health: true },
       });
-      
-      // The function uses query params, so we need a direct fetch
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL || 'https://wqhakzywmqirucmetnuo.supabase.co'}/functions/v1/voiceflow-phone?health=true`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      
+
       const latencyMs = Date.now() - startTime;
-      
-      if (response.ok) {
-        const data = await response.json();
+
+      if (error) {
         setResult({
-          ...data,
-          latencyMs,
-        });
-      } else {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        setResult({
-          status: 'error',
+          status: "error",
           timestamp: new Date().toISOString(),
-          error: `HTTP ${response.status}: ${errorText}`,
+          error: error.message || "Health check failed",
           latencyMs,
         });
+        return;
       }
+
+      setResult({
+        ...(data as Omit<HealthCheckResult, "latencyMs">),
+        latencyMs,
+      });
     } catch (err) {
       const latencyMs = Date.now() - startTime;
       setResult({
-        status: 'error',
+        status: "error",
         timestamp: new Date().toISOString(),
-        error: err instanceof Error ? err.message : 'Connection failed',
+        error: err instanceof Error ? err.message : "Connection failed",
         latencyMs,
       });
     } finally {

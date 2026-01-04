@@ -96,16 +96,38 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  
+
+  const businessId = url.searchParams.get('business_id');
+  const callerPhone = url.searchParams.get('caller_phone');
+  const callSid = url.searchParams.get('call_sid');
+
   // Health check endpoint
-  if (url.searchParams.get('health') === 'true') {
+  // Supports:
+  // - GET /voiceflow-phone?health=true
+  // - POST /voiceflow-phone with JSON body: { "health": true }
+  //   (useful from the browser via supabase.functions.invoke)
+  let isHealthCheck = url.searchParams.get('health') === 'true';
+
+  if (!isHealthCheck && !businessId && !callerPhone && !callSid) {
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      try {
+        const body = await req.json().catch(() => null);
+        isHealthCheck = !!body && body.health === true;
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  if (isHealthCheck) {
     console.log("Health check ping received");
     const hasVoiceflowKey = !!VOICEFLOW_API_KEY;
     const hasSupabaseUrl = !!Deno.env.get('SUPABASE_URL');
     const hasSupabaseKey = !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
+
     const status = hasVoiceflowKey && hasSupabaseUrl && hasSupabaseKey ? 'healthy' : 'degraded';
-    
+
     return new Response(
       JSON.stringify({
         status,
@@ -116,17 +138,12 @@ serve(async (req) => {
           supabase_service_key: hasSupabaseKey,
         }
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: status === 'healthy' ? 200 : 503 
+        status: status === 'healthy' ? 200 : 503
       }
     );
   }
-
-  const businessId = url.searchParams.get('business_id');
-  const callerPhone = url.searchParams.get('caller_phone');
-  const callSid = url.searchParams.get('call_sid');
-
   if (!VOICEFLOW_API_KEY) {
     console.error("VOICEFLOW_API_KEY not configured");
     return new Response(

@@ -32,8 +32,40 @@ import {
   Search,
   Zap
 } from "lucide-react";
+import { z } from "zod";
 
 import { Json } from "@/integrations/supabase/types";
+
+// Voiceflow ID validation schema
+const voiceflowProjectIdSchema = z
+  .string()
+  .trim()
+  .min(1, "Project ID is required")
+  .max(100, "Project ID must be less than 100 characters")
+  .regex(/^[a-zA-Z0-9_-]+$/, "Project ID must only contain letters, numbers, hyphens, and underscores");
+
+const voiceflowVersionIdSchema = z
+  .string()
+  .trim()
+  .max(50, "Version ID must be less than 50 characters")
+  .regex(/^[a-zA-Z0-9_-]*$/, "Version ID must only contain letters, numbers, hyphens, and underscores")
+  .optional()
+  .or(z.literal(""));
+
+const voiceflowSettingsSchema = z.object({
+  voiceflowProjectId: voiceflowProjectIdSchema,
+  voiceflowVersionId: voiceflowVersionIdSchema,
+});
+
+// For individual edits where project ID can be empty (to clear config)
+const voiceflowSettingsOptionalSchema = z.object({
+  voiceflowProjectId: z
+    .string()
+    .trim()
+    .max(100, "Project ID must be less than 100 characters")
+    .regex(/^[a-zA-Z0-9_-]*$/, "Project ID must only contain letters, numbers, hyphens, and underscores"),
+  voiceflowVersionId: voiceflowVersionIdSchema,
+});
 
 interface TwilioSettings {
   voiceflowProjectId?: string;
@@ -146,6 +178,18 @@ const AdminVoiceflow = () => {
   };
 
   const saveVoiceflowSettings = async (businessId: string) => {
+    // Validate with zod
+    const validation = voiceflowSettingsOptionalSchema.safeParse(editForm);
+    if (!validation.success) {
+      const errorMessage = validation.error.errors[0]?.message || "Invalid input";
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: errorMessage
+      });
+      return;
+    }
+
     setSaving(businessId);
     
     try {
@@ -154,8 +198,8 @@ const AdminVoiceflow = () => {
 
       const updatedSettings = {
         ...(business.twilio_settings || {}),
-        voiceflowProjectId: editForm.voiceflowProjectId.trim() || null,
-        voiceflowVersionId: editForm.voiceflowVersionId.trim() || "production"
+        voiceflowProjectId: validation.data.voiceflowProjectId || null,
+        voiceflowVersionId: validation.data.voiceflowVersionId || "production"
       };
 
       const { error } = await supabase
@@ -197,11 +241,14 @@ const AdminVoiceflow = () => {
   );
 
   const handleBulkApplyClick = () => {
-    if (!bulkForm.voiceflowProjectId.trim()) {
+    // Validate with zod (bulk requires project ID)
+    const validation = voiceflowSettingsSchema.safeParse(bulkForm);
+    if (!validation.success) {
+      const errorMessage = validation.error.errors[0]?.message || "Invalid input";
       toast({
         variant: "destructive",
         title: "Validation Error",
-        description: "Please enter a Voiceflow Project ID"
+        description: errorMessage
       });
       return;
     }
@@ -209,15 +256,29 @@ const AdminVoiceflow = () => {
   };
 
   const applyBulkSettings = async () => {
+    // Re-validate before applying
+    const validation = voiceflowSettingsSchema.safeParse(bulkForm);
+    if (!validation.success) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Invalid Voiceflow settings"
+      });
+      setShowBulkConfirm(false);
+      return;
+    }
+
     setShowBulkConfirm(false);
     setBulkSaving(true);
     
     try {
+      const validatedData = voiceflowSettingsSchema.parse(bulkForm);
+      
       const updates = businesses.map(async (business) => {
         const updatedSettings = {
           ...(business.twilio_settings || {}),
-          voiceflowProjectId: bulkForm.voiceflowProjectId.trim(),
-          voiceflowVersionId: bulkForm.voiceflowVersionId.trim() || "production"
+          voiceflowProjectId: validatedData.voiceflowProjectId,
+          voiceflowVersionId: validatedData.voiceflowVersionId || "production"
         };
 
         return supabase
@@ -233,8 +294,8 @@ const AdminVoiceflow = () => {
         ...b,
         twilio_settings: {
           ...(b.twilio_settings || {}),
-          voiceflowProjectId: bulkForm.voiceflowProjectId.trim(),
-          voiceflowVersionId: bulkForm.voiceflowVersionId.trim() || "production"
+          voiceflowProjectId: validatedData.voiceflowProjectId,
+          voiceflowVersionId: validatedData.voiceflowVersionId || "production"
         }
       })));
 
@@ -249,7 +310,9 @@ const AdminVoiceflow = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to apply bulk settings"
+        description: err instanceof z.ZodError 
+          ? err.errors[0]?.message || "Validation failed"
+          : "Failed to apply bulk settings"
       });
     } finally {
       setBulkSaving(false);

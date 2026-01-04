@@ -117,9 +117,10 @@ serve(async (req) => {
     // Determine action type
     const isLaunch = action === "launch" || (!sessionId && !userInput);
     
+    // Voiceflow uses "request" not "action" in the body
     const voiceflowPayload = isLaunch
-      ? { action: { type: "launch" } }
-      : { action: { type: "text", payload: userInput || "" } };
+      ? { request: { type: "launch" } }
+      : { request: { type: "text", payload: userInput || "" } };
 
     console.log("Voiceflow simulation request:", {
       businessId,
@@ -129,18 +130,19 @@ serve(async (req) => {
       versionId: voiceflowVersionId,
       isLaunch,
       userInput,
+      payload: voiceflowPayload,
     });
 
     // Call Voiceflow API
     const vfResponse = await fetch(
-      `${VOICEFLOW_API_URL}/state/user/${currentSessionId}/interact?logs=off`,
+      `${VOICEFLOW_API_URL}/state/user/${currentSessionId}/interact`,
       {
         method: "POST",
         headers: {
           Authorization: VOICEFLOW_API_KEY,
           "Content-Type": "application/json",
+          accept: "application/json",
           versionID: voiceflowVersionId,
-          projectID: voiceflowProjectId,
         },
         body: JSON.stringify({
           ...voiceflowPayload,

@@ -106,6 +106,9 @@ const AdminVoiceflow = () => {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [testingConfig, setTestingConfig] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ businessId: string; success: boolean; message: string } | null>(null);
+  const [bulkTesting, setBulkTesting] = useState(false);
+  const [bulkTestResults, setBulkTestResults] = useState<Map<string, { success: boolean; message: string }>>(new Map());
+  const [showBulkTestSummary, setShowBulkTestSummary] = useState(false);
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -372,6 +375,67 @@ const AdminVoiceflow = () => {
     }
   };
 
+  const testAllConfigs = async () => {
+    const businessesWithConfig = businesses.filter(b => b.twilio_settings?.voiceflowProjectId);
+    
+    if (businessesWithConfig.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Configurations",
+        description: "No businesses have Voiceflow Project IDs configured",
+      });
+      return;
+    }
+
+    setBulkTesting(true);
+    setBulkTestResults(new Map());
+    setShowBulkTestSummary(false);
+
+    const results = new Map<string, { success: boolean; message: string }>();
+
+    // Run all tests in parallel
+    const testPromises = businessesWithConfig.map(async (business) => {
+      try {
+        const { data, error } = await supabase.functions.invoke("test-voiceflow-config", {
+          body: {
+            projectId: business.twilio_settings?.voiceflowProjectId,
+            versionId: business.twilio_settings?.voiceflowVersionId || "production",
+          },
+        });
+
+        if (error) throw error;
+
+        results.set(business.id, {
+          success: data.success,
+          message: data.success ? data.message : data.error,
+        });
+      } catch (err) {
+        results.set(business.id, {
+          success: false,
+          message: err instanceof Error ? err.message : "Test failed",
+        });
+      }
+    });
+
+    await Promise.all(testPromises);
+
+    setBulkTestResults(results);
+    setShowBulkTestSummary(true);
+    setBulkTesting(false);
+
+    const passCount = Array.from(results.values()).filter(r => r.success).length;
+    const failCount = results.size - passCount;
+
+    toast({
+      variant: failCount > 0 ? "destructive" : "default",
+      title: "Bulk Test Complete",
+      description: `${passCount} passed, ${failCount} failed out of ${results.size} tested`,
+    });
+  };
+
+  const bulkTestPassCount = Array.from(bulkTestResults.values()).filter(r => r.success).length;
+  const bulkTestFailCount = bulkTestResults.size - bulkTestPassCount;
+
   // Loading state
   if (authLoading || checkingRole) {
     return (
@@ -470,19 +534,77 @@ const AdminVoiceflow = () => {
                     className="bg-gray-700 border-gray-600 text-white font-mono"
                   />
                 </div>
-                <Button
-                  onClick={handleBulkApplyClick}
-                  disabled={bulkSaving || businesses.length === 0}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {bulkSaving ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Zap className="h-4 w-4 mr-2" />
-                  )}
-                  Apply to All ({businesses.length})
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleBulkApplyClick}
+                    disabled={bulkSaving || businesses.length === 0}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {bulkSaving ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Zap className="h-4 w-4 mr-2" />
+                    )}
+                    Apply to All ({businesses.length})
+                  </Button>
+                  <Button
+                    onClick={testAllConfigs}
+                    disabled={bulkTesting || businesses.length === 0}
+                    variant="outline"
+                    className="border-green-500/50 text-green-400 hover:bg-green-500/10"
+                  >
+                    {bulkTesting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FlaskConical className="h-4 w-4 mr-2" />
+                    )}
+                    Test All
+                  </Button>
+                </div>
               </div>
+              
+              {/* Bulk Test Summary */}
+              {showBulkTestSummary && bulkTestResults.size > 0 && (
+                <div className="mt-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-white font-medium">Test Results Summary</h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowBulkTestSummary(false)}
+                      className="text-gray-400 hover:text-white h-6 px-2"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                  <div className="flex gap-4 mb-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-green-400" />
+                      <span className="text-green-400 font-semibold">{bulkTestPassCount} Passed</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-5 w-5 text-red-400" />
+                      <span className="text-red-400 font-semibold">{bulkTestFailCount} Failed</span>
+                    </div>
+                    <span className="text-gray-400">
+                      ({businesses.filter(b => !b.twilio_settings?.voiceflowProjectId).length} not configured)
+                    </span>
+                  </div>
+                  {bulkTestFailCount > 0 && (
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      <p className="text-sm text-gray-400 mb-2">Failed businesses:</p>
+                      {businesses
+                        .filter(b => bulkTestResults.get(b.id)?.success === false)
+                        .map(b => (
+                          <div key={b.id} className="text-sm text-red-300 flex items-start gap-2">
+                            <span className="font-medium">{b.name}:</span>
+                            <span className="text-red-400/80">{bulkTestResults.get(b.id)?.message}</span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -641,10 +763,15 @@ const AdminVoiceflow = () => {
                                 {business.twilio_settings?.voiceflowVersionId || "production"}
                               </span>
                             </p>
-                            {testResult?.businessId === business.id && (
-                              <p className={`text-sm font-medium ${testResult.success ? "text-green-400" : "text-red-400"}`}>
-                                {testResult.success ? "✓ " : "✗ "}
-                                {testResult.message}
+                            {(testResult?.businessId === business.id || bulkTestResults.has(business.id)) && (
+                              <p className={`text-sm font-medium ${
+                                (testResult?.businessId === business.id ? testResult.success : bulkTestResults.get(business.id)?.success) 
+                                  ? "text-green-400" : "text-red-400"
+                              }`}>
+                                {(testResult?.businessId === business.id ? testResult.success : bulkTestResults.get(business.id)?.success) ? "✓ " : "✗ "}
+                                {testResult?.businessId === business.id 
+                                  ? testResult.message 
+                                  : bulkTestResults.get(business.id)?.message}
                               </p>
                             )}
                           </div>

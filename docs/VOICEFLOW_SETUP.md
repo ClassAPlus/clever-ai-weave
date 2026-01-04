@@ -1,35 +1,39 @@
 # Voiceflow AI Phone Agent Setup
 
-This guide explains how to configure Voiceflow as the AI phone receptionist for your business.
+> **Note**: This is admin-level configuration. End users simply enable/disable the AI Receptionist toggle in their settings. The Voiceflow integration is managed platform-wide.
 
 ## Prerequisites
 
 - A Voiceflow account ([creator.voiceflow.com](https://creator.voiceflow.com))
-- A Voiceflow API Key (stored as `VOICEFLOW_API_KEY` secret)
-- Twilio phone number configured in business settings
+- A Voiceflow API Key (stored as `VOICEFLOW_API_KEY` secret in Supabase)
+- Twilio phone number configured for the business
 
-## Configuration Steps
+## Admin Configuration Steps
 
 ### 1. Get Your Voiceflow Credentials
 
 1. Log in to [Voiceflow](https://creator.voiceflow.com)
 2. Create or open your voice agent project
 3. Copy the **Project ID** from the project settings or URL
-4. Note your **Version ID** (use `production` for the published version, or a specific version ID)
+4. Note your **Version ID** (use `production` for the published version)
 
-### 2. Configure Business Settings
+### 2. Configure Business Settings (via Supabase)
 
-In the app, go to **Settings → Advanced Twilio Settings** and enter:
+Update the business record's `twilio_settings` JSON column:
 
-- **Voiceflow Project ID**: Your project ID from Voiceflow
-- **Voiceflow Version ID**: `production` (recommended) or a specific version ID
-- **Voice Language**: The language for speech recognition (e.g., `en-US`, `he-IL`)
+```sql
+UPDATE businesses 
+SET twilio_settings = jsonb_set(
+  COALESCE(twilio_settings, '{}'::jsonb),
+  '{voiceflowProjectId}',
+  '"YOUR_PROJECT_ID"'
+)
+WHERE id = 'BUSINESS_ID';
+```
 
-Click **Save Settings**.
+Or update directly in Supabase Dashboard → Table Editor → businesses.
 
 ### 3. Design Your Voiceflow Agent
-
-In Voiceflow, design your conversation flow. The integration supports:
 
 | Voiceflow Block | Phone Behavior |
 |-----------------|----------------|

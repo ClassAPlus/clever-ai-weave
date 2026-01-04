@@ -44,10 +44,45 @@ import {
   Send,
   RotateCcw,
   User,
+  Mic,
+  MicOff,
 } from "lucide-react";
 import { z } from "zod";
 
 import { Json } from "@/integrations/supabase/types";
+
+// Web Speech API type declarations
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onstart: ((this: SpeechRecognitionInstance, ev: Event) => void) | null;
+  onresult: ((this: SpeechRecognitionInstance, ev: SpeechRecognitionEvent) => void) | null;
+  onerror: ((this: SpeechRecognitionInstance, ev: SpeechRecognitionErrorEvent) => void) | null;
+  onend: ((this: SpeechRecognitionInstance, ev: Event) => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInstance;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
 
 // Voiceflow ID validation schema
 const voiceflowProjectIdSchema = z
@@ -135,6 +170,67 @@ const AdminVoiceflow = () => {
   const [simulationLoading, setSimulationLoading] = useState(false);
   const [simulationEnded, setSimulationEnded] = useState(false);
   const [simulationButtons, setSimulationButtons] = useState<string[]>([]);
+  
+  // Speech recognition state
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  
+  // Check for speech recognition support
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    setSpeechSupported(!!SpeechRecognition);
+  }, []);
+  
+  const toggleSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      toast({
+        variant: "destructive",
+        title: "Not Supported",
+        description: "Speech recognition is not supported in your browser"
+      });
+      return;
+    }
+    
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+    
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+    
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setSimulationInput(prev => prev + (prev ? ' ' : '') + transcript);
+      setIsListening(false);
+    };
+    
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      if (event.error !== 'aborted') {
+        toast({
+          variant: "destructive",
+          title: "Speech Error",
+          description: `Could not recognize speech: ${event.error}`
+        });
+      }
+    };
+    
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    
+    recognition.start();
+  };
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -1050,7 +1146,7 @@ const AdminVoiceflow = () => {
                 <Input
                   value={simulationInput}
                   onChange={(e) => setSimulationInput(e.target.value)}
-                  placeholder="Type your response..."
+                  placeholder={isListening ? "Listening..." : "Type or speak your response..."}
                   className="bg-gray-800 border-gray-600 text-white"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -1058,8 +1154,22 @@ const AdminVoiceflow = () => {
                       sendSimulationMessage();
                     }
                   }}
-                  disabled={simulationLoading}
+                  disabled={simulationLoading || isListening}
                 />
+                {speechSupported && (
+                  <Button
+                    onClick={toggleSpeechRecognition}
+                    disabled={simulationLoading}
+                    variant="outline"
+                    className={`border-gray-600 ${
+                      isListening 
+                        ? "bg-red-500/20 border-red-500 text-red-400 animate-pulse" 
+                        : "text-gray-300 hover:bg-gray-700"
+                    }`}
+                  >
+                    {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                )}
                 <Button
                   onClick={() => sendSimulationMessage()}
                   disabled={simulationLoading || !simulationInput.trim()}

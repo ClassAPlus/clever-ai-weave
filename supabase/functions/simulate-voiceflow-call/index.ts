@@ -149,6 +149,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
           accept: "application/json",
           versionID: voiceflowVersionId,
+          projectID: voiceflowProjectId,
         },
         body: JSON.stringify({
           ...voiceflowPayload,

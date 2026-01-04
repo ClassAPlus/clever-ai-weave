@@ -19,7 +19,8 @@ import {
   Save, 
   CheckCircle2, 
   XCircle,
-  Search
+  Search,
+  Zap
 } from "lucide-react";
 
 import { Json } from "@/integrations/supabase/types";
@@ -54,6 +55,11 @@ const AdminVoiceflow = () => {
     voiceflowProjectId: "",
     voiceflowVersionId: ""
   });
+  const [bulkForm, setBulkForm] = useState({
+    voiceflowProjectId: "",
+    voiceflowVersionId: ""
+  });
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -179,6 +185,62 @@ const AdminVoiceflow = () => {
     b.twilio_phone_number?.includes(searchQuery)
   );
 
+  const applyBulkSettings = async () => {
+    if (!bulkForm.voiceflowProjectId.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please enter a Voiceflow Project ID"
+      });
+      return;
+    }
+
+    setBulkSaving(true);
+    
+    try {
+      const updates = businesses.map(async (business) => {
+        const updatedSettings = {
+          ...(business.twilio_settings || {}),
+          voiceflowProjectId: bulkForm.voiceflowProjectId.trim(),
+          voiceflowVersionId: bulkForm.voiceflowVersionId.trim() || "production"
+        };
+
+        return supabase
+          .from('businesses')
+          .update({ twilio_settings: updatedSettings })
+          .eq('id', business.id);
+      });
+
+      await Promise.all(updates);
+
+      // Update local state
+      setBusinesses(prev => prev.map(b => ({
+        ...b,
+        twilio_settings: {
+          ...(b.twilio_settings || {}),
+          voiceflowProjectId: bulkForm.voiceflowProjectId.trim(),
+          voiceflowVersionId: bulkForm.voiceflowVersionId.trim() || "production"
+        }
+      })));
+
+      toast({
+        title: "Bulk Update Complete",
+        description: `Updated ${businesses.length} businesses with new Voiceflow settings`
+      });
+
+      setBulkForm({ voiceflowProjectId: "", voiceflowVersionId: "" });
+    } catch (err) {
+      console.error('Error applying bulk settings:', err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to apply bulk settings"
+      });
+    } finally {
+      setBulkSaving(false);
+    }
+  };
+
   // Loading state
   if (authLoading || checkingRole) {
     return (
@@ -245,6 +307,53 @@ const AdminVoiceflow = () => {
               Configure Voiceflow AI settings for each business
             </p>
           </div>
+
+          {/* Bulk Configuration */}
+          <Card className="bg-purple-900/30 border-purple-500/30 mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white flex items-center gap-2 text-lg">
+                <Zap className="h-5 w-5 text-purple-400" />
+                Bulk Configuration
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Apply the same Voiceflow settings to all {businesses.length} businesses at once
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div className="space-y-2">
+                  <Label className="text-gray-300">Voiceflow Project ID</Label>
+                  <Input
+                    value={bulkForm.voiceflowProjectId}
+                    onChange={(e) => setBulkForm(prev => ({ ...prev, voiceflowProjectId: e.target.value }))}
+                    placeholder="Enter Project ID..."
+                    className="bg-gray-700 border-gray-600 text-white font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-gray-300">Version ID</Label>
+                  <Input
+                    value={bulkForm.voiceflowVersionId}
+                    onChange={(e) => setBulkForm(prev => ({ ...prev, voiceflowVersionId: e.target.value }))}
+                    placeholder="production"
+                    className="bg-gray-700 border-gray-600 text-white font-mono"
+                  />
+                </div>
+                <Button
+                  onClick={applyBulkSettings}
+                  disabled={bulkSaving || businesses.length === 0}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {bulkSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4 mr-2" />
+                  )}
+                  Apply to All ({businesses.length})
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Search */}
           <div className="mb-6">

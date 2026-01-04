@@ -117,10 +117,16 @@ serve(async (req) => {
     // Determine action type
     const isLaunch = action === "launch" || (!sessionId && !userInput);
     
-    // Voiceflow uses "request" not "action" in the body
-    const voiceflowPayload = isLaunch
-      ? { request: { type: "launch" } }
-      : { request: { type: "text", payload: userInput || "" } };
+    // Voiceflow's docs historically used `action`, newer guides use `request`.
+    // To maximize compatibility across agent types/versions, send BOTH.
+    const launchOrText = isLaunch
+      ? ({ type: "launch" } as const)
+      : ({ type: "text", payload: userInput || "" } as const);
+
+    const voiceflowPayload = {
+      action: launchOrText,
+      request: launchOrText,
+    };
 
     console.log("Voiceflow simulation request:", {
       businessId,
@@ -146,6 +152,8 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           ...voiceflowPayload,
+          // Some Voiceflow deployments require versionID in-body (in addition to the header)
+          versionID: voiceflowVersionId,
           config: {
             tts: false,
             stripSSML: true,

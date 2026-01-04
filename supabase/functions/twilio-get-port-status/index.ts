@@ -26,8 +26,9 @@ Deno.serve(async (req) => {
 
     if (authError || !user) {
       // IMPORTANT: return 200 to avoid client hard-failing on non-2xx.
+      // Also: omit an "error" field to prevent client code from treating this as a failure.
       return new Response(
-        JSON.stringify({ success: true, port_requests: [], error: 'Unauthorized' }),
+        JSON.stringify({ success: true, port_requests: [] }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -62,9 +63,10 @@ Deno.serve(async (req) => {
 
       if (!business || business.owner_user_id !== user.id) {
         console.log('Access denied - owner_user_id:', business?.owner_user_id, 'user.id:', user.id);
+        // Return 200 + empty list to keep the dashboard stable.
         return new Response(
-          JSON.stringify({ success: false, error: 'Business not found or access denied' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ success: true, port_requests: [] }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 

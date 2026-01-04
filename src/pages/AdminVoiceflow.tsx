@@ -256,13 +256,13 @@ const AdminVoiceflow = () => {
   };
 
   const applyBulkSettings = async () => {
-    // Re-validate before applying
+    // Re-validate before applying (client-side)
     const validation = voiceflowSettingsSchema.safeParse(bulkForm);
     if (!validation.success) {
       toast({
         variant: "destructive",
         title: "Validation Error",
-        description: "Invalid Voiceflow settings"
+        description: "Invalid Voiceflow settings",
       });
       setShowBulkConfirm(false);
       return;
@@ -270,49 +270,47 @@ const AdminVoiceflow = () => {
 
     setShowBulkConfirm(false);
     setBulkSaving(true);
-    
+
     try {
       const validatedData = voiceflowSettingsSchema.parse(bulkForm);
-      
-      const updates = businesses.map(async (business) => {
-        const updatedSettings = {
-          ...(business.twilio_settings || {}),
-          voiceflowProjectId: validatedData.voiceflowProjectId,
-          voiceflowVersionId: validatedData.voiceflowVersionId || "production"
-        };
 
-        return supabase
-          .from('businesses')
-          .update({ twilio_settings: updatedSettings })
-          .eq('id', business.id);
+      const { data, error } = await supabase.functions.invoke("admin-voiceflow-settings", {
+        body: {
+          voiceflowProjectId: validatedData.voiceflowProjectId,
+          voiceflowVersionId: validatedData.voiceflowVersionId || "production",
+          applyToAll: true,
+        },
       });
 
-      await Promise.all(updates);
+      if (error) throw error;
 
       // Update local state
-      setBusinesses(prev => prev.map(b => ({
-        ...b,
-        twilio_settings: {
-          ...(b.twilio_settings || {}),
-          voiceflowProjectId: validatedData.voiceflowProjectId,
-          voiceflowVersionId: validatedData.voiceflowVersionId || "production"
-        }
-      })));
+      setBusinesses((prev) =>
+        prev.map((b) => ({
+          ...b,
+          twilio_settings: {
+            ...(b.twilio_settings || {}),
+            voiceflowProjectId: validatedData.voiceflowProjectId,
+            voiceflowVersionId: validatedData.voiceflowVersionId || "production",
+          },
+        }))
+      );
 
       toast({
         title: "Bulk Update Complete",
-        description: `Updated ${businesses.length} businesses with new Voiceflow settings`
+        description: `Updated ${data?.updated ?? businesses.length} businesses with new Voiceflow settings`,
       });
 
       setBulkForm({ voiceflowProjectId: "", voiceflowVersionId: "" });
     } catch (err) {
-      console.error('Error applying bulk settings:', err);
+      console.error("Error applying bulk settings:", err);
       toast({
         variant: "destructive",
         title: "Error",
-        description: err instanceof z.ZodError 
-          ? err.errors[0]?.message || "Validation failed"
-          : "Failed to apply bulk settings"
+        description:
+          err instanceof z.ZodError
+            ? err.errors[0]?.message || "Validation failed"
+            : "Failed to apply bulk settings",
       });
     } finally {
       setBulkSaving(false);

@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Phone, MessageSquare, Volume2, Loader2, Square, Bot, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { TwilioDebuggerHints } from "./TwilioDebuggerHints";
 
 interface TwilioSettings {
   voiceLanguage: string;
@@ -417,6 +418,9 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
             </a>
           </p>
         </div>
+
+        {/* Twilio Debugger Hints */}
+        <TwilioDebuggerHints />
       </CardContent>
     </Card>
   );

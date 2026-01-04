@@ -46,6 +46,8 @@ import {
   User,
   Mic,
   MicOff,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { z } from "zod";
 
@@ -175,11 +177,56 @@ const AdminVoiceflow = () => {
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   
+  // Text-to-speech state
+  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  
   // Check for speech recognition support
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
     setSpeechSupported(!!SpeechRecognition);
   }, []);
+  
+  // Speak text using Web Speech API
+  const speakText = (text: string) => {
+    if (!('speechSynthesis' in window)) {
+      toast({
+        variant: "destructive",
+        title: "Not Supported",
+        description: "Text-to-speech is not supported in your browser"
+      });
+      return;
+    }
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    // Try to use a good English voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v => 
+      v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel'))
+    ) || voices.find(v => v.lang.startsWith('en'));
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    
+    window.speechSynthesis.speak(utterance);
+  };
+  
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
   
   const toggleSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -589,12 +636,22 @@ const AdminVoiceflow = () => {
 
       if (data.success) {
         setSimulationSessionId(data.sessionId);
-        setSimulationMessages(data.turns.map((t: { role: string; content: string }) => ({
+        const turns = data.turns.map((t: { role: string; content: string }) => ({
           role: t.role,
           content: t.content,
-        })));
+        }));
+        setSimulationMessages(turns);
         setSimulationEnded(data.hasEnded);
         setSimulationButtons(data.buttons || []);
+        
+        // Auto-speak assistant responses
+        if (autoSpeak) {
+          const assistantMessages = turns.filter((t: SimulationMessage) => t.role === "assistant");
+          if (assistantMessages.length > 0) {
+            const textToSpeak = assistantMessages.map((m: SimulationMessage) => m.content).join(". ");
+            speakText(textToSpeak);
+          }
+        }
       } else {
         throw new Error(data.error || "Failed to start simulation");
       }
@@ -632,15 +689,22 @@ const AdminVoiceflow = () => {
       if (error) throw error;
 
       if (data.success) {
-        setSimulationMessages(prev => [
-          ...prev,
-          ...data.turns.map((t: { role: string; content: string }) => ({
-            role: t.role as "assistant" | "user",
-            content: t.content,
-          })),
-        ]);
+        const newTurns = data.turns.map((t: { role: string; content: string }) => ({
+          role: t.role as "assistant" | "user",
+          content: t.content,
+        }));
+        setSimulationMessages(prev => [...prev, ...newTurns]);
         setSimulationEnded(data.hasEnded);
         setSimulationButtons(data.buttons || []);
+        
+        // Auto-speak assistant responses
+        if (autoSpeak) {
+          const assistantMessages = newTurns.filter((t: SimulationMessage) => t.role === "assistant");
+          if (assistantMessages.length > 0) {
+            const textToSpeak = assistantMessages.map((m: SimulationMessage) => m.content).join(". ");
+            speakText(textToSpeak);
+          }
+        }
       } else {
         throw new Error(data.error || "Failed to send message");
       }
@@ -663,6 +727,7 @@ const AdminVoiceflow = () => {
   };
 
   const closeSimulation = () => {
+    stopSpeaking();
     setSimulatingBusiness(null);
     setSimulationSessionId(null);
     setSimulationMessages([]);
@@ -1100,7 +1165,16 @@ const AdminVoiceflow = () => {
                         {msg.role === "user" && (
                           <User className="h-4 w-4 mt-0.5 text-blue-200 flex-shrink-0" />
                         )}
-                        <p className="text-sm">{msg.content}</p>
+                        <p className="text-sm flex-1">{msg.content}</p>
+                        {msg.role === "assistant" && (
+                          <button
+                            onClick={() => speakText(msg.content)}
+                            className="text-purple-400 hover:text-purple-300 flex-shrink-0 opacity-60 hover:opacity-100"
+                            title="Play this message"
+                          >
+                            <Volume2 className="h-3 w-3" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1181,17 +1255,44 @@ const AdminVoiceflow = () => {
             )}
             
             {/* Actions */}
-            <div className="flex justify-between">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetSimulation}
-                disabled={simulationLoading}
-                className="border-gray-600 text-gray-300"
-              >
-                <RotateCcw className="h-4 w-4 mr-1" />
-                Restart Call
-              </Button>
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetSimulation}
+                  disabled={simulationLoading}
+                  className="border-gray-600 text-gray-300"
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Restart
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (isSpeaking) {
+                      stopSpeaking();
+                    } else {
+                      setAutoSpeak(!autoSpeak);
+                    }
+                  }}
+                  className={`border-gray-600 ${
+                    isSpeaking 
+                      ? "bg-purple-500/20 border-purple-500 text-purple-400" 
+                      : autoSpeak 
+                        ? "text-purple-400" 
+                        : "text-gray-500"
+                  }`}
+                  title={isSpeaking ? "Stop speaking" : autoSpeak ? "Auto-speak ON" : "Auto-speak OFF"}
+                >
+                  {isSpeaking ? (
+                    <VolumeX className="h-4 w-4" />
+                  ) : (
+                    <Volume2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
               <div className="text-xs text-gray-500">
                 Session: {simulationSessionId?.slice(0, 12)}...
               </div>

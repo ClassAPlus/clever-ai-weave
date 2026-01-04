@@ -19,6 +19,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
@@ -32,6 +40,10 @@ import {
   Search,
   Zap,
   FlaskConical,
+  Phone,
+  Send,
+  RotateCcw,
+  User,
 } from "lucide-react";
 import { z } from "zod";
 
@@ -83,6 +95,11 @@ interface Business {
   twilio_settings: TwilioSettings | null;
 }
 
+interface SimulationMessage {
+  role: "assistant" | "user";
+  content: string;
+}
+
 const AdminVoiceflow = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -109,6 +126,15 @@ const AdminVoiceflow = () => {
   const [bulkTesting, setBulkTesting] = useState(false);
   const [bulkTestResults, setBulkTestResults] = useState<Map<string, { success: boolean; message: string }>>(new Map());
   const [showBulkTestSummary, setShowBulkTestSummary] = useState(false);
+  
+  // Call simulation state
+  const [simulatingBusiness, setSimulatingBusiness] = useState<Business | null>(null);
+  const [simulationSessionId, setSimulationSessionId] = useState<string | null>(null);
+  const [simulationMessages, setSimulationMessages] = useState<SimulationMessage[]>([]);
+  const [simulationInput, setSimulationInput] = useState("");
+  const [simulationLoading, setSimulationLoading] = useState(false);
+  const [simulationEnded, setSimulationEnded] = useState(false);
+  const [simulationButtons, setSimulationButtons] = useState<string[]>([]);
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -435,6 +461,119 @@ const AdminVoiceflow = () => {
 
   const bulkTestPassCount = Array.from(bulkTestResults.values()).filter(r => r.success).length;
   const bulkTestFailCount = bulkTestResults.size - bulkTestPassCount;
+
+  // Call simulation functions
+  const startSimulation = async (business: Business) => {
+    if (!business.twilio_settings?.voiceflowProjectId) {
+      toast({
+        variant: "destructive",
+        title: "No Configuration",
+        description: "Configure Voiceflow Project ID first",
+      });
+      return;
+    }
+
+    setSimulatingBusiness(business);
+    setSimulationSessionId(null);
+    setSimulationMessages([]);
+    setSimulationInput("");
+    setSimulationEnded(false);
+    setSimulationButtons([]);
+    setSimulationLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("simulate-voiceflow-call", {
+        body: {
+          businessId: business.id,
+          action: "launch",
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setSimulationSessionId(data.sessionId);
+        setSimulationMessages(data.turns.map((t: { role: string; content: string }) => ({
+          role: t.role,
+          content: t.content,
+        })));
+        setSimulationEnded(data.hasEnded);
+        setSimulationButtons(data.buttons || []);
+      } else {
+        throw new Error(data.error || "Failed to start simulation");
+      }
+    } catch (err) {
+      console.error("Simulation error:", err);
+      toast({
+        variant: "destructive",
+        title: "Simulation Failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+      setSimulatingBusiness(null);
+    } finally {
+      setSimulationLoading(false);
+    }
+  };
+
+  const sendSimulationMessage = async (message?: string) => {
+    const inputToSend = message || simulationInput.trim();
+    if (!inputToSend || !simulatingBusiness || !simulationSessionId) return;
+
+    // Add user message to chat
+    setSimulationMessages(prev => [...prev, { role: "user", content: inputToSend }]);
+    setSimulationInput("");
+    setSimulationLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("simulate-voiceflow-call", {
+        body: {
+          businessId: simulatingBusiness.id,
+          sessionId: simulationSessionId,
+          userInput: inputToSend,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setSimulationMessages(prev => [
+          ...prev,
+          ...data.turns.map((t: { role: string; content: string }) => ({
+            role: t.role as "assistant" | "user",
+            content: t.content,
+          })),
+        ]);
+        setSimulationEnded(data.hasEnded);
+        setSimulationButtons(data.buttons || []);
+      } else {
+        throw new Error(data.error || "Failed to send message");
+      }
+    } catch (err) {
+      console.error("Send message error:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to send message",
+      });
+    } finally {
+      setSimulationLoading(false);
+    }
+  };
+
+  const resetSimulation = () => {
+    if (simulatingBusiness) {
+      startSimulation(simulatingBusiness);
+    }
+  };
+
+  const closeSimulation = () => {
+    setSimulatingBusiness(null);
+    setSimulationSessionId(null);
+    setSimulationMessages([]);
+    setSimulationInput("");
+    setSimulationEnded(false);
+    setSimulationButtons([]);
+  };
 
   // Loading state
   if (authLoading || checkingRole) {
@@ -777,20 +916,31 @@ const AdminVoiceflow = () => {
                           </div>
                           <div className="flex gap-2">
                             {business.twilio_settings?.voiceflowProjectId && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => testVoiceflowConfig(business)}
-                                disabled={testingConfig === business.id}
-                                className="border-green-500/50 text-green-400 hover:bg-green-500/10"
-                              >
-                                {testingConfig === business.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <FlaskConical className="h-4 w-4 mr-1" />
-                                )}
-                                Test
-                              </Button>
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => startSimulation(business)}
+                                  className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                                >
+                                  <Phone className="h-4 w-4 mr-1" />
+                                  Simulate
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => testVoiceflowConfig(business)}
+                                  disabled={testingConfig === business.id}
+                                  className="border-green-500/50 text-green-400 hover:bg-green-500/10"
+                                >
+                                  {testingConfig === business.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <FlaskConical className="h-4 w-4 mr-1" />
+                                  )}
+                                  Test
+                                </Button>
+                              </>
                             )}
                             <Button
                               variant="outline"
@@ -811,6 +961,134 @@ const AdminVoiceflow = () => {
           )}
         </div>
       </main>
+      
+      {/* Call Simulation Dialog */}
+      <Dialog open={!!simulatingBusiness} onOpenChange={(open) => !open && closeSimulation()}>
+        <DialogContent className="bg-gray-900 border-gray-700 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Phone className="h-5 w-5 text-blue-400" />
+              Call Simulation - {simulatingBusiness?.name}
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Test the Voiceflow conversation without using phone minutes
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Chat Messages */}
+            <ScrollArea className="h-[300px] bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+              <div className="space-y-3">
+                {simulationMessages.length === 0 && !simulationLoading && (
+                  <p className="text-gray-500 text-center text-sm">
+                    Starting call simulation...
+                  </p>
+                )}
+                
+                {simulationMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                        msg.role === "user"
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-700 text-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {msg.role === "assistant" && (
+                          <Bot className="h-4 w-4 mt-0.5 text-purple-400 flex-shrink-0" />
+                        )}
+                        {msg.role === "user" && (
+                          <User className="h-4 w-4 mt-0.5 text-blue-200 flex-shrink-0" />
+                        )}
+                        <p className="text-sm">{msg.content}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {simulationLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-700 rounded-lg px-3 py-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
+                    </div>
+                  </div>
+                )}
+                
+                {simulationEnded && (
+                  <div className="text-center text-sm text-gray-500 mt-4">
+                    — Call ended —
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+            
+            {/* Quick Reply Buttons */}
+            {simulationButtons.length > 0 && !simulationEnded && (
+              <div className="flex flex-wrap gap-2">
+                {simulationButtons.map((btn, idx) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => sendSimulationMessage(btn)}
+                    disabled={simulationLoading}
+                    className="border-purple-500/50 text-purple-300 hover:bg-purple-500/10"
+                  >
+                    {btn}
+                  </Button>
+                ))}
+              </div>
+            )}
+            
+            {/* Input Area */}
+            {!simulationEnded && (
+              <div className="flex gap-2">
+                <Input
+                  value={simulationInput}
+                  onChange={(e) => setSimulationInput(e.target.value)}
+                  placeholder="Type your response..."
+                  className="bg-gray-800 border-gray-600 text-white"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendSimulationMessage();
+                    }
+                  }}
+                  disabled={simulationLoading}
+                />
+                <Button
+                  onClick={() => sendSimulationMessage()}
+                  disabled={simulationLoading || !simulationInput.trim()}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            
+            {/* Actions */}
+            <div className="flex justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetSimulation}
+                disabled={simulationLoading}
+                className="border-gray-600 text-gray-300"
+              >
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Restart Call
+              </Button>
+              <div className="text-xs text-gray-500">
+                Session: {simulationSessionId?.slice(0, 12)}...
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <Footer />
     </div>

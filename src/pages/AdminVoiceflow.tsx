@@ -20,17 +20,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Loader2, 
-  ShieldX, 
-  ArrowLeft, 
-  Bot, 
-  Building2, 
-  Save, 
-  CheckCircle2, 
+import {
+  Loader2,
+  ShieldX,
+  ArrowLeft,
+  Bot,
+  Building2,
+  Save,
+  CheckCircle2,
   XCircle,
   Search,
-  Zap
+  Zap,
+  FlaskConical,
 } from "lucide-react";
 import { z } from "zod";
 
@@ -103,6 +104,8 @@ const AdminVoiceflow = () => {
   });
   const [bulkSaving, setBulkSaving] = useState(false);
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [testingConfig, setTestingConfig] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<{ businessId: string; success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -314,6 +317,58 @@ const AdminVoiceflow = () => {
       });
     } finally {
       setBulkSaving(false);
+    }
+  };
+
+  const testVoiceflowConfig = async (business: Business) => {
+    const projectId = business.twilio_settings?.voiceflowProjectId;
+    if (!projectId) {
+      toast({
+        variant: "destructive",
+        title: "No Project ID",
+        description: "Configure a Voiceflow Project ID first",
+      });
+      return;
+    }
+
+    setTestingConfig(business.id);
+    setTestResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("test-voiceflow-config", {
+        body: {
+          projectId,
+          versionId: business.twilio_settings?.voiceflowVersionId || "production",
+        },
+      });
+
+      if (error) throw error;
+
+      setTestResult({
+        businessId: business.id,
+        success: data.success,
+        message: data.success ? data.message : data.error,
+      });
+
+      toast({
+        variant: data.success ? "default" : "destructive",
+        title: data.success ? "Config Valid ✓" : "Config Invalid",
+        description: data.success ? data.message : data.error,
+      });
+    } catch (err) {
+      console.error("Test failed:", err);
+      setTestResult({
+        businessId: business.id,
+        success: false,
+        message: err instanceof Error ? err.message : "Test failed",
+      });
+      toast({
+        variant: "destructive",
+        title: "Test Failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setTestingConfig(null);
     }
   };
 
@@ -586,15 +641,39 @@ const AdminVoiceflow = () => {
                                 {business.twilio_settings?.voiceflowVersionId || "production"}
                               </span>
                             </p>
+                            {testResult?.businessId === business.id && (
+                              <p className={`text-sm font-medium ${testResult.success ? "text-green-400" : "text-red-400"}`}>
+                                {testResult.success ? "✓ " : "✗ "}
+                                {testResult.message}
+                              </p>
+                            )}
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => startEditing(business)}
-                            className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
-                          >
-                            Configure
-                          </Button>
+                          <div className="flex gap-2">
+                            {business.twilio_settings?.voiceflowProjectId && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => testVoiceflowConfig(business)}
+                                disabled={testingConfig === business.id}
+                                className="border-green-500/50 text-green-400 hover:bg-green-500/10"
+                              >
+                                {testingConfig === business.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <FlaskConical className="h-4 w-4 mr-1" />
+                                )}
+                                Test
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => startEditing(business)}
+                              className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                            >
+                              Configure
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </CardContent>

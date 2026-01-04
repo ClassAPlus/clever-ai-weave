@@ -9,6 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Loader2, 
@@ -60,6 +70,7 @@ const AdminVoiceflow = () => {
     voiceflowVersionId: ""
   });
   const [bulkSaving, setBulkSaving] = useState(false);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -185,7 +196,7 @@ const AdminVoiceflow = () => {
     b.twilio_phone_number?.includes(searchQuery)
   );
 
-  const applyBulkSettings = async () => {
+  const handleBulkApplyClick = () => {
     if (!bulkForm.voiceflowProjectId.trim()) {
       toast({
         variant: "destructive",
@@ -194,7 +205,11 @@ const AdminVoiceflow = () => {
       });
       return;
     }
+    setShowBulkConfirm(true);
+  };
 
+  const applyBulkSettings = async () => {
+    setShowBulkConfirm(false);
     setBulkSaving(true);
     
     try {
@@ -340,7 +355,7 @@ const AdminVoiceflow = () => {
                   />
                 </div>
                 <Button
-                  onClick={applyBulkSettings}
+                  onClick={handleBulkApplyClick}
                   disabled={bulkSaving || businesses.length === 0}
                   className="bg-purple-600 hover:bg-purple-700"
                 >
@@ -354,6 +369,34 @@ const AdminVoiceflow = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Bulk Confirmation Dialog */}
+          <AlertDialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
+            <AlertDialogContent className="bg-gray-900 border-gray-700">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-white">Confirm Bulk Update</AlertDialogTitle>
+                <AlertDialogDescription className="text-gray-400">
+                  This will update Voiceflow settings for <span className="text-white font-semibold">{businesses.length} businesses</span>. 
+                  Any existing configurations will be overwritten.
+                  <div className="mt-3 p-3 bg-gray-800 rounded-lg font-mono text-sm">
+                    <div><span className="text-gray-500">Project ID:</span> <span className="text-purple-400">{bulkForm.voiceflowProjectId}</span></div>
+                    <div><span className="text-gray-500">Version:</span> <span className="text-purple-400">{bulkForm.voiceflowVersionId || "production"}</span></div>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700">
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={applyBulkSettings}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  Yes, Apply to All
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Search */}
           <div className="mb-6">

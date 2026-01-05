@@ -207,9 +207,10 @@ serve(async (req) => {
     }
 
     // Make request to Voiceflow Dialog API with timeout
+    // Voiceflow expects 'request' not 'action' in the payload
     const voiceflowPayload = isInitialCall 
-      ? { action: { type: 'launch' } }
-      : { action: { type: 'text', payload: userInput } };
+      ? { request: { type: 'launch' } }
+      : { request: { type: 'text', payload: userInput } };
 
     console.log("Calling Voiceflow API - project:", voiceflowProjectId, "version:", voiceflowVersionId);
 

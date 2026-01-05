@@ -6,6 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// XML-escape a string for safe inclusion in TwiML
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -166,9 +176,14 @@ serve(async (req) => {
       console.log("Connecting to Voiceflow project:", voiceflowProjectId, "for business:", business.id);
       
       // Redirect to Voiceflow webhook handler
-      const voiceflowWebhookUrl = `https://${projectId}.supabase.co/functions/v1/voiceflow-phone?business_id=${business.id}&caller_phone=${encodeURIComponent(callerPhone)}&call_sid=${callSid}`;
+      // Build the URL properly then XML-escape for safe TwiML insertion
+      const redirectUrl = new URL(`https://${projectId}.supabase.co/functions/v1/voiceflow-phone`);
+      redirectUrl.searchParams.set('business_id', business.id);
+      redirectUrl.searchParams.set('caller_phone', callerPhone);
+      redirectUrl.searchParams.set('call_sid', callSid);
+      const escapedUrl = escapeXml(redirectUrl.toString());
       
-      twiml += `<Redirect method="POST">${voiceflowWebhookUrl}</Redirect>`;
+      twiml += `<Redirect method="POST">${escapedUrl}</Redirect>`;
     } else {
       // No forward numbers and AI disabled - play voice message
       console.log("No forward numbers and AI disabled for business:", business.id);

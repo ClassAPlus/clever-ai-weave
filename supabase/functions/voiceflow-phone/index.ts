@@ -41,6 +41,60 @@ function getTwilioPollyVoice(language: string): string | null {
   return null;
 }
 
+// Twilio Gather speech recognition supports a limited set of languages
+// This maps the voice language to a valid Gather language or falls back to en-US
+function getGatherLanguage(language: string): string {
+  const validGatherLanguages = [
+    'arb', 'cmn-cn', 'da-dk', 'nl-nl', 'en-au', 'en-gb', 'en-in', 'en-nz', 
+    'en-us', 'en-za', 'en-gb-wls', 'fr-fr', 'fr-ca', 'de-de', 'hi-in', 
+    'is-is', 'it-it', 'ja-jp', 'ko-kr', 'nb-no', 'pl-pl', 'pt-br', 'pt-pt', 
+    'ro-ro', 'ru-ru', 'es-es', 'es-mx', 'es-us', 'sv-se', 'tr-tr', 'cy-gb'
+  ];
+  
+  const langLower = language.toLowerCase();
+  
+  // Direct match
+  if (validGatherLanguages.includes(langLower)) {
+    return langLower;
+  }
+  
+  // Map common language prefixes to their Gather equivalent
+  const prefixMap: Record<string, string> = {
+    'en': 'en-us',
+    'es': 'es-es',
+    'fr': 'fr-fr',
+    'de': 'de-de',
+    'it': 'it-it',
+    'pt': 'pt-br',
+    'ru': 'ru-ru',
+    'ja': 'ja-jp',
+    'ko': 'ko-kr',
+    'ar': 'arb',
+    'zh': 'cmn-cn',
+    'nl': 'nl-nl',
+    'pl': 'pl-pl',
+    'sv': 'sv-se',
+    'tr': 'tr-tr',
+    'da': 'da-dk',
+    'nb': 'nb-no',
+    'no': 'nb-no',
+    'hi': 'hi-in',
+    'ro': 'ro-ro',
+    'is': 'is-is',
+    'cy': 'cy-gb',
+  };
+  
+  // Check prefix (first 2 chars)
+  const prefix = langLower.substring(0, 2);
+  if (prefixMap[prefix]) {
+    return prefixMap[prefix];
+  }
+  
+  // Hebrew and other unsupported languages fall back to English
+  // (Twilio doesn't support Hebrew speech recognition)
+  return 'en-us';
+}
+
 // Build a <Say> TwiML element with proper voice/language handling
 function buildSayElement(message: string, language: string): string {
   const escapedMessage = escapeXml(message);
@@ -313,7 +367,9 @@ serve(async (req) => {
       gatherUrlObj.searchParams.set('call_sid', callSid || '');
       const gatherUrl = escapeXml(gatherUrlObj.toString());
 
-      twiml += `<Gather input="speech" timeout="5" speechTimeout="auto" action="${gatherUrl}" method="POST" language="${voiceLanguage}"></Gather>`;
+      // Use valid Gather language (speech recognition has limited language support)
+      const gatherLanguage = getGatherLanguage(voiceLanguage);
+      twiml += `<Gather input="speech" timeout="5" speechTimeout="auto" action="${gatherUrl}" method="POST" language="${gatherLanguage}"></Gather>`;
 
       // Fallback if no input - use proper voice for language
       twiml += buildSayElement("I didn't catch that. Let me transfer you.", voiceLanguage);

@@ -305,12 +305,15 @@ serve(async (req) => {
     if (hasEnded) {
       twiml += `<Hangup/>`;
     } else if (shouldGather) {
-      // Build gather URL dynamically from SUPABASE_URL
-      const gatherUrl = `${supabaseUrl}/functions/v1/voiceflow-phone?business_id=${businessId}&caller_phone=${encodeURIComponent(callerPhone || '')}&call_sid=${callSid}`;
-      
-      twiml += `<Gather input="speech" timeout="5" speechTimeout="auto" action="${gatherUrl}" method="POST" language="${voiceLanguage}">`;
-      twiml += `</Gather>`;
-      
+      // Build gather URL safely (avoid unescaped '&' breaking TwiML XML parsing)
+      const gatherUrlObj = new URL(`${supabaseUrl}/functions/v1/voiceflow-phone`);
+      gatherUrlObj.searchParams.set('business_id', businessId || '');
+      gatherUrlObj.searchParams.set('caller_phone', callerPhone || '');
+      gatherUrlObj.searchParams.set('call_sid', callSid || '');
+      const gatherUrl = escapeXml(gatherUrlObj.toString());
+
+      twiml += `<Gather input="speech" timeout="5" speechTimeout="auto" action="${gatherUrl}" method="POST" language="${voiceLanguage}"></Gather>`;
+
       // Fallback if no input - use proper voice for language
       twiml += buildSayElement("I didn't catch that. Let me transfer you.", voiceLanguage);
       twiml += `<Hangup/>`;

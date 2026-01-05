@@ -58,6 +58,7 @@ interface TwilioSettings {
   appointmentReminderTemplates?: Record<string, string>; // Templates per language
   appointmentReminderTiming?: 'same_day' | '1_day' | '2_days';
   timeFormat?: '12h' | '24h'; // AM/PM vs 24-hour format
+  speechRecognitionLanguage?: string; // Override for Twilio Gather speech recognition
 }
 
 interface Business {

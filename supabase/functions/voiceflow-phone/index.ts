@@ -231,6 +231,8 @@ serve(async (req) => {
     const voiceflowProjectId = twilioSettings.voiceflowProjectId;
     const voiceflowVersionId = twilioSettings.voiceflowVersionId || 'production';
     const voiceLanguage = twilioSettings.voiceLanguage || 'en-US';
+    // Allow custom speech recognition language override (for languages not supported by Twilio Gather)
+    const customSpeechRecognitionLanguage = twilioSettings.speechRecognitionLanguage;
 
     // Parse incoming Twilio data robustly
     let userInput = '';
@@ -367,8 +369,8 @@ serve(async (req) => {
       gatherUrlObj.searchParams.set('call_sid', callSid || '');
       const gatherUrl = escapeXml(gatherUrlObj.toString());
 
-      // Use valid Gather language (speech recognition has limited language support)
-      const gatherLanguage = getGatherLanguage(voiceLanguage);
+      // Use custom speech recognition language if specified, otherwise auto-detect from voice language
+      const gatherLanguage = customSpeechRecognitionLanguage || getGatherLanguage(voiceLanguage);
       twiml += `<Gather input="speech" timeout="5" speechTimeout="auto" action="${gatherUrl}" method="POST" language="${gatherLanguage}"></Gather>`;
 
       // Fallback if no input - use proper voice for language

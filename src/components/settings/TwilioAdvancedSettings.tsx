@@ -24,6 +24,7 @@ interface TwilioSettings {
   rateLimitWindow: number;
   enableAiReceptionist?: boolean;
   timeFormat?: '12h' | '24h';
+  speechRecognitionLanguage?: string; // Override for Twilio Gather speech recognition
 }
 
 interface TwilioAdvancedSettingsProps {
@@ -76,6 +77,38 @@ const VOICE_LANGUAGES = [
   { value: "hi-IN", label: "Hindi", sampleText: "नमस्ते! स्वागत है। आज मैं आपकी कैसे मदद कर सकता हूं?" },
   { value: "th-TH", label: "Thai", sampleText: "สวัสดีครับ! ยินดีต้อนรับ วันนี้ให้ช่วยอะไรได้บ้างครับ?" },
   { value: "vi-VN", label: "Vietnamese", sampleText: "Xin chào! Chào mừng. Tôi có thể giúp gì cho bạn?" },
+];
+
+// Twilio Gather speech recognition only supports these languages
+const SPEECH_RECOGNITION_LANGUAGES = [
+  { value: "auto", label: "Auto (fallback to English)" },
+  { value: "en-us", label: "English (US)" },
+  { value: "en-gb", label: "English (UK)" },
+  { value: "en-au", label: "English (Australia)" },
+  { value: "es-es", label: "Spanish (Spain)" },
+  { value: "es-mx", label: "Spanish (Mexico)" },
+  { value: "es-us", label: "Spanish (US)" },
+  { value: "fr-fr", label: "French (France)" },
+  { value: "fr-ca", label: "French (Canada)" },
+  { value: "de-de", label: "German" },
+  { value: "it-it", label: "Italian" },
+  { value: "pt-br", label: "Portuguese (Brazil)" },
+  { value: "pt-pt", label: "Portuguese (Portugal)" },
+  { value: "ru-ru", label: "Russian" },
+  { value: "ja-jp", label: "Japanese" },
+  { value: "ko-kr", label: "Korean" },
+  { value: "cmn-cn", label: "Chinese (Mandarin)" },
+  { value: "nl-nl", label: "Dutch" },
+  { value: "pl-pl", label: "Polish" },
+  { value: "tr-tr", label: "Turkish" },
+  { value: "hi-in", label: "Hindi" },
+  { value: "arb", label: "Arabic" },
+  { value: "da-dk", label: "Danish" },
+  { value: "nb-no", label: "Norwegian" },
+  { value: "sv-se", label: "Swedish" },
+  { value: "ro-ro", label: "Romanian" },
+  { value: "is-is", label: "Icelandic" },
+  { value: "cy-gb", label: "Welsh" },
 ];
 
 export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, businessId }: TwilioAdvancedSettingsProps) {
@@ -292,6 +325,33 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
                   <SelectItem value="male">Male</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Speech Recognition Language Override */}
+          <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-3">
+            <div className="space-y-2">
+              <Label className="text-gray-300">Speech Recognition Language</Label>
+              <Select
+                value={settings.speechRecognitionLanguage || "auto"}
+                onValueChange={(value) => updateSettings({ speechRecognitionLanguage: value === "auto" ? undefined : value })}
+              >
+                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  {SPEECH_RECOGNITION_LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-amber-300">
+                ⚠️ Twilio's speech recognition doesn't support all languages (e.g., Hebrew). 
+                If your TTS language isn't supported, callers will still hear the AI in their language, 
+                but they'll need to speak in the selected recognition language.
+              </p>
             </div>
           </div>
 

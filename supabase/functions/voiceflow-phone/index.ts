@@ -95,16 +95,46 @@ function getGatherLanguage(language: string): string {
   return 'en-us';
 }
 
+// Simple heuristic to detect if text is primarily Hebrew
+function isHebrewText(text: string): boolean {
+  // Hebrew Unicode range: 0x0590-0x05FF
+  const hebrewChars = text.match(/[\u0590-\u05FF]/g) || [];
+  const latinChars = text.match(/[a-zA-Z]/g) || [];
+  // Consider it Hebrew if there are Hebrew chars and they outnumber Latin chars
+  return hebrewChars.length > 0 && hebrewChars.length >= latinChars.length;
+}
+
 // Build a <Say> TwiML element with proper voice/language handling
-function buildSayElement(message: string, language: string): string {
+// Automatically detects text language to prevent Hebrew voice speaking English or vice versa
+function buildSayElement(message: string, configuredLanguage: string): string {
   const escapedMessage = escapeXml(message);
-  const voice = getTwilioPollyVoice(language);
+  
+  // Detect actual text language
+  const textIsHebrew = isHebrewText(message);
+  const configIsHebrew = configuredLanguage.toLowerCase().startsWith('he');
+  
+  // Choose voice and language based on actual text content, not just config
+  let effectiveLanguage = configuredLanguage;
+  let voice: string | null;
+  
+  if (textIsHebrew) {
+    // Text is Hebrew - use Hebrew voice
+    effectiveLanguage = 'he-IL';
+    voice = 'Polly.Carmit';
+  } else if (configIsHebrew) {
+    // Config is Hebrew but text is not Hebrew (likely English) - use English voice
+    effectiveLanguage = 'en-US';
+    voice = 'Polly.Joanna';
+  } else {
+    // Use configured language
+    voice = getTwilioPollyVoice(configuredLanguage);
+  }
   
   if (voice) {
-    return `<Say voice="${voice}" language="${language}">${escapedMessage}</Say>`;
+    return `<Say voice="${voice}" language="${effectiveLanguage}">${escapedMessage}</Say>`;
   }
   // Fallback: just use language, let Twilio pick default voice
-  return `<Say language="${language}">${escapedMessage}</Say>`;
+  return `<Say language="${effectiveLanguage}">${escapedMessage}</Say>`;
 }
 
 function escapeXml(text: string): string {

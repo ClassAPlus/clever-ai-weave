@@ -71,3 +71,9 @@ verify_jwt = false
 
 [functions.voiceflow-phone]
 verify_jwt = false
+
+[functions.elevenlabs-phone]
+verify_jwt = false
+
+[functions.elevenlabs-conversation-token]
+verify_jwt = true

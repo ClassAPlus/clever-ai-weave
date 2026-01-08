@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import { 
   Mic, 
   Volume2, 
@@ -24,6 +25,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { VoiceAgentDemo } from "./VoiceAgentDemo";
 
 export interface ElevenLabsConfig {
   agentId: string;
@@ -41,6 +43,7 @@ interface ElevenLabsSettingsProps {
   isTesting?: boolean;
   testResult?: { success: boolean; message: string } | null;
   disabled?: boolean;
+  businessId?: string;
 }
 
 // Popular ElevenLabs voice options
@@ -77,6 +80,7 @@ export function ElevenLabsSettings({
   isTesting,
   testResult,
   disabled = false,
+  businessId,
 }: ElevenLabsSettingsProps) {
   const [showCustomVoiceInput, setShowCustomVoiceInput] = useState(
     config.voiceId && !VOICE_OPTIONS.some(v => v.value === config.voiceId && v.value !== "custom")
@@ -324,6 +328,18 @@ export function ElevenLabsSettings({
             Each call dynamically receives business-specific greetings, instructions, and personality from your database configuration.
           </p>
         </div>
+
+        {/* Voice Demo Section */}
+        {businessId && (
+          <>
+            <Separator className="my-4" />
+            <VoiceAgentDemo 
+              businessId={businessId} 
+              agentId={config.agentId} 
+              disabled={disabled}
+            />
+          </>
+        )}
       </CardContent>
     </Card>
   );

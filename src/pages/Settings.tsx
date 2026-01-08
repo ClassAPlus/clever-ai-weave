@@ -1806,6 +1806,7 @@ export default function Settings() {
                 elevenlabs: elevenLabsConfig,
               }));
             }}
+            businessId={business?.id}
           />
         </TabsContent>
 

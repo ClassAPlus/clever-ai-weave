@@ -33,6 +33,7 @@ import { BusinessStaffManager } from "@/components/settings/BusinessStaffManager
 import { SettingsSkeleton } from "@/components/settings/SettingsSkeleton";
 import { GoogleCalendarSync } from "@/components/settings/GoogleCalendarSync";
 import { AppointmentTemplateManager } from "@/components/appointments/AppointmentTemplateManager";
+import { ElevenLabsSettings } from "@/components/settings/ElevenLabsSettings";
 import { Badge } from "@/components/ui/badge";
 
 import { SMSPreviewTest } from "@/components/settings/SMSPreviewTest";
@@ -1788,6 +1789,24 @@ export default function Settings() {
               />
             </CardContent>
           </Card>
+
+          {/* ElevenLabs Voice AI */}
+          <ElevenLabsSettings
+            config={{
+              agentId: (twilioSettings as any)?.elevenlabs?.agentId || "",
+              voiceId: (twilioSettings as any)?.elevenlabs?.voiceId || "",
+              language: (twilioSettings as any)?.elevenlabs?.language || "",
+              customPromptOverride: (twilioSettings as any)?.elevenlabs?.customPromptOverride || "",
+              firstMessageOverride: (twilioSettings as any)?.elevenlabs?.firstMessageOverride || "",
+              enableTools: (twilioSettings as any)?.elevenlabs?.enableTools ?? true,
+            }}
+            onChange={(elevenLabsConfig) => {
+              setTwilioSettings(prev => ({
+                ...prev,
+                elevenlabs: elevenLabsConfig,
+              }));
+            }}
+          />
         </TabsContent>
 
         {/* Developer Tab */}

@@ -121,10 +121,15 @@ serve(async (req) => {
     const voiceLanguage = twilioSettings.voiceLanguage || 'he-IL';
     const voiceGender = twilioSettings.voiceGender || 'female';
     
-    // Voiceflow settings - primary AI backend
+    // AI Backend settings - prioritize ElevenLabs, fallback to Voiceflow
+    const elevenlabsConfig = twilioSettings.elevenlabs || {};
+    const elevenlabsAgentId = elevenlabsConfig.agentId || '';
     const voiceflowProjectId = twilioSettings.voiceflowProjectId || '';
     const voiceflowVersionId = twilioSettings.voiceflowVersionId || 'production';
     const enableAiReceptionist = twilioSettings.enableAiReceptionist !== false;
+    
+    // Determine which AI provider to use
+    const aiProvider = elevenlabsAgentId ? 'elevenlabs' : (voiceflowProjectId ? 'voiceflow' : 'none');
 
     // Check if Google Cloud TTS is configured
     const useGoogleTTS = !!Deno.env.get('GOOGLE_CLOUD_API_KEY');
@@ -157,7 +162,7 @@ serve(async (req) => {
     };
 
     const pollyVoiceName = getVoiceName(voiceLanguage, voiceGender);
-    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage, "AI receptionist:", enableAiReceptionist, "Voiceflow project:", voiceflowProjectId);
+    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage, "AI provider:", aiProvider, "AI enabled:", enableAiReceptionist);
 
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
 
@@ -171,12 +176,23 @@ serve(async (req) => {
       }
       
       twiml += `</Dial>`;
-    } else if (enableAiReceptionist && voiceflowProjectId) {
-      // Voiceflow Phone AI integration via Dialog API
+    } else if (enableAiReceptionist && aiProvider === 'elevenlabs') {
+      // ElevenLabs Conversational AI - preferred multi-tenant solution
+      console.log("Connecting to ElevenLabs agent for business:", business.id);
+      
+      // Redirect to ElevenLabs phone handler which will dynamically configure the agent
+      const redirectUrl = new URL(`https://${projectId}.supabase.co/functions/v1/elevenlabs-phone`);
+      redirectUrl.searchParams.set('business_id', business.id);
+      redirectUrl.searchParams.set('caller_phone', callerPhone);
+      redirectUrl.searchParams.set('call_sid', callSid);
+      const escapedUrl = escapeXml(redirectUrl.toString());
+      
+      twiml += `<Redirect method="POST">${escapedUrl}</Redirect>`;
+    } else if (enableAiReceptionist && aiProvider === 'voiceflow') {
+      // Voiceflow Phone AI integration via Dialog API (legacy/fallback)
       console.log("Connecting to Voiceflow project:", voiceflowProjectId, "for business:", business.id);
       
       // Redirect to Voiceflow webhook handler
-      // Build the URL properly then XML-escape for safe TwiML insertion
       const redirectUrl = new URL(`https://${projectId}.supabase.co/functions/v1/voiceflow-phone`);
       redirectUrl.searchParams.set('business_id', business.id);
       redirectUrl.searchParams.set('caller_phone', callerPhone);

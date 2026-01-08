@@ -48,7 +48,7 @@ interface ElevenLabsSettingsProps {
 
 // Popular ElevenLabs voice options
 const VOICE_OPTIONS = [
-  { value: "", label: "Default (Agent's voice)" },
+  { value: "default", label: "Default (Agent's voice)" },
   { value: "EXAVITQu4vr4xnSDxMaL", label: "Sarah - Soft, friendly" },
   { value: "JBFqnCBsd6RMkjVDRZzb", label: "George - Professional, clear" },
   { value: "pFZP5JQG7iQjIQuC4Bku", label: "Lily - Warm, expressive" },
@@ -93,6 +93,9 @@ export function ElevenLabsSettings({
   const handleVoiceChange = (value: string) => {
     if (value === "custom") {
       setShowCustomVoiceInput(true);
+      updateField("voiceId", "");
+    } else if (value === "default") {
+      setShowCustomVoiceInput(false);
       updateField("voiceId", "");
     } else {
       setShowCustomVoiceInput(false);
@@ -186,7 +189,7 @@ export function ElevenLabsSettings({
             <Label>Voice</Label>
           </div>
           <Select
-            value={showCustomVoiceInput ? "custom" : (config.voiceId || "")}
+            value={showCustomVoiceInput ? "custom" : (config.voiceId || "default")}
             onValueChange={handleVoiceChange}
             disabled={disabled}
           >

@@ -17,7 +17,8 @@ import {
   CheckCircle2, 
   AlertCircle,
   ExternalLink,
-  HelpCircle
+  HelpCircle,
+  Loader2
 } from "lucide-react";
 import {
   Tooltip,
@@ -26,6 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { VoiceAgentDemo } from "./VoiceAgentDemo";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ElevenLabsConfig {
   agentId: string;
@@ -85,9 +87,60 @@ export function ElevenLabsSettings({
   const [showCustomVoiceInput, setShowCustomVoiceInput] = useState(
     config.voiceId && !VOICE_OPTIONS.some(v => v.value === config.voiceId && v.value !== "custom")
   );
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const updateField = <K extends keyof ElevenLabsConfig>(field: K, value: ElevenLabsConfig[K]) => {
     onChange({ ...config, [field]: value });
+    // Clear test result when config changes
+    if (field === 'agentId') {
+      setConnectionTestResult(null);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (!config.agentId?.trim()) {
+      setConnectionTestResult({ success: false, message: "Please enter an Agent ID first" });
+      return;
+    }
+
+    setIsTestingConnection(true);
+    setConnectionTestResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-conversation-token', {
+        body: { 
+          overrides: { 
+            agentId: config.agentId.trim() 
+          } 
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to connect');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.token) {
+        setConnectionTestResult({ 
+          success: true, 
+          message: "Agent ID verified successfully! Your ElevenLabs agent is ready to use." 
+        });
+      } else {
+        throw new Error('No token received from ElevenLabs');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      setConnectionTestResult({ 
+        success: false, 
+        message: `Connection failed: ${message}` 
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   const handleVoiceChange = (value: string) => {
@@ -164,6 +217,22 @@ export function ElevenLabsSettings({
             <Button
               variant="outline"
               size="sm"
+              onClick={handleTestConnection}
+              disabled={disabled || isTestingConnection || !config.agentId?.trim()}
+              className="shrink-0"
+            >
+              {isTestingConnection ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                  Test
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               asChild
               className="shrink-0"
             >
@@ -177,6 +246,21 @@ export function ElevenLabsSettings({
               </a>
             </Button>
           </div>
+          
+          {/* Connection Test Result */}
+          {connectionTestResult && (
+            <Alert variant={connectionTestResult.success ? "default" : "destructive"} className="mt-2">
+              <AlertDescription className="flex items-center gap-2 text-sm">
+                {connectionTestResult.success ? (
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                )}
+                {connectionTestResult.message}
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <p className="text-xs text-muted-foreground">
             This single Agent ID is shared across all tenants. Per-tenant customization happens through dynamic overrides.
           </p>

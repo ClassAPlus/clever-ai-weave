@@ -11,25 +11,19 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('authorization') ?? req.headers.get('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
     // Verify user is authenticated
-    const { data: { user }, error: authError } = token
-      ? await supabaseClient.auth.getUser(token)
-      : await supabaseClient.auth.getUser();
-
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
-      // IMPORTANT: return 200 to avoid client hard-failing on non-2xx.
-      // Also: omit an "error" field to prevent client code from treating this as a failure.
+      console.error('Auth error:', authError);
       return new Response(
-        JSON.stringify({ success: true, port_requests: [] }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -63,10 +57,9 @@ Deno.serve(async (req) => {
 
       if (!business || business.owner_user_id !== user.id) {
         console.log('Access denied - owner_user_id:', business?.owner_user_id, 'user.id:', user.id);
-        // Return 200 + empty list to keep the dashboard stable.
         return new Response(
-          JSON.stringify({ success: true, port_requests: [] }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ success: false, error: 'Business not found or access denied' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 

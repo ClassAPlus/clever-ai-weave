@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useConversation } from "@elevenlabs/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -7,31 +8,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Phone, MessageSquare, Volume2, Loader2, Square, Bot, Play } from "lucide-react";
+import { Phone, MessageSquare, Volume2, Loader2, Square, User, Bot, Play, RefreshCw, PhoneOff, Mic, MicOff, Copy, Check, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { TwilioDebuggerHints } from "./TwilioDebuggerHints";
-import { WebhookHealthCheck } from "./WebhookHealthCheck";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TwilioSettings {
   voiceLanguage: string;
   voiceGender: string;
   voiceId: string;
   googleVoiceName?: string;
-  voiceflowProjectId?: string;
-  voiceflowVersionId?: string;
+  elevenLabsVoiceId?: string;
+  elevenLabsVoiceGender?: 'male' | 'female'; // Auto-derived from selected voice
+  elevenLabsAgentId?: string;
+  useElevenLabsAgent?: boolean;
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;
   enableAiReceptionist?: boolean;
-  timeFormat?: '12h' | '24h';
-  speechRecognitionLanguage?: string; // Override for Twilio Gather speech recognition
+  timeFormat?: '12h' | '24h'; // AM/PM vs 24-hour format
 }
 
 interface TwilioAdvancedSettingsProps {
   settings: TwilioSettings;
   onChange: (settings: TwilioSettings) => void;
-  primaryLanguage?: string;
-  businessId?: string;
+  primaryLanguage?: string; // From AI Configuration - auto-syncs voice language
+  businessId?: string; // For test calls
 }
 
 // Map AI language names to voice language codes (for display purposes)
@@ -56,6 +57,40 @@ const AI_LANGUAGE_TO_VOICE_CODE: Record<string, string> = {
   vietnamese: 'vi-VN',
 };
 
+// ElevenLabs voices - multilingual_v2 supports all languages including Hebrew
+// Voices marked as "Multilingual" are specifically optimized for non-English languages
+const ELEVENLABS_VOICES = [
+  // Female voices - Best for Hebrew marked first
+  { id: 'cgSgspJ2msm6clMCkdW9', name: 'Jessica', gender: 'female', description: '⭐ Best for Hebrew - Professional, clear', accent: 'Multilingual' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', gender: 'female', description: 'Warm, natural, conversational', accent: 'Multilingual' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', gender: 'female', description: 'Friendly, clear', accent: 'Multilingual' },
+  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily', gender: 'female', description: 'Soft, gentle', accent: 'British' },
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', gender: 'female', description: 'Young, bright', accent: 'British' },
+  { id: 'FGY2WhTYpPnrIDTdsKH5', name: 'Laura', gender: 'female', description: 'Calm, professional', accent: 'Multilingual' },
+  { id: 'SAz9YHcvj6GT2YYXdXww', name: 'River', gender: 'female', description: 'Confident, articulate', accent: 'American' },
+  { id: 'jsCqWAovK2LkecY7zXl4', name: 'Freya', gender: 'female', description: 'Nordic, elegant', accent: 'Scandinavian' },
+  { id: 'oWAxZDx7w5VEj9dCyTzz', name: 'Grace', gender: 'female', description: 'Southern charm', accent: 'American' },
+  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', gender: 'female', description: 'Swedish, melodic', accent: 'Swedish' },
+  { id: 'pMsXgVXv3BLzUgSXRplE', name: 'Serena', gender: 'female', description: 'Soothing, calm', accent: 'American' },
+  { id: 'z9fAnlkpzviPz146aGWa', name: 'Glinda', gender: 'female', description: 'Warm, motherly', accent: 'American' },
+  // Male voices - Best for Hebrew marked first
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', gender: 'male', description: '⭐ Best for Hebrew - Clear, professional', accent: 'Multilingual' },
+  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', gender: 'male', description: 'Friendly, warm', accent: 'Multilingual' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', gender: 'male', description: 'British, refined', accent: 'British' },
+  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', gender: 'male', description: 'Casual, approachable', accent: 'Australian' },
+  { id: 'cjVigY5qzO86Huf0OWal', name: 'Eric', gender: 'male', description: 'Deep, authoritative', accent: 'American' },
+  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', gender: 'male', description: 'Warm, trustworthy', accent: 'Multilingual' },
+  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum', gender: 'male', description: 'Scottish accent', accent: 'Scottish' },
+  { id: 'bIHbv24MWmeRgasZH58o', name: 'Will', gender: 'male', description: 'Young, energetic', accent: 'American' },
+  { id: 'CwhRBWXzGAHq8TQ4Fs17', name: 'Roger', gender: 'male', description: 'Mature, authoritative', accent: 'American' },
+  { id: 'iP95p4xoKVk53GoZ742B', name: 'Chris', gender: 'male', description: 'Casual, friendly', accent: 'American' },
+  { id: 'pqHfZKP75CvOlQylNhV4', name: 'Bill', gender: 'male', description: 'Narrator style', accent: 'American' },
+  { id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam', gender: 'male', description: 'Raspy, character', accent: 'American' },
+  { id: 'ZQe5CZNOzWyzPSCn5a3c', name: 'James', gender: 'male', description: 'British gentleman', accent: 'British' },
+  { id: 'ODq5zmih8GrVes37Dizd', name: 'Patrick', gender: 'male', description: 'Irish charm', accent: 'Irish' },
+  { id: 'g5CIjZEefAph4nQFvHAz', name: 'Ethan', gender: 'male', description: 'News anchor', accent: 'American' },
+];
+
 const VOICE_LANGUAGES = [
   { value: "he-IL", label: "Hebrew (Israel)", sampleText: "שלום! ברוכים הבאים. איך אוכל לעזור לך היום?" },
   { value: "en-US", label: "English (US)", sampleText: "Hello! Welcome. How can I help you today?" },
@@ -79,43 +114,188 @@ const VOICE_LANGUAGES = [
   { value: "vi-VN", label: "Vietnamese", sampleText: "Xin chào! Chào mừng. Tôi có thể giúp gì cho bạn?" },
 ];
 
-// Twilio Gather speech recognition only supports these languages
-const SPEECH_RECOGNITION_LANGUAGES = [
-  { value: "auto", label: "Auto (fallback to English)" },
-  { value: "en-us", label: "English (US)" },
-  { value: "en-gb", label: "English (UK)" },
-  { value: "en-au", label: "English (Australia)" },
-  { value: "es-es", label: "Spanish (Spain)" },
-  { value: "es-mx", label: "Spanish (Mexico)" },
-  { value: "es-us", label: "Spanish (US)" },
-  { value: "fr-fr", label: "French (France)" },
-  { value: "fr-ca", label: "French (Canada)" },
-  { value: "de-de", label: "German" },
-  { value: "it-it", label: "Italian" },
-  { value: "pt-br", label: "Portuguese (Brazil)" },
-  { value: "pt-pt", label: "Portuguese (Portugal)" },
-  { value: "ru-ru", label: "Russian" },
-  { value: "ja-jp", label: "Japanese" },
-  { value: "ko-kr", label: "Korean" },
-  { value: "cmn-cn", label: "Chinese (Mandarin)" },
-  { value: "nl-nl", label: "Dutch" },
-  { value: "pl-pl", label: "Polish" },
-  { value: "tr-tr", label: "Turkish" },
-  { value: "hi-in", label: "Hindi" },
-  { value: "arb", label: "Arabic" },
-  { value: "da-dk", label: "Danish" },
-  { value: "nb-no", label: "Norwegian" },
-  { value: "sv-se", label: "Swedish" },
-  { value: "ro-ro", label: "Romanian" },
-  { value: "is-is", label: "Icelandic" },
-  { value: "cy-gb", label: "Welsh" },
-];
-
 export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, businessId }: TwilioAdvancedSettingsProps) {
   const { toast } = useToast();
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [customText, setCustomText] = useState("");
+  const [customVoiceId, setCustomVoiceId] = useState("");
+  const [useCustomVoice, setUseCustomVoice] = useState(false);
+  const [voiceFilter, setVoiceFilter] = useState<'all' | 'female' | 'male'>('all');
+
+  const [accountVoices, setAccountVoices] = useState<Array<{ voice_id: string; name: string; category?: string; labels?: { gender?: string } }>>([]);
+  const [accountVoicesLoading, setAccountVoicesLoading] = useState(false);
+  const [accountVoicesError, setAccountVoicesError] = useState<string | null>(null);
+  const [selectedAccountVoiceId, setSelectedAccountVoiceId] = useState<string>("");
+
+  // ElevenLabs test call state
+  const [isTestCallConnecting, setIsTestCallConnecting] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [transcript, setTranscript] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
+
+  // Agent provisioning state
+  const [isProvisioningAgent, setIsProvisioningAgent] = useState(false);
+  const [provisioningResult, setProvisioningResult] = useState<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    agent_id?: string;
+  } | null>(null);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-webhook`;
+
+  // ElevenLabs conversation hook
+  const conversation = useConversation({
+    onConnect: () => {
+      console.log("Connected to ElevenLabs agent");
+      setTranscript(prev => [...prev, "📞 Connected - Start speaking..."]);
+    },
+    onDisconnect: () => {
+      console.log("Disconnected from ElevenLabs agent");
+      setTranscript(prev => [...prev, "📞 Call ended"]);
+      setIsTestCallConnecting(false);
+    },
+    onMessage: (message: any) => {
+      console.log("ElevenLabs message:", message);
+      if (message.type === "user_transcript") {
+        const text = message.user_transcription_event?.user_transcript;
+        if (text) {
+          setTranscript(prev => [...prev, `🎤 You: ${text}`]);
+        }
+      } else if (message.type === "agent_response") {
+        const text = message.agent_response_event?.agent_response;
+        if (text) {
+          setTranscript(prev => [...prev, `🤖 AI: ${text}`]);
+        }
+      }
+    },
+    onError: (error) => {
+      console.error("ElevenLabs error:", error);
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to voice agent. Check your Agent ID.",
+        variant: "destructive",
+      });
+      setIsTestCallConnecting(false);
+    },
+  });
+
+  const startTestCall = useCallback(async () => {
+    if (!settings.elevenLabsAgentId) {
+      toast({
+        title: "Agent ID Required",
+        description: "Please enter your ElevenLabs Agent ID first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTestCallConnecting(true);
+    setTranscript([]);
+
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      await conversation.startSession({
+        agentId: settings.elevenLabsAgentId,
+        connectionType: "webrtc",
+        dynamicVariables: {
+          business_id: businessId || "",
+          caller_phone: "+1234567890",
+        },
+      });
+    } catch (error) {
+      console.error("Failed to start conversation:", error);
+      toast({
+        title: "Connection Failed",
+        description: error instanceof Error ? error.message : "Failed to start test call",
+        variant: "destructive",
+      });
+      setIsTestCallConnecting(false);
+    }
+  }, [settings.elevenLabsAgentId, businessId, conversation, toast]);
+
+  const endTestCall = useCallback(async () => {
+    await conversation.endSession();
+    setIsTestCallConnecting(false);
+  }, [conversation]);
+
+  const copyWebhookUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(webhookUrl);
+      setCopied(true);
+      toast({ title: "Copied!", description: "Webhook URL copied to clipboard." });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({ title: "Copy failed", description: "Please copy the URL manually.", variant: "destructive" });
+    }
+  };
+
+  const provisionAgent = async (updateExisting = false) => {
+    if (!businessId) {
+      toast({
+        title: "Error",
+        description: "Business ID not available. Please save settings first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProvisioningAgent(true);
+    setProvisioningResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("elevenlabs-create-agent", {
+        body: {
+          business_id: businessId,
+          voice_id: settings.elevenLabsVoiceId,
+          update_existing: updateExisting,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setProvisioningResult({
+          success: true,
+          message: data.message,
+          agent_id: data.agent_id,
+        });
+
+        // Update local settings with the new agent ID
+        updateSettings({
+          elevenLabsAgentId: data.agent_id,
+          enableAiReceptionist: true,
+        });
+
+        toast({
+          title: updateExisting ? "Agent Updated!" : "Agent Created!",
+          description: `Your AI receptionist is ready. Agent ID: ${data.agent_id}`,
+        });
+      } else {
+        throw new Error(data.error || "Unknown error");
+      }
+    } catch (err) {
+      console.error("Agent provisioning error:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to provision agent";
+      setProvisioningResult({
+        success: false,
+        error: errorMessage,
+      });
+      toast({
+        title: "Provisioning Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsProvisioningAgent(false);
+    }
+  };
+
+  const isTestCallConnected = conversation.status === "connected";
 
   // Auto-sync voice language from primary AI language (for display)
   const effectiveVoiceLanguage = primaryLanguage 
@@ -141,7 +321,55 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
     }
   }, [primaryLanguage]);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Set default ElevenLabs voice if not set, and ensure gender is stored
+  useEffect(() => {
+    if (!settings.elevenLabsVoiceId) {
+      const defaultVoice = settings.voiceGender === 'male' 
+        ? 'onwK4e9ZLuTAKqWW03F9' // Daniel
+        : 'cgSgspJ2msm6clMCkdW9'; // Jessica (best multilingual)
+      const defaultGender = settings.voiceGender === 'male' ? 'male' : 'female';
+      updateSettings({ elevenLabsVoiceId: defaultVoice, elevenLabsVoiceGender: defaultGender as 'male' | 'female' });
+    }
+  }, []);
+
+  // Helper function to get gender from voice ID (from hardcoded list or account voices)
+  const getVoiceGender = (voiceId: string): 'male' | 'female' => {
+    // Check hardcoded voices first
+    const hardcodedVoice = ELEVENLABS_VOICES.find(v => v.id === voiceId);
+    if (hardcodedVoice) {
+      return hardcodedVoice.gender as 'male' | 'female';
+    }
+    // Check account voices (from ElevenLabs API)
+    const accountVoice = accountVoices.find(v => v.voice_id === voiceId);
+    if (accountVoice?.labels?.gender) {
+      return accountVoice.labels.gender === 'male' ? 'male' : 'female';
+    }
+    // Default to female if unknown
+    return 'female';
+  };
+
+  const fetchAccountVoices = async () => {
+    try {
+      setAccountVoicesLoading(true);
+      setAccountVoicesError(null);
+
+      const { data, error } = await supabase.functions.invoke("elevenlabs-voices");
+      if (error) throw error;
+
+      const voices = (data?.voices as Array<{ voice_id: string; name: string; category?: string; labels?: { gender?: string } }>) || [];
+      setAccountVoices(voices);
+      setSelectedAccountVoiceId((prev) => prev || voices?.[0]?.voice_id || "");
+    } catch (e) {
+      console.error("Failed to load ElevenLabs voices:", e);
+      setAccountVoicesError(e instanceof Error ? e.message : "Failed to load voices");
+    } finally {
+      setAccountVoicesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchAccountVoices();
+  }, []);
 
   const stopAudio = () => {
     if (audioRef.current) {
@@ -149,20 +377,25 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
       audioRef.current = null;
     }
     setIsSpeaking(false);
+    setPreviewingVoiceId(null);
   };
 
-  const playVoicePreview = async () => {
-    if (isSpeaking) {
+  const playVoicePreview = async (voiceId?: string) => {
+    const targetVoiceId = voiceId || settings.elevenLabsVoiceId || 'EXAVITQu4vr4xnSDxMaL';
+    
+    if (isSpeaking && previewingVoiceId === targetVoiceId) {
       stopAudio();
       return;
     }
 
+    // Stop any current audio first
     stopAudio();
 
     const langConfig = VOICE_LANGUAGES.find(l => l.value === effectiveVoiceLanguage);
     const textToSpeak = customText.trim() || langConfig?.sampleText || "Hello, how can I help you today?";
 
     setIsLoading(true);
+    setPreviewingVoiceId(targetVoiceId);
 
     try {
       const response = await fetch(
@@ -176,6 +409,7 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
             text: textToSpeak, 
             languageCode: effectiveVoiceLanguage,
             gender: settings.voiceGender,
+            voiceId: targetVoiceId
           }),
         }
       );
@@ -191,10 +425,12 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
       audioRef.current = new Audio(audioUrl);
       audioRef.current.onended = () => {
         setIsSpeaking(false);
+        setPreviewingVoiceId(null);
         URL.revokeObjectURL(audioUrl);
       };
       audioRef.current.onerror = () => {
         setIsSpeaking(false);
+        setPreviewingVoiceId(null);
         URL.revokeObjectURL(audioUrl);
       };
 
@@ -207,12 +443,28 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
         title: "Voice preview failed",
         description: error instanceof Error ? error.message : "Could not generate voice preview. Please try again.",
       });
+      setPreviewingVoiceId(null);
     } finally {
       setIsLoading(false);
     }
   };
 
   const currentLang = VOICE_LANGUAGES.find(l => l.value === effectiveVoiceLanguage);
+  
+  // Filter and sort voices
+  const filteredVoices = ELEVENLABS_VOICES.filter(v => 
+    voiceFilter === 'all' || v.gender === voiceFilter
+  );
+  
+  const sortedVoices = [...filteredVoices].sort((a, b) => {
+    // Preferred gender first
+    if (a.gender === settings.voiceGender && b.gender !== settings.voiceGender) return -1;
+    if (b.gender === settings.voiceGender && a.gender !== settings.voiceGender) return 1;
+    return a.name.localeCompare(b.name);
+  });
+  
+  const selectedVoice = ELEVENLABS_VOICES.find(v => v.id === settings.elevenLabsVoiceId);
+  const isUsingCustomVoice = useCustomVoice || (settings.elevenLabsVoiceId && !ELEVENLABS_VOICES.find(v => v.id === settings.elevenLabsVoiceId));
 
   return (
     <Card className="bg-gray-800/50 border-gray-700">
@@ -226,7 +478,7 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* AI Receptionist */}
+        {/* AI Receptionist - Powered by ElevenLabs */}
         <div className="p-4 rounded-lg bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -239,15 +491,231 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
             <Switch
               checked={settings.enableAiReceptionist !== false}
               onCheckedChange={(checked) => {
-                updateSettings({ enableAiReceptionist: checked });
+                updateSettings({ 
+                  enableAiReceptionist: checked,
+                  useElevenLabsAgent: checked // Always use ElevenLabs when enabled
+                });
               }}
             />
           </div>
           
           {settings.enableAiReceptionist !== false && (
-            <p className="text-xs text-purple-300">
-              🎙️ When enabled, callers will have a real-time voice conversation with your AI assistant. The AI will use your business knowledge base and can book appointments, take messages, and answer questions.
-            </p>
+            <>
+              <p className="text-xs text-purple-300">
+                🎙️ When enabled, callers will have a real-time voice conversation with your AI assistant powered by ElevenLabs Conversational AI.
+              </p>
+
+              {/* Agent Provisioning Section */}
+              <div className="space-y-3 pt-2 border-t border-purple-500/20">
+                <div className="flex items-center justify-between">
+                  <Label className="text-gray-300 text-sm">AI Agent Setup</Label>
+                  {settings.elevenLabsAgentId && (
+                    <Badge variant="outline" className="text-green-400 border-green-400/50">
+                      Agent Active
+                    </Badge>
+                  )}
+                </div>
+
+                {settings.elevenLabsAgentId ? (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-green-300">Agent ID:</p>
+                          <p className="text-xs text-gray-400 font-mono">{settings.elevenLabsAgentId}</p>
+                        </div>
+                        <a
+                          href={`https://elevenlabs.io/app/conversational-ai/${settings.elevenLabsAgentId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-400 hover:text-purple-300"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => provisionAgent(true)}
+                        disabled={isProvisioningAgent || !businessId}
+                        variant="outline"
+                        size="sm"
+                        className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                      >
+                        {isProvisioningAgent ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                        )}
+                        Update Agent
+                      </Button>
+                      <Button
+                        onClick={() => provisionAgent(false)}
+                        disabled={isProvisioningAgent || !businessId}
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-gray-300"
+                      >
+                        Create New
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Update syncs your business settings (hours, services, language) to the agent. Create New makes a fresh agent.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-400">
+                      Create an ElevenLabs AI agent configured with your business settings, hours, and services.
+                    </p>
+                    <Button
+                      onClick={() => provisionAgent(false)}
+                      disabled={isProvisioningAgent || !businessId}
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    >
+                      {isProvisioningAgent ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Bot className="h-4 w-4 mr-2" />
+                      )}
+                      {isProvisioningAgent ? "Creating Agent..." : "Create AI Agent"}
+                    </Button>
+                    {!businessId && (
+                      <p className="text-xs text-amber-400">
+                        ⚠️ Save your settings first to enable agent creation.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {provisioningResult && (
+                  <div className={`p-3 rounded-lg border ${
+                    provisioningResult.success 
+                      ? "bg-green-500/10 border-green-500/30" 
+                      : "bg-red-500/10 border-red-500/30"
+                  }`}>
+                    <p className={`text-sm ${provisioningResult.success ? "text-green-300" : "text-red-300"}`}>
+                      {provisioningResult.success ? "✓ " : "✗ "}
+                      {provisioningResult.message || provisioningResult.error}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Manual Agent ID Input (collapsed by default) */}
+              <details className="group">
+                <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
+                  Advanced: Enter Agent ID manually ▸
+                </summary>
+                <div className="space-y-2 pt-2 mt-2 border-t border-gray-700">
+                  <Input
+                    value={settings.elevenLabsAgentId || ""}
+                    onChange={(e) => updateSettings({ elevenLabsAgentId: e.target.value })}
+                    placeholder="Enter your ElevenLabs Agent ID..."
+                    className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Get your Agent ID from the{" "}
+                    <a 
+                      href="https://elevenlabs.io/app/conversational-ai" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-purple-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      ElevenLabs Dashboard
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </p>
+                </div>
+              </details>
+
+              {/* Webhook URL */}
+              <details className="group">
+                <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-400">
+                  View Webhook URL (for custom integrations) ▸
+                </summary>
+                <div className="space-y-2 pt-2 mt-2 border-t border-gray-700">
+                  <div className="flex gap-2">
+                    <Input
+                      value={webhookUrl}
+                      readOnly
+                      className="bg-gray-900 border-gray-600 text-gray-400 font-mono text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={copyWebhookUrl}
+                      className="border-gray-600 hover:bg-gray-700 shrink-0"
+                    >
+                      {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </details>
+
+              {/* Test Call Section */}
+              {settings.elevenLabsAgentId && (
+                <div className="space-y-3 pt-3 border-t border-purple-500/20">
+                  <Label className="text-gray-300 text-sm">Test Your Agent</Label>
+                  
+                  <div className="flex items-center gap-3">
+                    {!isTestCallConnected ? (
+                      <Button
+                        onClick={startTestCall}
+                        disabled={isTestCallConnecting || !settings.elevenLabsAgentId}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {isTestCallConnecting ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Phone className="h-4 w-4 mr-2" />
+                        )}
+                        {isTestCallConnecting ? "Connecting..." : "Start Test Call"}
+                      </Button>
+                    ) : (
+                      <>
+                        <Button onClick={endTestCall} variant="destructive" size="sm">
+                          <PhoneOff className="h-4 w-4 mr-2" />
+                          End Call
+                        </Button>
+                        <Button
+                          onClick={() => setIsMuted(prev => !prev)}
+                          variant="outline"
+                          size="icon"
+                          className={isMuted ? "bg-red-500/20 border-red-500/50" : "border-gray-600"}
+                        >
+                          {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                        </Button>
+                      </>
+                    )}
+                    
+                    <Badge variant={isTestCallConnected ? "default" : isTestCallConnecting ? "secondary" : "outline"}>
+                      {isTestCallConnected && "In Call"}
+                      {isTestCallConnecting && "Connecting..."}
+                      {!isTestCallConnected && !isTestCallConnecting && "Ready"}
+                    </Badge>
+                    
+                    {isTestCallConnected && conversation.isSpeaking && (
+                      <div className="flex items-center gap-2 text-purple-400">
+                        <Volume2 className="h-4 w-4 animate-pulse" />
+                        <span className="text-xs">AI Speaking...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {transcript.length > 0 && (
+                    <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700 max-h-40 overflow-y-auto">
+                      <div className="space-y-1 text-xs">
+                        {transcript.map((line, i) => (
+                          <p key={i} className="text-gray-300">{line}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -291,12 +759,12 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
           </p>
         </div>
 
-        {/* Voice Settings */}
+
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-gray-700">
             <Phone className="h-4 w-4 text-purple-400" />
             <span className="font-medium text-white">Voice Settings</span>
-            <span className="text-xs text-emerald-400 ml-auto">Powered by Voiceflow</span>
+            <span className="text-xs text-emerald-400 ml-auto">Powered by ElevenLabs</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -307,7 +775,7 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
                 <span className="text-xs text-purple-400 ml-auto">Synced from AI Config</span>
               </div>
               <p className="text-xs text-gray-500">
-                Voice language is synced from your AI configuration
+                ElevenLabs automatically speaks in the detected language
               </p>
             </div>
 
@@ -315,7 +783,15 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
               <Label className="text-gray-300">Voice Gender</Label>
               <Select
                 value={settings.voiceGender}
-                onValueChange={(value) => updateSettings({ voiceGender: value })}
+                onValueChange={(value) => {
+                  // Auto-select first voice of the new gender and store gender
+                  const firstVoice = ELEVENLABS_VOICES.find((v) => v.gender === value);
+                  updateSettings({
+                    voiceGender: value,
+                    elevenLabsVoiceId: firstVoice?.id || 'EXAVITQu4vr4xnSDxMaL',
+                    elevenLabsVoiceGender: value as 'male' | 'female',
+                  });
+                }}
               >
                 <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
                   <SelectValue />
@@ -328,31 +804,266 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
             </div>
           </div>
 
-          {/* Speech Recognition Language Override */}
-          <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-3">
-            <div className="space-y-2">
-              <Label className="text-gray-300">Speech Recognition Language</Label>
-              <Select
-                value={settings.speechRecognitionLanguage || "auto"}
-                onValueChange={(value) => updateSettings({ speechRecognitionLanguage: value === "auto" ? undefined : value })}
-              >
-                <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {SPEECH_RECOGNITION_LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-amber-300">
-                ⚠️ Twilio's speech recognition doesn't support all languages (e.g., Hebrew). 
-                If your TTS language isn't supported, callers will still hear the AI in their language, 
-                but they'll need to speak in the selected recognition language.
-              </p>
+          {/* Voice Selection with Preview */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-gray-300 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                AI Voice Character
+              </Label>
+              
+              {/* Filter tabs */}
+              <div className="flex gap-1 bg-gray-700/50 rounded-lg p-1">
+                {(['all', 'female', 'male'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setVoiceFilter(filter)}
+                    className={`px-3 py-1 text-xs rounded-md transition-all ${
+                      voiceFilter === filter 
+                        ? 'bg-purple-500 text-white' 
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
+            
+            {/* Custom Voice Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-amber-300">🎤 Use Custom/Cloned Voice</span>
+              </div>
+              <Switch
+                checked={useCustomVoice}
+                onCheckedChange={(checked) => {
+                  setUseCustomVoice(checked);
+                  if (!checked && customVoiceId) {
+                    // Reset to a default voice when disabling custom
+                    updateSettings({ elevenLabsVoiceId: 'cgSgspJ2msm6clMCkdW9' });
+                  }
+                }}
+              />
+            </div>
+
+            {/* Account voices (includes cloned voices) */}
+            <div className="p-4 rounded-lg bg-gray-900/50 border border-gray-700 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm text-white">Your ElevenLabs voices</p>
+                  <p className="text-xs text-gray-400">
+                    Includes cloned voices. For the best Hebrew, pick a Hebrew-trained voice from your account.
+                  </p>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchAccountVoices}
+                  disabled={accountVoicesLoading}
+                  className="text-purple-400 hover:text-purple-300"
+                >
+                  {accountVoicesLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              {accountVoicesError && (
+                <p className="text-xs text-red-400">{accountVoicesError}</p>
+              )}
+
+              {accountVoices.length > 0 ? (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Select value={selectedAccountVoiceId} onValueChange={setSelectedAccountVoiceId}>
+                    <SelectTrigger className="bg-gray-700 border-gray-600 text-white">
+                      <SelectValue placeholder="Select one of your voices" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accountVoices.map((v) => (
+                        <SelectItem key={v.voice_id} value={v.voice_id}>
+                          {v.name}{v.category ? ` (${v.category})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (!selectedAccountVoiceId) return;
+                        setUseCustomVoice(false);
+                        const detectedGender = getVoiceGender(selectedAccountVoiceId);
+                        updateSettings({ 
+                          elevenLabsVoiceId: selectedAccountVoiceId,
+                          elevenLabsVoiceGender: detectedGender,
+                          voiceGender: detectedGender,
+                        });
+                        toast({ title: "Voice selected", description: `Saved your ElevenLabs voice (${detectedGender}) for calls.` });
+                      }}
+                      disabled={!selectedAccountVoiceId}
+                      className="border-gray-600 text-white hover:bg-gray-700"
+                    >
+                      Use
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => playVoicePreview(selectedAccountVoiceId)}
+                      disabled={isLoading || !selectedAccountVoiceId}
+                      className="text-purple-400 hover:text-purple-300"
+                      aria-label="Preview selected account voice"
+                    >
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  No voices found in your ElevenLabs account yet. Create/clone a Hebrew voice in ElevenLabs, then refresh.
+                </p>
+              )}
+            </div>
+            
+            {useCustomVoice ? (
+              /* Custom Voice ID Input */
+              <div className="p-4 rounded-lg bg-gray-900/50 border border-amber-500/30 space-y-3">
+                <Label className="text-amber-300">Custom Voice ID</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={customVoiceId || settings.elevenLabsVoiceId || ''}
+                    onChange={(e) => setCustomVoiceId(e.target.value)}
+                    placeholder="Enter your ElevenLabs voice ID..."
+                    className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (customVoiceId) {
+                        // For custom voices, try to detect gender, default to current voiceGender
+                        const detectedGender = getVoiceGender(customVoiceId);
+                        updateSettings({ 
+                          elevenLabsVoiceId: customVoiceId,
+                          elevenLabsVoiceGender: detectedGender,
+                        });
+                        toast({ title: "Custom voice saved", description: `Voice ID set (gender: ${detectedGender}).` });
+                      }
+                    }}
+                    disabled={!customVoiceId}
+                    className="border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+                  >
+                    Apply
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => playVoicePreview(customVoiceId || settings.elevenLabsVoiceId)}
+                    disabled={isLoading || (!customVoiceId && !settings.elevenLabsVoiceId)}
+                    className="text-purple-400 hover:text-purple-300"
+                  >
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Find your voice ID in ElevenLabs → Voices → Click on voice → Copy Voice ID
+                </p>
+                <a 
+                  href="https://elevenlabs.io/voice-library" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-purple-400 hover:text-purple-300 underline"
+                >
+                  Browse ElevenLabs Voice Library →
+                </a>
+              </div>
+            ) : (
+              /* Voice Grid */
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-1">
+                  {sortedVoices.map((voice) => {
+                    const isSelected = settings.elevenLabsVoiceId === voice.id && !isUsingCustomVoice;
+                    const isPreviewing = previewingVoiceId === voice.id && isSpeaking;
+                    const isLoadingThis = previewingVoiceId === voice.id && isLoading;
+                    
+                    return (
+                      <div
+                        key={voice.id}
+                        className={`relative p-3 rounded-lg border cursor-pointer transition-all ${
+                          isSelected 
+                            ? 'bg-purple-500/20 border-purple-500' 
+                            : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
+                        }`}
+                        onClick={() => {
+                          setUseCustomVoice(false);
+                          updateSettings({ 
+                            elevenLabsVoiceId: voice.id,
+                            elevenLabsVoiceGender: voice.gender as 'male' | 'female',
+                            voiceGender: voice.gender,
+                          });
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className={`font-medium ${isSelected ? 'text-purple-300' : 'text-white'}`}>
+                                {voice.name}
+                              </span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                voice.gender === 'female' 
+                                  ? 'bg-pink-500/20 text-pink-300' 
+                                  : 'bg-blue-500/20 text-blue-300'
+                              }`}>
+                                {voice.gender}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-400 truncate">{voice.description}</p>
+                            <p className="text-[10px] text-gray-500">{voice.accent}</p>
+                          </div>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`ml-1 h-7 w-7 p-0 ${
+                              isPreviewing ? 'text-red-400 hover:text-red-300' : 'text-purple-400 hover:text-purple-300'
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playVoicePreview(voice.id);
+                            }}
+                            disabled={isLoadingThis}
+                          >
+                            {isLoadingThis ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : isPreviewing ? (
+                              <Square className="h-3.5 w-3.5 fill-current" />
+                            ) : (
+                              <Play className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
+                        
+                        {isSelected && (
+                          <div className="absolute top-1 right-1">
+                            <div className="h-2 w-2 rounded-full bg-purple-400" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                <p className="text-xs text-gray-500">
+                  {sortedVoices.length} voices available • Click to select, press play to preview
+                </p>
+              </>
+            )}
           </div>
 
           {/* Custom Text Preview */}
@@ -360,31 +1071,33 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Volume2 className="h-4 w-4 text-purple-400" />
-                <span className="text-sm font-medium text-white">Voice Preview (Google TTS)</span>
+                <span className="text-sm font-medium text-white">Custom Preview</span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={playVoicePreview}
+                onClick={() => playVoicePreview()}
                 disabled={isLoading}
                 className={`border-purple-500/50 hover:bg-purple-500/10 ${
-                  isSpeaking ? "text-red-400 border-red-500/50" : "text-purple-400"
+                  isSpeaking && previewingVoiceId === settings.elevenLabsVoiceId 
+                    ? "text-red-400 border-red-500/50" 
+                    : "text-purple-400"
                 }`}
               >
-                {isLoading ? (
+                {isLoading && previewingVoiceId === settings.elevenLabsVoiceId ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Loading...
                   </>
-                ) : isSpeaking ? (
+                ) : isSpeaking && previewingVoiceId === settings.elevenLabsVoiceId ? (
                   <>
                     <Square className="h-4 w-4 mr-2 fill-current" />
                     Stop
                   </>
                 ) : (
                   <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Preview Voice
+                    <Volume2 className="h-4 w-4 mr-2" />
+                    Play Selected Voice
                   </>
                 )}
               </Button>
@@ -468,23 +1181,9 @@ export function TwilioAdvancedSettings({ settings, onChange, primaryLanguage, bu
 
         <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
           <p className="text-sm text-emerald-300">
-            🎙️ <strong>Voiceflow:</strong> Design powerful conversational AI flows with a visual canvas. Configure your agent at{" "}
-            <a 
-              href="https://creator.voiceflow.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="underline hover:text-emerald-200"
-            >
-              creator.voiceflow.com
-            </a>
+            🎙️ <strong>ElevenLabs:</strong> Ultra-realistic AI voices with natural intonation. Supports 29+ languages including Hebrew and English with the same voice.
           </p>
         </div>
-
-        {/* Webhook Health Check */}
-        <WebhookHealthCheck />
-
-        {/* Twilio Debugger Hints */}
-        <TwilioDebuggerHints />
       </CardContent>
     </Card>
   );

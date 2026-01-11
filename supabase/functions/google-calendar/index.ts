@@ -23,45 +23,33 @@ serve(async (req) => {
     const action = url.searchParams.get('action');
 
     // Get user from auth header
-    const authHeader = req.headers.get('authorization') ?? req.headers.get('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader && action !== 'callback') {
+      throw new Error('Missing authorization header');
+    }
 
     let userId: string | null = null;
     let businessId: string | null = null;
 
-    if (token) {
-      const supabaseClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!);
-      const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-
-      if (!userError && user) {
-        userId = user.id;
-
-        // Get business for user
-        const { data: business, error: bizError } = await supabaseAdmin
-          .from('businesses')
-          .select('id')
-          .eq('owner_user_id', userId)
-          .single();
-
-        if (!bizError && business) {
-          businessId = business.id;
-        }
-      }
-    }
-
-    // For status checks we allow unauthenticated/no-business users and simply report disconnected.
-    if (action === 'status' && (!userId || !businessId)) {
-      return new Response(JSON.stringify({ connected: false }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const supabaseClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!, {
+        global: { headers: { Authorization: `Bearer ${token}` } }
       });
-    }
+      
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+      if (userError || !user) throw new Error('Unauthorized');
+      userId = user.id;
 
-    if (!userId && action !== 'callback') {
-      throw new Error('Unauthorized');
-    }
-
-    if (!businessId && action !== 'callback') {
-      throw new Error('Business not found');
+      // Get business for user
+      const { data: business, error: bizError } = await supabaseAdmin
+        .from('businesses')
+        .select('id')
+        .eq('owner_user_id', userId)
+        .single();
+      
+      if (bizError || !business) throw new Error('Business not found');
+      businessId = business.id;
     }
 
     console.log(`Google Calendar action: ${action}, userId: ${userId}`);

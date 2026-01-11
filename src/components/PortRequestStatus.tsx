@@ -59,14 +59,7 @@ export function PortRequestStatus({ businessId, onPortNumberClick }: PortRequest
         body: { business_id: businessId },
       });
 
-      if (error) {
-        // Silently handle auth errors (user may not be fully authenticated yet)
-        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          setPortRequests([]);
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
       if (!data.success) throw new Error(data.error);
 
       setPortRequests(data.port_requests || []);
@@ -75,10 +68,7 @@ export function PortRequestStatus({ businessId, onPortNumberClick }: PortRequest
         toast({ title: "Status updated", description: "Port request statuses have been refreshed." });
       }
     } catch (error: any) {
-      // Only log non-auth errors
-      if (!error.message?.includes('Unauthorized') && !error.message?.includes('401')) {
-        console.error("Error fetching port requests:", error);
-      }
+      console.error("Error fetching port requests:", error);
       if (showRefreshToast) {
         toast({
           variant: "destructive",

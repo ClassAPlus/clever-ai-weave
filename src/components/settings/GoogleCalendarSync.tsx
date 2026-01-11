@@ -38,10 +38,7 @@ export function GoogleCalendarSync({ businessId }: GoogleCalendarSyncProps) {
   const checkConnectionStatus = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setIsLoading(false);
-        return;
-      }
+      if (!session) return;
 
       const response = await fetch(
         `https://wqhakzywmqirucmetnuo.supabase.co/functions/v1/google-calendar?action=status`,
@@ -52,18 +49,10 @@ export function GoogleCalendarSync({ businessId }: GoogleCalendarSyncProps) {
         }
       );
 
-      // Silently handle auth/business errors - user may not have a business yet
-      if (!response.ok) {
-        setIsConnected(false);
-        setIsLoading(false);
-        return;
-      }
-
       const result = await response.json();
       setIsConnected(result?.connected || false);
     } catch (error) {
-      // Silently fail - this is expected when user doesn't have a business
-      setIsConnected(false);
+      console.error('Error checking calendar status:', error);
     } finally {
       setIsLoading(false);
     }

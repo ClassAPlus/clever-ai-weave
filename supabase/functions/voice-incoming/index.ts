@@ -6,16 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// XML-escape a string for safe inclusion in TwiML
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -121,15 +111,9 @@ serve(async (req) => {
     const voiceLanguage = twilioSettings.voiceLanguage || 'he-IL';
     const voiceGender = twilioSettings.voiceGender || 'female';
     
-    // AI Backend settings - prioritize ElevenLabs, fallback to Voiceflow
-    const elevenlabsConfig = twilioSettings.elevenlabs || {};
-    const elevenlabsAgentId = elevenlabsConfig.agentId || '';
-    const voiceflowProjectId = twilioSettings.voiceflowProjectId || '';
-    const voiceflowVersionId = twilioSettings.voiceflowVersionId || 'production';
+    // ElevenLabs settings - now the only AI backend
+    const elevenLabsAgentId = twilioSettings.elevenLabsAgentId || '';
     const enableAiReceptionist = twilioSettings.enableAiReceptionist !== false;
-    
-    // Determine which AI provider to use
-    const aiProvider = elevenlabsAgentId ? 'elevenlabs' : (voiceflowProjectId ? 'voiceflow' : 'none');
 
     // Check if Google Cloud TTS is configured
     const useGoogleTTS = !!Deno.env.get('GOOGLE_CLOUD_API_KEY');
@@ -162,7 +146,7 @@ serve(async (req) => {
     };
 
     const pollyVoiceName = getVoiceName(voiceLanguage, voiceGender);
-    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage, "AI provider:", aiProvider, "AI enabled:", enableAiReceptionist);
+    console.log("Using settings - timeout:", ringTimeout, "GoogleTTS:", useGoogleTTS, "language:", voiceLanguage, "AI receptionist:", enableAiReceptionist, "ElevenLabs agentId set:", !!elevenLabsAgentId);
 
     let twiml = `<?xml version="1.0" encoding="UTF-8"?><Response>`;
 
@@ -176,30 +160,17 @@ serve(async (req) => {
       }
       
       twiml += `</Dial>`;
-    } else if (enableAiReceptionist && aiProvider === 'elevenlabs') {
-      // ElevenLabs Conversational AI - preferred multi-tenant solution
-      console.log("Connecting to ElevenLabs agent for business:", business.id);
+    } else if (enableAiReceptionist && elevenLabsAgentId) {
+      // ElevenLabs Conversational AI - use their Twilio integration
+      console.log("Connecting to ElevenLabs agent:", elevenLabsAgentId, "for business:", business.id);
       
-      // Redirect to ElevenLabs phone handler which will dynamically configure the agent
-      const redirectUrl = new URL(`https://${projectId}.supabase.co/functions/v1/elevenlabs-phone`);
-      redirectUrl.searchParams.set('business_id', business.id);
-      redirectUrl.searchParams.set('caller_phone', callerPhone);
-      redirectUrl.searchParams.set('call_sid', callSid);
-      const escapedUrl = escapeXml(redirectUrl.toString());
+      // ElevenLabs Twilio WebSocket URL with dynamic variables
+      const elevenLabsWsUrl = `wss://api.elevenlabs.io/v1/convai/twilio/audio-socket?agent_id=${elevenLabsAgentId}&business_id=${business.id}&caller_phone=${encodeURIComponent(callerPhone)}`;
       
-      twiml += `<Redirect method="POST">${escapedUrl}</Redirect>`;
-    } else if (enableAiReceptionist && aiProvider === 'voiceflow') {
-      // Voiceflow Phone AI integration via Dialog API (legacy/fallback)
-      console.log("Connecting to Voiceflow project:", voiceflowProjectId, "for business:", business.id);
-      
-      // Redirect to Voiceflow webhook handler
-      const redirectUrl = new URL(`https://${projectId}.supabase.co/functions/v1/voiceflow-phone`);
-      redirectUrl.searchParams.set('business_id', business.id);
-      redirectUrl.searchParams.set('caller_phone', callerPhone);
-      redirectUrl.searchParams.set('call_sid', callSid);
-      const escapedUrl = escapeXml(redirectUrl.toString());
-      
-      twiml += `<Redirect method="POST">${escapedUrl}</Redirect>`;
+      twiml += `<Connect><Stream url="${elevenLabsWsUrl}">`;
+      twiml += `<Parameter name="business_id" value="${business.id}"/>`;
+      twiml += `<Parameter name="caller_phone" value="${callerPhone}"/>`;
+      twiml += `</Stream></Connect>`;
     } else {
       // No forward numbers and AI disabled - play voice message
       console.log("No forward numbers and AI disabled for business:", business.id);

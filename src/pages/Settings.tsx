@@ -33,7 +33,6 @@ import { BusinessStaffManager } from "@/components/settings/BusinessStaffManager
 import { SettingsSkeleton } from "@/components/settings/SettingsSkeleton";
 import { GoogleCalendarSync } from "@/components/settings/GoogleCalendarSync";
 import { AppointmentTemplateManager } from "@/components/appointments/AppointmentTemplateManager";
-import { ElevenLabsSettings } from "@/components/settings/ElevenLabsSettings";
 import { Badge } from "@/components/ui/badge";
 
 import { SMSPreviewTest } from "@/components/settings/SMSPreviewTest";
@@ -48,8 +47,9 @@ interface TwilioSettings {
   voiceGender: string;
   voiceId: string;
   googleVoiceName?: string;
-  voiceflowProjectId?: string;
-  voiceflowVersionId?: string;
+  elevenLabsVoiceId?: string;
+  elevenLabsAgentId?: string;
+  useElevenLabsAgent?: boolean;
   ringTimeout: number;
   dailyMessageLimit: number;
   rateLimitWindow: number;
@@ -59,7 +59,6 @@ interface TwilioSettings {
   appointmentReminderTemplates?: Record<string, string>; // Templates per language
   appointmentReminderTiming?: 'same_day' | '1_day' | '2_days';
   timeFormat?: '12h' | '24h'; // AM/PM vs 24-hour format
-  speechRecognitionLanguage?: string; // Override for Twilio Gather speech recognition
 }
 
 interface Business {
@@ -1789,25 +1788,6 @@ export default function Settings() {
               />
             </CardContent>
           </Card>
-
-          {/* ElevenLabs Voice AI */}
-          <ElevenLabsSettings
-            config={{
-              agentId: (twilioSettings as any)?.elevenlabs?.agentId || "",
-              voiceId: (twilioSettings as any)?.elevenlabs?.voiceId || "",
-              language: (twilioSettings as any)?.elevenlabs?.language || "",
-              customPromptOverride: (twilioSettings as any)?.elevenlabs?.customPromptOverride || "",
-              firstMessageOverride: (twilioSettings as any)?.elevenlabs?.firstMessageOverride || "",
-              enableTools: (twilioSettings as any)?.elevenlabs?.enableTools ?? true,
-            }}
-            onChange={(elevenLabsConfig) => {
-              setTwilioSettings(prev => ({
-                ...prev,
-                elevenlabs: elevenLabsConfig,
-              }));
-            }}
-            businessId={business?.id}
-          />
         </TabsContent>
 
         {/* Developer Tab */}

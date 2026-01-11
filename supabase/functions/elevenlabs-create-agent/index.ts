@@ -311,9 +311,10 @@ function buildWebhookToolConfig(args: {
     },
   };
 
-  // NOTE: ElevenLabs validates these as dictionaries and (currently) requires a non-empty properties map.
+  // NOTE: ElevenLabs validates these schemas as objects and (currently) requires a non-empty properties map.
   // We include a harmless optional __unused param to satisfy their validator.
   const emptySchemaWithOneOptional = {
+    type: "object",
     properties: {
       __unused: {
         type: "string",
